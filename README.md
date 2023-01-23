@@ -22,41 +22,18 @@ npm install @asup/context-menu
 ## Usage
 
 Context menu provider, takes a list of available actions and renders a context menu on appropriate click.
+Wrap around the elements that need to have the menu
 
 ```
-import { ContextMenuProvider, iMenuItem, MenuContext } from '@asup/context-menu';
+import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
 
-... inside REACT component
-
-<ContextMenuProvider>
-
-  <SomeChild
-
-    const menuContext = useContext(MenuContext);
-    const showMenu = useCallback((e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const menuItems: iMenuItem[] = [
-        { label: 'Item 1', action: item1Function },
-        { label: 'Item 2', action: item2Function },
-        ...
-      ];
-      menuContext.set && menuContext.set({
-          visible: true,
-          y: e.pageY,
-          x: e.pageX,
-          menuItems: menuItems,
-        });
-    },
-    [...]);
-
-    return (
-      <div onContextMenu={showMenu}>
-      </div>
-    );
-  >
-
+<ContextMenuHandler
+  menuItems={[
+    { label: 'Item 1', action: item1Function },
+    { label: 'Item 2', action: item2Function },
+    ...
+  ]}
+>
+  <Chilren ... />
 </ContextMenuProvider>
 ```
-
-Add an `onContextMenu` action to an element inside the `ContextMenuProvider`, and create a corresponding function that loads the menuItems array and then sets it to visible.
