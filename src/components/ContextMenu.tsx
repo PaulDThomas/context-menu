@@ -1,24 +1,21 @@
 import React, { useContext } from 'react';
-import './ContextMenu.css';
 import { iMenuItem } from './interface';
-import { MenuContext } from './MenuContext';
 
 export interface contextMenuProps {
   entries: iMenuItem[];
-  visible: boolean;
   xPos: number;
   yPos: number;
+  toClose: () => void;
 }
 
 export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
-  ({ entries, visible, xPos, yPos }, ref): JSX.Element => {
+  ({ entries, xPos, yPos, toClose }, ref): JSX.Element => {
     ContextMenu.displayName = 'ContextMenu';
-    const menuContext = useContext(MenuContext);
 
     return (
       <div
         ref={ref}
-        className={`context-menu ${visible ? 'visible' : ''}`}
+        className='context-menu visible'
         style={{
           top: `${yPos}px`,
           left: `${xPos}px`,
@@ -30,7 +27,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
             className='context-menu-item'
             onClick={() => {
               e.action && e.action();
-              menuContext.set && menuContext.set({ visible: false });
+              toClose();
             }}
           >
             {e.label}

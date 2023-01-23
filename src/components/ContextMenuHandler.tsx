@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ContextMenu } from './ContextMenu';
 import { iMenuItem } from './interface';
-import { MenuContext } from './MenuContext';
+import './ContextMenu.scss';
 
 export const ContextMenuHandler = ({
   children,
+  menuItems,
 }: {
   children: JSX.Element[] | JSX.Element;
+  menuItems: iMenuItem[];
 }): JSX.Element => {
   // Menu resources
   const divRef = useRef<HTMLDivElement | null>(null);
@@ -14,23 +17,18 @@ export const ContextMenuHandler = ({
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
-  const [menuItems, setMenuItems] = useState<iMenuItem[]>([]);
 
-  // Update menu items
-  const updateMenu = useCallback(
-    (ret: { visible?: boolean; x?: number; y?: number; menuItems?: iMenuItem[] }) => {
-      if (divRef.current) {
-        if (ret.visible !== undefined) setMenuVisible(ret.visible);
-        if (ret.x) setMenuXPos(ret.x - window.scrollX - divRef.current.getBoundingClientRect().x);
-        if (ret.y) setMenuYPos(ret.y - window.scrollX - divRef.current.getBoundingClientRect().y);
-        if (ret.menuItems !== undefined) setMenuItems(ret.menuItems);
-      }
-    },
-    [],
-  );
+  // Show menu when context is requested
+  const showMenu = (e: MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuVisible(true);
+    setMenuXPos(e.pageX);
+    setMenuYPos(e.pageY);
+  };
 
   // Handle click off the menu
-  const handleClick = useCallback((e: MouseEvent) => {
+  const handleClick = useCallback((e: globalThis.MouseEvent) => {
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current?.contains(e.target)) ||
@@ -50,28 +48,29 @@ export const ContextMenuHandler = ({
   }, [handleClick, menuVisible]);
 
   return (
-    <MenuContext.Provider
-      value={{
-        visible: menuVisible,
-        x: menuXPos,
-        y: menuYPos,
-        set: updateMenu,
-      }}
-    >
+    <>
       <div
-        className='menu-context-provider'
-        style={{ position: 'relative' }}
-        ref={divRef}
+        onContextMenu={showMenu}
+        className='context-menu-handler'
       >
         {children}
-        <ContextMenu
-          ref={menuRef}
-          entries={menuItems}
-          visible={menuVisible}
-          xPos={menuXPos}
-          yPos={menuYPos}
-        />
       </div>
-    </MenuContext.Provider>
+      {menuVisible &&
+        createPortal(
+          <div
+            style={{ position: 'absolute', top: 0, left: 0 }}
+            ref={divRef}
+          >
+            <ContextMenu
+              ref={menuRef}
+              entries={menuItems}
+              xPos={menuXPos}
+              yPos={menuYPos}
+              toClose={() => setMenuVisible(false)}
+            />
+          </div>,
+          document.body,
+        )}
+    </>
   );
 };
