@@ -1,0 +1,41 @@
+.context-menu {
+  position: absolute;
+  visibility: hidden;
+  border: 1px solid;
+  border-color: rgb(17, 20, 24);
+  border-radius: 8px;
+  opacity: 1;
+  background-color: rgb(251, 253, 246);
+  z-index: 10000;
+}
+
+.context-menu.visible {
+  visibility: inherit;
+}
+
+.context-menu-item {
+  color: rgb(17, 20, 24);
+  cursor: pointer;
+  padding: 0 4px;
+  min-width: 80px;
+}
+
+.context-menu-item:first-child {
+  padding-top: 2px;
+}
+
+.context-menu-item:last-child {
+  padding-bottom: 2px;
+}
+
+.context-menu-item:hover {
+  background-color: rgb(251, 233, 230);
+}
+
+.context-menu-item:hover:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.context-menu-item:hover:last-child {
+  border-radius: 0 0 6px 6px;
+}
