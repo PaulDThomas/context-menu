@@ -35,7 +35,7 @@ const config: Config = {
   ],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
-    '\\.(css|less)$': '<rootDir>/src/__mocks__/styleMock.ts',
+    '\\.(css|less|scss)$': '<rootDir>/src/__mocks__/styleMock.ts',
   },
 };
 

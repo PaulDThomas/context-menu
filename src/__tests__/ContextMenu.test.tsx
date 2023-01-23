@@ -1,6 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ContextMenu } from '../components/ContextMenu';
 import { ContextMenuHandler } from '../components/ContextMenuHandler';
 
 describe('Context menu', () => {
@@ -8,34 +7,31 @@ describe('Context menu', () => {
   const user = userEvent.setup();
   test('Empty render, click expan', async () => {
     render(
-      <ContextMenuHandler>
-        <ContextMenu
-          entries={[{ label: 'Hello', action: a }]}
-          visible={true}
-          xPos={0}
-          yPos={0}
-        />
+      <ContextMenuHandler menuItems={[{ label: 'Hello', action: a }]}>
+        <div data-testid='inside-div' />
       </ContextMenuHandler>,
     );
-    expect(screen.getByText('Hello')).toBeInTheDocument();
+    const testDiv = screen.getByTestId('inside-div');
+    fireEvent.contextMenu(testDiv);
+    expect(screen.queryByText('Hello')).toBeInTheDocument();
     const h = screen.getByText('Hello');
     await user.click(h);
     expect(a).toHaveBeenCalled();
   });
 
-  test('Open menu', async () => {
-    const a = jest.fn();
+  test('Click off menu', async () => {
     const user = userEvent.setup();
-    test('Empty render, click expan', async () => {
-      render(
-        <ContextMenuHandler>
-          <div onContextMenu={() => {}} />
-        </ContextMenuHandler>,
-      );
-      expect(screen.getByText('Hello')).toBeInTheDocument();
-      const h = screen.getByText('Hello');
-      await user.click(h);
-      expect(a).toHaveBeenCalled();
-    });
+    render(
+      <ContextMenuHandler menuItems={[{ label: 'Hello' }]}>
+        <div data-testid='inside-div'>Inside</div>
+        <div data-testid='another-div'>Outside</div>
+      </ContextMenuHandler>,
+    );
+    const testDiv = screen.getByTestId('inside-div');
+    fireEvent.contextMenu(testDiv);
+    expect(screen.queryByText('Hello')).toBeInTheDocument();
+    const notDiv = screen.getByTestId('another-div');
+    await user.click(notDiv);
+    expect(screen.queryByText('Hello')).not.toBeInTheDocument();
   });
 });
