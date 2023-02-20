@@ -32,6 +32,12 @@ export const App = () => {
           <ColourDiv text='Div 1' />
           <ColourDiv text='Div 2' />
           <ColourDiv text='Div 3' />
+          <ContextMenuHandler
+            style={{ width: '100%', height: '100%', backgroundColor: 'magenta' }}
+            menuItems={[{ label: 'Item 1' }]}
+          >
+            <span style={{ backgroundColor: 'white' }}>Hello</span>
+          </ContextMenuHandler>
         </div>
       </div>
     </div>

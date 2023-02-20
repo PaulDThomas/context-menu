@@ -7,9 +7,14 @@ import './ContextMenu.scss';
 export const ContextMenuHandler = ({
   children,
   menuItems,
+  style = {
+    height: 'fit-content',
+    width: 'fit-content',
+  },
 }: {
   children: JSX.Element[] | JSX.Element;
   menuItems: iMenuItem[];
+  style?: React.CSSProperties;
 }): JSX.Element => {
   // Menu resources
   const divRef = useRef<HTMLDivElement | null>(null);
@@ -52,6 +57,7 @@ export const ContextMenuHandler = ({
       <div
         onContextMenu={showMenu}
         className='context-menu-handler'
+        style={style}
       >
         {children}
       </div>
