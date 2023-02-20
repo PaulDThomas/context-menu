@@ -26,12 +26,12 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
         {entries.map((e, i) => (
           <div
             key={i}
-            className='context-menu-item'
+            className={`context-menu-item${e.disabled ? ' disabled' : ''}`}
             onClick={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
-              e.action && e.action();
-              toClose();
+              e.action && !e.disabled && e.action();
+              !e.disabled && toClose();
             }}
           >
             <span>{e.label}</span>

@@ -36,6 +36,7 @@ import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
       ...
       ]
     },
+    { label: 'Item 3', action: item3Function, disabeld: true },
     ...
   ]}
 >

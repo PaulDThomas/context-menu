@@ -26,6 +26,11 @@
   white-space: nowrap;
 }
 
+.context-menu-item.disabled {
+  background-color: rgba(0, 0, 0, 0.2);
+  cursor: not-allowed;
+}
+
 .context-menu-item:first-child {
   padding-top: 4px;
 }
@@ -34,7 +39,7 @@
   padding-bottom: 4px;
 }
 
-.context-menu-item:hover {
+.context-menu-item:not(.disabled):hover {
   background-color: rgb(251, 233, 230);
 }
 

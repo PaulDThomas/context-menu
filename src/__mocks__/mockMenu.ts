@@ -8,7 +8,7 @@ export const menuItems = (setColour: (colour: string) => void): iMenuItem[] => {
       group: [
         { label: 'Light red', action: () => setColour('lightred') },
         { label: 'Pink', action: () => setColour('Pink') },
-        { label: 'Russet', action: () => setColour('russet') },
+        { label: 'Russet', action: () => setColour('russet'), disabled: true },
         { label: 'Black', action: () => setColour('black') },
       ],
     },
