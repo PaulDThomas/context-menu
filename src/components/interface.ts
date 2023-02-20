@@ -1,6 +1,6 @@
 export interface iMenuItem {
   label: string;
   disabled?: boolean;
-  action?: () => void;
+  action?: (target?: Range | null) => void;
   group?: iMenuItem[];
 }

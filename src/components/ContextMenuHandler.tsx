@@ -22,9 +22,12 @@ export const ContextMenuHandler = ({
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
+  const [target, setTarget] = useState<Range | null>(null);
 
   // Show menu when context is requested
   const showMenu = (e: MouseEvent<HTMLDivElement>) => {
+    const sel = window.getSelection();
+    setTarget(sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null);
     e.preventDefault();
     e.stopPropagation();
     setMenuVisible(true);
@@ -73,6 +76,7 @@ export const ContextMenuHandler = ({
               entries={menuItems}
               xPos={menuXPos}
               yPos={menuYPos}
+              target={target}
               toClose={() => setMenuVisible(false)}
             />
           </div>,

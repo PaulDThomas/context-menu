@@ -4,10 +4,11 @@ import { iMenuItem } from './interface';
 
 export interface subMenuProps {
   entries: iMenuItem[];
+  target: Range | null;
   toClose: () => void;
 }
 
-export const SubMenu = ({ entries, toClose }: subMenuProps): JSX.Element => {
+export const SubMenu = ({ entries, target, toClose }: subMenuProps): JSX.Element => {
   const [visible, setVisible] = useState<boolean>(false);
 
   return (
@@ -33,6 +34,7 @@ export const SubMenu = ({ entries, toClose }: subMenuProps): JSX.Element => {
         <ContextMenu
           visible={visible}
           entries={entries}
+          target={target}
           xPos={14}
           yPos={-21}
           toClose={toClose}

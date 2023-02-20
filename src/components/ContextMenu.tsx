@@ -5,13 +5,14 @@ import { SubMenu } from './SubMenu';
 export interface contextMenuProps {
   visible: boolean;
   entries: iMenuItem[];
+  target: Range | null;
   xPos: number;
   yPos: number;
   toClose: () => void;
 }
 
 export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
-  ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
+  ({ visible, entries, target, xPos, yPos, toClose }, ref): JSX.Element => {
     ContextMenu.displayName = 'ContextMenu';
 
     return (
@@ -27,10 +28,10 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
           <div
             key={i}
             className={`context-menu-item${e.disabled ? ' disabled' : ''}`}
-            onClick={(ev) => {
+            onClickCapture={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
-              e.action && !e.disabled && e.action();
+              e.action && !e.disabled && e.action(target);
               !e.disabled && toClose();
             }}
           >
@@ -39,6 +40,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
               <SubMenu
                 toClose={toClose}
                 entries={e.group}
+                target={target}
               />
             )}
           </div>
