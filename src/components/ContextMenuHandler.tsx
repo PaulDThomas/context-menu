@@ -62,6 +62,7 @@ export const ContextMenuHandler = ({
             ref={divRef}
           >
             <ContextMenu
+              visible={true}
               ref={menuRef}
               entries={menuItems}
               xPos={menuXPos}

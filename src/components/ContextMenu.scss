@@ -23,14 +23,20 @@
   cursor: pointer;
   padding: 0 4px;
   min-width: 80px;
+  height: 21px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  white-space: nowrap;
 }
 
 .context-menu-item:first-child {
-  padding-top: 2px;
+  padding-top: 4px;
 }
 
 .context-menu-item:last-child {
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .context-menu-item:hover {
@@ -43,4 +49,13 @@
 
 .context-menu-item:hover:last-child {
   border-radius: 0 0 6px 6px;
+}
+
+.context-menu-item .caret-holder {
+  align-self: flex-end;
+}
+
+.context-menu-item .caret-holder .sub-menu {
+  z-index: 1;
+  position: relative;
 }

@@ -1,16 +1,13 @@
 import { useState } from 'react';
-import { ContextMenuHandler, iMenuItem } from '../../src/main';
+import { ContextMenuHandler } from '../../src/main';
+import { menuItems } from '../../src/__mocks__/mockMenu';
 
 export const ColourDiv = ({ text }: { text: string }) => {
-  const colours = ['red', 'blue', 'green', 'yellow'];
   const [colour, setColour] = useState<string>('white');
-  const menuItems: iMenuItem[] = colours.map((c) => {
-    return { label: c, action: () => setColour(c) };
-  });
 
   return (
     <div style={{ margin: '2rem' }}>
-      <ContextMenuHandler menuItems={menuItems}>
+      <ContextMenuHandler menuItems={menuItems(setColour)}>
         <div
           style={{
             backgroundColor: colour,
@@ -27,7 +24,7 @@ export const ColourDiv = ({ text }: { text: string }) => {
   );
 };
 
-export default () => {
+export const App = () => {
   return (
     <div className='app-holder'>
       <div className='app-border'>
@@ -40,3 +37,5 @@ export default () => {
     </div>
   );
 };
+
+export default App;

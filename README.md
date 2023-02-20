@@ -22,7 +22,8 @@ npm install @asup/context-menu
 ## Usage
 
 Context menu provider, takes a list of available actions and renders a context menu on appropriate click.
-Wrap around the elements that need to have the menu
+Sub menus can be added within each item.
+Wrap around the elements that need to have the menu.
 
 ```
 import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
@@ -30,10 +31,16 @@ import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
 <ContextMenuHandler
   menuItems={[
     { label: 'Item 1', action: item1Function },
-    { label: 'Item 2', action: item2Function },
+    { label: 'Item 2', action: item2Function, group: [
+      { label: 'Subitem 2.1', action: item21Function }
+      ...
+      ]
+    },
     ...
   ]}
 >
-  <Chilren ... />
+  <Chilren
+    where the context menu is applied...
+  />
 </ContextMenuProvider>
 ```
