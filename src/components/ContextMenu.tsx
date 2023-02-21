@@ -28,7 +28,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
           <div
             key={i}
             className={`context-menu-item${e.disabled ? ' disabled' : ''}`}
-            onClickCapture={(ev) => {
+            onClick={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
               e.action && !e.disabled && e.action(target);
