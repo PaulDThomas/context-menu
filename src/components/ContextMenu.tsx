@@ -35,7 +35,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
               !e.disabled && toClose();
             }}
           >
-            <span>{e.label}</span>
+            <span className='context-menu-item-label'>{e.label}</span>
             {e.group && (
               <SubMenu
                 toClose={toClose}
