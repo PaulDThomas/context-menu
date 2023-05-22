@@ -30,18 +30,29 @@ import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
 
 <ContextMenuHandler
   menuItems={[
-    { label: 'Item 1', action: item1Function },
-    { label: 'Item 2', action: item2Function, group: [
-      { label: 'Subitem 2.1', action: item21Function }
-      ...
-      ]
+    {
+      label: 'Item 1',
+      action: () => {
+        console.log('Item 1 function run');
+      },
     },
-    { label: 'Item 3', action: item3Function, disabeld: true },
-    ...
+    {
+      label: 'Item 2',
+      action: () => console.log('Item 2 function run'),
+      group: [
+        { label: 'Subitem 2.1', action: () => console.log('Item 2.1 function run') },
+      ],
+    },
+    {
+      label: 'Item 3',
+      action: () => console.log('Item 3 function run'),
+      disabled: true,
+    },
   ]}
 >
   <Chilren
     where the context menu is applied...
   />
-</ContextMenuProvider>
+</ContextMenuHandler>
+
 ```
