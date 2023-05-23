@@ -2,7 +2,7 @@ import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ContextMenu } from './ContextMenu';
 import { iMenuItem } from './interface';
-import './ContextMenu.scss';
+import './ContextMenu.css';
 
 export const ContextMenuHandler = ({
   children,

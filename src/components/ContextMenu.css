@@ -61,3 +61,7 @@
   z-index: 1;
   position: relative;
 }
+
+.context-menu-item-label {
+  flex-grow: 1;
+}
