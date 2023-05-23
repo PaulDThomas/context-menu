@@ -81,6 +81,20 @@ export const ContextWindow = React.forwardRef<HTMLDivElement, ContextWindowProps
           windowStack.pushToTop(windowId.current);
           setWindowVisible(visible);
           onOpen && onOpen();
+          // Get starting position
+          if (divRef.current && windowRef.current) {
+            const parentPos = divRef.current.getBoundingClientRect();
+            const pos = windowRef.current.getBoundingClientRect();
+            const windowHeight = pos.bottom - pos.top;
+            windowRef.current.style.left = `${parentPos.left}px`;
+            windowRef.current.style.top = `${
+              parentPos.bottom + windowHeight < window.innerHeight
+                ? parentPos.bottom
+                : Math.max(0, parentPos.top - windowHeight)
+            }px`;
+            windowRef.current.style.transform = '';
+            windowPos.current = { x: 0, y: 0 };
+          }
         } else if (windowId.current && !visible && windowVisible) {
           setWindowVisible(false);
         }
@@ -106,8 +120,6 @@ export const ContextWindow = React.forwardRef<HTMLDivElement, ContextWindowProps
                 minWidth: style?.minWidth ?? '200px',
                 maxHeight: style?.maxHeight ?? '1000px',
                 maxWidth: style?.maxWidth ?? '1000px',
-                left: `${50 + (windowId.current ?? 0) * 5}px`,
-                top: `${50 + (windowId.current ?? 0) * 5}px`,
               }}
               onClickCapture={() => {
                 windowId && windowId.current && windowStack.pushToTop(windowId.current);
@@ -126,9 +138,7 @@ export const ContextWindow = React.forwardRef<HTMLDivElement, ContextWindowProps
                   windowId && windowId.current && windowStack.pushToTop(windowId.current);
                   document.addEventListener('mouseup', mouseUp);
                   document.addEventListener('mousemove', mouseMove);
-                  window.addEventListener('resize', () => {
-                    checkPosition();
-                  });
+                  window.addEventListener('resize', () => checkPosition());
                 }}
               >
                 <span className='contextwindow-title-text'>
