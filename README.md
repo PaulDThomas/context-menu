@@ -56,3 +56,38 @@ import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
 </ContextMenuHandler>
 
 ```
+
+```
+import { ContextWindowStack, ContextWindow }
+
+// Context window stack needs to cover the application, or portion where context windows cannot clash with each other
+<ContextWindowStack>
+ ...rest of app
+
+  <ContextWindow
+    id='window-1'
+    title={'Window 1'}
+    visible={visible}
+    style={ window styling, applied to the window div}
+    onOpen={ called function on opening}
+    onClose={ called function on closing (close cross in the window)}
+  >
+    {window contents}
+  </ContextWindow>
+
+  <ContextWindow
+    id='window-2'
+    title={'Window 2'}
+    visible={visible}
+    style={ window styling, applied to the window div}
+    onOpen={ called function on opening}
+    onClose={ called function on closing (close cross in the window)}
+  >
+    {window contents}
+  </ContextWindow>
+
+ ...end of app
+
+</ContextWindowStack>
+
+```
