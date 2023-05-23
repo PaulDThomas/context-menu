@@ -47,7 +47,6 @@ export const ContextWindowStack = ({
       }}
     >
       {children}
-      <pre>{JSON.stringify(currentWindows, null, 1)}</pre>
     </ContextWindowStackContext.Provider>
   );
 };
