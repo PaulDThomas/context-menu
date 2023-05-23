@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { createPortal } from 'react-dom';
 import './ContextWindow.css';
 import { ContextWindowStackContext } from './ContextWindowStack';
+import { chkPosition } from '../functions/chkPosition';
 
 interface ContextWindowProps {
   id: string;
@@ -30,32 +31,43 @@ export const ContextWindow = React.forwardRef<HTMLDivElement, ContextWindowProps
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [moving, setMoving] = useState<boolean>(false);
 
-    const mouseMove = useCallback((e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const move = useCallback((x: number, y: number) => {
       if (windowRef.current && windowPos.current) {
         const window = windowRef.current;
         const pos = windowPos.current;
-        pos.x += e.movementX;
-        pos.y += e.movementY;
+        pos.x += x;
+        pos.y += y;
         window.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
       }
     }, []);
+
+    const checkPosition = useCallback(() => {
+      const chkPos = chkPosition(windowRef);
+      move(chkPos.translateX, chkPos.translateY);
+    }, [move]);
+
+    const mouseMove = useCallback(
+      (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        move(e.movementX, e.movementY);
+      },
+      [move],
+    );
 
     const mouseUp = useCallback(
       (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setMoving(false);
+        checkPosition();
         document.removeEventListener('mousemove', mouseMove);
         document.removeEventListener('mouseup', mouseUp);
-        const pos = windowPos.current;
-        pos.x = Math.max(pos.x, 0);
-        pos.y = Math.max(pos.y, 0);
-        setMoving(false);
+        window.removeEventListener('resize', checkPosition);
         if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
           e.target.style.userSelect = 'auto';
       },
-      [mouseMove],
+      [checkPosition, mouseMove],
     );
 
     // Update visibility
@@ -114,6 +126,9 @@ export const ContextWindow = React.forwardRef<HTMLDivElement, ContextWindowProps
                   windowId && windowId.current && windowStack.pushToTop(windowId.current);
                   document.addEventListener('mouseup', mouseUp);
                   document.addEventListener('mousemove', mouseMove);
+                  window.addEventListener('resize', () => {
+                    checkPosition();
+                  });
                 }}
               >
                 <span className='contextwindow-title-text'>
