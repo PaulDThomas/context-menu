@@ -85,3 +85,5 @@ export const ContextMenuHandler = ({
     </>
   );
 };
+
+ContextMenuHandler.displayName = 'ContextMenuHandler';

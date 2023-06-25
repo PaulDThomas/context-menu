@@ -50,3 +50,5 @@ export const ContextWindowStack = ({
     </ContextWindowStackContext.Provider>
   );
 };
+
+ContextWindowStack.displayName = 'ContextWindowStack';

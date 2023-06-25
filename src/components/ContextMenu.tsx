@@ -49,3 +49,5 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
     );
   },
 );
+
+ContextMenu.displayName = 'ContextMenu';
