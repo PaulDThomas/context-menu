@@ -43,3 +43,5 @@ export const SubMenu = ({ entries, target, toClose }: subMenuProps): JSX.Element
     </span>
   );
 };
+
+SubMenu.displayName = 'SubMenu';

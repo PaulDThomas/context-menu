@@ -167,3 +167,5 @@ export const ContextWindow = ({
     </div>
   );
 };
+
+ContextWindow.displayName = 'ContextWindow';
