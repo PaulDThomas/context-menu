@@ -32,11 +32,11 @@
 }
 
 .context-menu-item:first-child {
-  padding-top: 4px;
+  margin-top: 4px;
 }
 
 .context-menu-item:last-child {
-  padding-bottom: 4px;
+  margin-bottom: 4px;
 }
 
 .context-menu-item:not(.disabled):hover {

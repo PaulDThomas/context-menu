@@ -23,6 +23,10 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
           top: `${yPos}px`,
           left: `${xPos}px`,
         }}
+        onContextMenuCapture={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
       >
         {entries.map((e, i) => (
           <div
