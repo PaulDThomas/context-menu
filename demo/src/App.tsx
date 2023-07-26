@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ContextWindow } from '../../src/components/ContextWindow';
 import { ContextWindowStack } from '../../src/components/ContextWindowStack';
 import { ContextMenuHandler } from '../../src/main';
@@ -42,9 +42,8 @@ export const App = () => {
           <div>
             <ContextWindowStack>
               {Array.from({ length: 5 }, (_, k) => k).map((i) => (
-                <>
+                <Fragment key={i}>
                   <div
-                    key={i}
                     style={{ height: '30px', padding: '1rem' }}
                     onClick={() => {
                       setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
@@ -72,7 +71,7 @@ export const App = () => {
                   >
                     <div>Hi! {i}</div>
                   </ContextWindow>
-                </>
+                </Fragment>
               ))}
             </ContextWindowStack>
             <pre>Visible windows: {JSON.stringify(showWindow)}</pre>

@@ -108,7 +108,7 @@ export const ContextWindow = ({
 
   return (
     <div
-      className='contentwindow-anchor'
+      className='contextwindow-anchor'
       ref={divRef}
     >
       {windowStack &&
