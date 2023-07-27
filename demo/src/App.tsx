@@ -15,29 +15,11 @@ export const App = () => {
         >
           <div>
             <ColourDiv text='Div 1' />
-            <ColourDiv text='Div 2' />
+            <ColourDiv
+              text='Div 2 is here for everyone'
+              showLowMenu
+            />
             <ColourDiv text='Div 3' />
-            <ContextMenuHandler
-              style={{ width: '100%', backgroundColor: 'magenta' }}
-              menuItems={[
-                {
-                  label: 'Target to console',
-                  action: (target?: Range | null) => {
-                    console.log(target);
-                    if (target) {
-                      const frag = target.cloneContents();
-                      const div = document.createElement('div');
-                      div.append(frag);
-                      console.log(div.innerHTML);
-                    }
-                  },
-                },
-              ]}
-            >
-              <span style={{ backgroundColor: 'white' }}>Hello</span>
-              <span style={{ backgroundColor: 'green' }}> Green </span>
-              <span style={{ backgroundColor: 'lightblue' }}>Grass</span>
-            </ContextMenuHandler>
           </div>
           <div>
             <ContextWindowStack>
@@ -75,6 +57,55 @@ export const App = () => {
               ))}
             </ContextWindowStack>
             <pre>Visible windows: {JSON.stringify(showWindow)}</pre>
+            <div>
+              <ContextMenuHandler
+                style={{ width: '100%', backgroundColor: 'magenta' }}
+                menuItems={[
+                  {
+                    label: 'Target to console',
+                    action: (target?: Range | null) => {
+                      if (target) {
+                        const frag = target.cloneContents();
+                        const div = document.createElement('div');
+                        div.append(frag);
+                        console.log(div.innerHTML);
+                      }
+                    },
+                  },
+                ]}
+              >
+                <span style={{ backgroundColor: 'white' }}>Hello</span>
+                <span style={{ backgroundColor: 'green' }}> Green </span>
+                <span style={{ backgroundColor: 'lightblue' }}>Grass</span>
+              </ContextMenuHandler>
+            </div>
+            <hr />
+            <div>
+              <ContextMenuHandler
+                style={{ width: '100%', backgroundColor: 'magenta' }}
+                showLowMenu
+                menuItems={[
+                  {
+                    label: 'Target to console',
+                    action: (target?: Range | null) => {
+                      if (target) {
+                        const frag = target.cloneContents();
+                        const div = document.createElement('div');
+                        div.append(frag);
+                        console.log(div.innerHTML);
+                      }
+                    },
+                  },
+                ]}
+              >
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                >
+                  There is something to select here
+                </div>
+              </ContextMenuHandler>
+            </div>
           </div>
         </div>
       </div>

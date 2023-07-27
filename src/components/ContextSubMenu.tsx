@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { ContextMenu } from './ContextMenu';
 import { iMenuItem } from './interface';
 
-export interface subMenuProps {
+export interface ContextSubMenuProps {
   entries: iMenuItem[];
   target: Range | null;
   toClose: () => void;
+  lowMenu?: boolean;
 }
 
-export const SubMenu = ({ entries, target, toClose }: subMenuProps): JSX.Element => {
+export const ContextSubMenu = ({ entries, target, toClose }: ContextSubMenuProps): JSX.Element => {
   const [visible, setVisible] = useState<boolean>(false);
 
   return (
@@ -44,4 +45,4 @@ export const SubMenu = ({ entries, target, toClose }: subMenuProps): JSX.Element
   );
 };
 
-SubMenu.displayName = 'SubMenu';
+ContextSubMenu.displayName = 'ContextSubMenu';

@@ -1,6 +1,6 @@
 import React from 'react';
+import { ContextSubMenu } from './ContextSubMenu';
 import { iMenuItem } from './interface';
-import { SubMenu } from './SubMenu';
 
 export interface contextMenuProps {
   visible: boolean;
@@ -28,22 +28,24 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
           e.stopPropagation();
         }}
       >
-        {entries.map((e, i) => (
+        {entries.map((entry, i) => (
           <div
             key={i}
-            className={`context-menu-item${e.disabled ? ' disabled' : ''}`}
-            onClick={(ev) => {
+            className={`context-menu-item${entry.disabled ? ' disabled' : ''}`}
+            aria-label={entry.label}
+            aria-disabled={entry.disabled}
+            onMouseDownCapture={(ev) => {
               ev.preventDefault();
               ev.stopPropagation();
-              e.action && !e.disabled && e.action(target);
-              !e.disabled && toClose();
+              entry.action && !entry.disabled && entry.action(target);
+              !entry.disabled && toClose();
             }}
           >
-            <span className='context-menu-item-label'>{e.label}</span>
-            {e.group && (
-              <SubMenu
+            <span className='context-menu-item-label'>{entry.label}</span>
+            {entry.group && (
+              <ContextSubMenu
                 toClose={toClose}
-                entries={e.group}
+                entries={entry.group}
                 target={target}
               />
             )}

@@ -1,21 +1,27 @@
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ContextMenu } from './ContextMenu';
-import { iMenuItem } from './interface';
 import './ContextMenu.css';
+import { LowMenu } from './LowMenu';
+import { iMenuItem } from './interface';
+
+interface contextMenuHandlerProps {
+  children: JSX.Element[] | JSX.Element;
+  menuItems: iMenuItem[];
+  showLowMenu?: boolean;
+  lowMenuTarget?: Range | null;
+  style?: React.CSSProperties;
+}
 
 export const ContextMenuHandler = ({
   children,
   menuItems,
+  showLowMenu = false,
   style = {
     height: 'fit-content',
     width: 'fit-content',
   },
-}: {
-  children: JSX.Element[] | JSX.Element;
-  menuItems: iMenuItem[];
-  style?: React.CSSProperties;
-}): JSX.Element => {
+}: contextMenuHandlerProps): JSX.Element => {
   // Menu resources
   const divRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -23,6 +29,7 @@ export const ContextMenuHandler = ({
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [target, setTarget] = useState<Range | null>(null);
+  const [lowTarget, setLowTarget] = useState<Range | null>(null);
 
   // Show menu when context is requested
   const showMenu = (e: MouseEvent<HTMLDivElement>) => {
@@ -58,13 +65,14 @@ export const ContextMenuHandler = ({
   return (
     <>
       <div
-        onContextMenu={showMenu}
+        onContextMenu={showLowMenu ? undefined : showMenu}
         className='context-menu-handler'
         style={style}
       >
         {children}
       </div>
       {menuVisible &&
+        !showLowMenu &&
         createPortal(
           <div
             style={{ position: 'absolute', top: 0, left: 0 }}
@@ -82,6 +90,24 @@ export const ContextMenuHandler = ({
           </div>,
           document.body,
         )}
+      {showLowMenu && (
+        <div
+          style={{ position: 'relative' }}
+          onMouseEnter={() => {
+            const sel = window.getSelection();
+            const lowSel = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+            setLowTarget(lowSel);
+          }}
+          onMouseLeave={() => {
+            setLowTarget(null);
+          }}
+        >
+          <LowMenu
+            entries={menuItems}
+            target={lowTarget}
+          />
+        </div>
+      )}{' '}
     </>
   );
 };

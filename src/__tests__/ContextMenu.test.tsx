@@ -34,6 +34,9 @@ describe('Context menu', () => {
     fireEvent.contextMenu(testDiv);
     expect(screen.queryByText('Blue')).toBeInTheDocument();
 
+    // Do nothing for more contenxt menu
+    fireEvent.contextMenu(screen.queryByText('Blue') as HTMLDivElement);
+
     // Mouse over & leave
     const blueItem = screen.getByText('Blue') as HTMLSpanElement;
     const blueCaret = (blueItem.parentElement as HTMLDivElement).querySelector('svg') as SVGElement;
