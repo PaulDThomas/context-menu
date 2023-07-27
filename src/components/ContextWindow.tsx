@@ -100,11 +100,12 @@ export const ContextWindow = ({
           windowRef.current.style.transform = '';
           windowPos.current = { x: 0, y: 0 };
         }
+        checkPosition();
       } else if (windowId.current && !visible && windowVisible) {
         setWindowVisible(false);
       }
     }
-  }, [onOpen, visible, windowStack, windowVisible]);
+  }, [checkPosition, onOpen, visible, windowStack, windowVisible]);
 
   return (
     <div

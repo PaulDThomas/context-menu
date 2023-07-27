@@ -50,6 +50,7 @@ export const App = () => {
                     onClose={() => {
                       setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
                     }}
+                    style={{ width: `${(i + 1) * 200}px` }}
                   >
                     <div>Hi! {i}</div>
                   </ContextWindow>
