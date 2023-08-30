@@ -38,7 +38,7 @@
 .contextwindow-title-close {
   float: right;
   font-size: small;
-  cursor: auto;
+  cursor: pointer;
 }
 
 .contextwindow-body {
