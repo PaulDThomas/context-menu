@@ -16,15 +16,15 @@
 }
 
 .contextwindow-title {
-  text-transform: capitalize;
   border-bottom: 1px black dashed;
   padding-bottom: 4px;
   margin: 0 4px 3px 4px;
-  font-size: 18px;
-  font-weight: 600;
-  flex-grow: 1;
   height: 24px;
+  max-height: 24px;
   cursor: grab;
+  align-items: top;
+  display: flex;
+  width: calc(100% - 8px);
 }
 
 .contextwindow-title.moving {
@@ -32,13 +32,29 @@
 }
 
 .contextwindow-title-text {
+  font-size: 18px;
+  font-weight: 600;
   display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: calc(100% - 16px);
 }
 
 .contextwindow-title-close {
-  float: right;
-  font-size: small;
-  cursor: auto;
+  display: inline-block;
+  color: black;
+  background-color: white;
+  height: 16px;
+  width: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+.contextwindow-title-close:hover {
+  background-color: black;
+  color: white;
 }
 
 .contextwindow-body {

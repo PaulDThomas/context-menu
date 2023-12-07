@@ -49,15 +49,15 @@ describe('Context menu', () => {
     const lowMenuBlueSubmenu = screen.queryByLabelText('Sub menu for Blue') as HTMLSpanElement;
     expect(lowMenuBlueSubmenu).toBeVisible();
     const cyan = screen.queryByLabelText('Cyan') as HTMLDivElement;
-    expect(cyan.parentElement).not.toHaveClass('visible');
+    expect(cyan.closest('.context-menu')).not.toHaveClass('visible');
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
-    expect(cyan.parentElement).toHaveClass('visible');
+    expect(cyan.closest('.context-menu')).toHaveClass('visible');
     fireEvent.mouseLeave(lowMenuBlueSubmenu);
-    expect(cyan.parentElement).not.toHaveClass('visible');
+    expect(cyan.closest('.context-menu')).not.toHaveClass('visible');
     // Fire close event
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
-    expect(cyan.parentElement).toHaveClass('visible');
+    expect(cyan.closest('.context-menu')).toHaveClass('visible');
     fireEvent.mouseDown(cyan);
-    expect(cyan.parentElement).not.toHaveClass('visible');
+    expect(cyan.closest('.context-menu')).not.toHaveClass('visible');
   });
 });

@@ -32,16 +32,20 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
           <div
             key={i}
             className={`context-menu-item${entry.disabled ? ' disabled' : ''}`}
-            aria-label={entry.label}
-            aria-disabled={entry.disabled}
-            onMouseDownCapture={(ev) => {
-              ev.preventDefault();
-              ev.stopPropagation();
-              entry.action && !entry.disabled && entry.action(target);
-              !entry.disabled && toClose();
-            }}
           >
-            <span className='context-menu-item-label'>{entry.label}</span>
+            <span
+              aria-label={entry.label}
+              aria-disabled={entry.disabled}
+              className='context-menu-item-label'
+              onMouseDownCapture={(ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                entry.action && !entry.disabled && entry.action(target);
+                !entry.disabled && toClose();
+              }}
+            >
+              {entry.label}
+            </span>
             {entry.group && (
               <ContextSubMenu
                 toClose={toClose}

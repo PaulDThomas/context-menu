@@ -46,10 +46,11 @@ export const App = () => {
                   <ContextWindow
                     id={`w-${i}`}
                     visible={showWindow[i]}
-                    title={'Window '}
+                    title={'Window with a very very very long title, that wants to be squashed'}
                     onClose={() => {
                       setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
                     }}
+                    style={{ width: `${(i + 1) * 200}px` }}
                   >
                     <div>Hi! {i}</div>
                   </ContextWindow>
