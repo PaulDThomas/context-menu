@@ -2,15 +2,12 @@
   "semi": true,
   "tabWidth": 2,
   "printWidth": 100,
-  "singleQuote": true,
+  "singleQuote": false,
   "trailingComma": "all",
-  "jsxSingleQuote": true,
+  "jsxSingleQuote": false,
   "bracketSpacing": true,
   "bracketSameLine": false,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "singleAttributePerLine": true,
-  "phpVersion": "7.4",
-  "braceStyle": "psr-2",
-  "trailingCommaPHP": true
+  "singleAttributePerLine": true
 }
