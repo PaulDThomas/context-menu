@@ -1,6 +1,6 @@
-import React from 'react';
-import { ContextSubMenu } from './ContextSubMenu';
-import { iMenuItem } from './interface';
+import React from "react";
+import { ContextSubMenu } from "./ContextSubMenu";
+import { iMenuItem } from "./interface";
 
 export interface contextMenuProps {
   visible: boolean;
@@ -13,12 +13,12 @@ export interface contextMenuProps {
 
 export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
   ({ visible, entries, target, xPos, yPos, toClose }, ref): JSX.Element => {
-    ContextMenu.displayName = 'ContextMenu';
+    ContextMenu.displayName = "ContextMenu";
 
     return (
       <div
         ref={ref}
-        className={`context-menu${visible ? ' visible' : ''}`}
+        className={`context-menu${visible ? " visible" : ""}`}
         style={{
           top: `${yPos}px`,
           left: `${xPos}px`,
@@ -31,12 +31,12 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
         {entries.map((entry, i) => (
           <div
             key={i}
-            className={`context-menu-item${entry.disabled ? ' disabled' : ''}`}
+            className={`context-menu-item${entry.disabled ? " disabled" : ""}`}
           >
             <span
               aria-label={entry.label}
               aria-disabled={entry.disabled}
-              className='context-menu-item-label'
+              className="context-menu-item-label"
               onMouseDownCapture={(ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -60,4 +60,4 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
   },
 );
 
-ContextMenu.displayName = 'ContextMenu';
+ContextMenu.displayName = "ContextMenu";

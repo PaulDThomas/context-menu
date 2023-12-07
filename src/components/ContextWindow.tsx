@@ -1,8 +1,8 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import './ContextWindow.css';
-import { ContextWindowStackContext } from './ContextWindowStack';
-import { chkPosition } from '../functions/chkPosition';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import "./ContextWindow.css";
+import { ContextWindowStackContext } from "./ContextWindowStack";
+import { chkPosition } from "../functions/chkPosition";
 
 interface ContextWindowProps {
   id: string;
@@ -66,11 +66,11 @@ export const ContextWindow = ({
       e.stopPropagation();
       setMoving(false);
       checkPosition();
-      document.removeEventListener('mousemove', mouseMove);
-      document.removeEventListener('mouseup', mouseUp);
-      window.removeEventListener('resize', checkPosition);
+      document.removeEventListener("mousemove", mouseMove);
+      document.removeEventListener("mouseup", mouseUp);
+      window.removeEventListener("resize", checkPosition);
       if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
-        e.target.style.userSelect = 'auto';
+        e.target.style.userSelect = "auto";
     },
     [checkPosition, mouseMove],
   );
@@ -97,7 +97,7 @@ export const ContextWindow = ({
               ? parentPos.bottom
               : Math.max(0, parentPos.top - windowHeight)
           }px`;
-          windowRef.current.style.transform = '';
+          windowRef.current.style.transform = "";
           windowPos.current = { x: 0, y: 0 };
         }
         checkPosition();
@@ -109,23 +109,23 @@ export const ContextWindow = ({
 
   return (
     <div
-      className='contextwindow-anchor'
+      className="contextwindow-anchor"
       ref={divRef}
     >
       {windowStack &&
         createPortal(
           <div
             id={id}
-            className='contextwindow'
+            className="contextwindow"
             style={{
               ...style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
-              visibility: windowVisible ? 'visible' : 'hidden',
+              visibility: windowVisible ? "visible" : "hidden",
               zIndex: zIndex ?? 1,
-              minHeight: style?.minHeight ?? '150px',
-              minWidth: style?.minWidth ?? '200px',
-              maxHeight: style?.maxHeight ?? '1000px',
-              maxWidth: style?.maxWidth ?? '1000px',
+              minHeight: style?.minHeight ?? "150px",
+              minWidth: style?.minWidth ?? "200px",
+              maxHeight: style?.maxHeight ?? "1000px",
+              maxWidth: style?.maxWidth ?? "1000px",
             }}
             onClickCapture={() => {
               windowId && windowId.current && windowStack.pushToTop(windowId.current);
@@ -133,33 +133,33 @@ export const ContextWindow = ({
             ref={windowRef}
           >
             <div
-              className={`contextwindow-title ${moving ? 'moving' : ''}`}
+              className={`contextwindow-title ${moving ? "moving" : ""}`}
               onMouseDown={(e: React.MouseEvent) => {
                 if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
-                  e.target.style.userSelect = 'none';
+                  e.target.style.userSelect = "none";
                 setMoving(true);
                 windowId && windowId.current && windowStack.pushToTop(windowId.current);
-                document.addEventListener('mouseup', mouseUp);
-                document.addEventListener('mousemove', mouseMove);
-                window.addEventListener('resize', () => checkPosition());
+                document.addEventListener("mouseup", mouseUp);
+                document.addEventListener("mousemove", mouseMove);
+                window.addEventListener("resize", () => checkPosition());
               }}
             >
-              <div className='contextwindow-title-text'>{title}</div>
-              <div className='contextwindow-title-close'>
+              <div className="contextwindow-title-text">{title}</div>
+              <div className="contextwindow-title-close">
                 <svg
-                  xmlns='http://www.w3.org/2000/svg'
-                  width='16'
-                  height='16'
-                  fill='currentColor'
-                  viewBox='0 0 16 16'
-                  aria-label='Close window'
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                  aria-label="Close window"
                   onClick={onClose}
                 >
-                  <path d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z' />
+                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                 </svg>
               </div>
             </div>
-            <div className='contextwindow-body'>
+            <div className="contextwindow-body">
               <div>{children}</div>
             </div>
           </div>,
@@ -169,4 +169,4 @@ export const ContextWindow = ({
   );
 };
 
-ContextWindow.displayName = 'ContextWindow';
+ContextWindow.displayName = "ContextWindow";

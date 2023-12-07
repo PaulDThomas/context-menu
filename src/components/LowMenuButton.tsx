@@ -1,5 +1,5 @@
-import { LowSubMenu } from './LowSubMenu';
-import { iMenuItem } from './interface';
+import { LowSubMenu } from "./LowSubMenu";
+import { iMenuItem } from "./interface";
 
 interface LowMenuButtonProps {
   entry: iMenuItem;
@@ -8,7 +8,7 @@ interface LowMenuButtonProps {
 export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
   return (
     <div
-      className={`low-menu-item${entry.disabled ? ' disabled' : ''}`}
+      className={`low-menu-item${entry.disabled ? " disabled" : ""}`}
       aria-label={entry.label}
       aria-disabled={entry.disabled}
       onClick={(event) => {
@@ -17,7 +17,7 @@ export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
         entry.action && !entry.disabled && entry.action(target);
       }}
     >
-      <span className='low-menu-item-label'>{entry.label}</span>
+      <span className="low-menu-item-label">{entry.label}</span>
       {entry.group && (
         <LowSubMenu
           entry={entry}
@@ -28,4 +28,4 @@ export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
   );
 };
 
-LowMenuButton.displayName = 'LowMenuButton';
+LowMenuButton.displayName = "LowMenuButton";

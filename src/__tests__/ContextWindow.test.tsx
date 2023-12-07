@@ -1,50 +1,50 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { ContextWindow } from '../components/ContextWindow';
-import { ContextWindowStack } from '../components/ContextWindowStack';
-import { useState } from 'react';
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ContextWindow } from "../components/ContextWindow";
+import { ContextWindowStack } from "../components/ContextWindowStack";
+import { useState } from "react";
 
-describe('Context menu', () => {
-  test('Not there', async () => {
+describe("Context menu", () => {
+  test("Not there", async () => {
     await act(async () => {
       render(
         <ContextWindow
-          id={'w1'}
+          id={"w1"}
           visible={false}
-          title={'Window title'}
+          title={"Window title"}
         >
           <span>Hi</span>
         </ContextWindow>,
       );
     });
-    expect(screen.queryByText('Window title')).not.toBeInTheDocument();
+    expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
-  test('Not there because there is no stack', async () => {
+  test("Not there because there is no stack", async () => {
     await act(async () => {
       render(
         <ContextWindow
-          id={'w1'}
+          id={"w1"}
           visible={true}
-          title={'Window title'}
+          title={"Window title"}
         >
           <span>Hi</span>
         </ContextWindow>,
       );
     });
-    expect(screen.queryByText('Window title')).not.toBeInTheDocument();
+    expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
-  test('With stack, should be visible, and check close', async () => {
+  test("With stack, should be visible, and check close", async () => {
     const user = userEvent.setup();
     const mockClose = jest.fn();
     await act(async () => {
       render(
         <ContextWindowStack>
           <ContextWindow
-            id={'w1'}
+            id={"w1"}
             visible={true}
-            title={'Window title'}
+            title={"Window title"}
             onClose={mockClose}
           >
             <span>Hi</span>
@@ -52,47 +52,47 @@ describe('Context menu', () => {
         </ContextWindowStack>,
       );
     });
-    expect(screen.queryByText('Window title')).toBeInTheDocument();
-    const closeCross = screen.queryByLabelText('Close window') as Element;
+    expect(screen.queryByText("Window title")).toBeInTheDocument();
+    const closeCross = screen.queryByLabelText("Close window") as Element;
     await user.click(closeCross);
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
 
-  test('With stack, not visible', async () => {
+  test("With stack, not visible", async () => {
     await act(async () => {
       render(
         <ContextWindowStack>
           <ContextWindow
-            id={'w1'}
+            id={"w1"}
             visible={false}
-            title={'Window title'}
+            title={"Window title"}
           >
             <span>Hi</span>
           </ContextWindow>
         </ContextWindowStack>,
       );
     });
-    const title = screen.queryByText('Window title') as HTMLSpanElement;
+    const title = screen.queryByText("Window title") as HTMLSpanElement;
     expect(title).not.toBeVisible();
   });
 
-  test('Move the mouse, turn it on and off', async () => {
+  test("Move the mouse, turn it on and off", async () => {
     const WindowWithInput = (): JSX.Element => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
         <ContextWindowStack>
           <input
-            aria-label='testwindow-checkbox'
-            type='checkbox'
+            aria-label="testwindow-checkbox"
+            type="checkbox"
             checked={visible}
             onChange={() => setVisible(!visible)}
           />
           <ContextWindow
-            id={'testwindow'}
+            id={"testwindow"}
             visible={visible}
-            title={'Test window'}
+            title={"Test window"}
             style={{
-              transition: 'opacity 0s linear',
+              transition: "opacity 0s linear",
             }}
           >
             <span>Hello world of tests</span>
@@ -105,8 +105,8 @@ describe('Context menu', () => {
     await act(async () => {
       render(<WindowWithInput />);
     });
-    const title = screen.queryByText('Test window') as HTMLSpanElement;
-    const chk = screen.queryByLabelText('testwindow-checkbox') as HTMLInputElement;
+    const title = screen.queryByText("Test window") as HTMLSpanElement;
+    const chk = screen.queryByLabelText("testwindow-checkbox") as HTMLInputElement;
     expect(chk).toBeInTheDocument();
     expect(title).not.toBeVisible();
     await user.click(chk);

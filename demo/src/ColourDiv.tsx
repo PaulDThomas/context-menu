@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { menuItems } from '../../src/__mocks__/mockMenu';
-import { ContextMenuHandler } from '../../src/main';
+import { useState } from "react";
+import { menuItems } from "../../src/__mocks__/mockMenu";
+import { ContextMenuHandler } from "../../src/main";
 
 interface ColourDivProps {
   text: string;
@@ -15,10 +15,10 @@ export const ColourDiv = ({
   showLowMenu = false,
   lowMenuTarget = null,
 }: ColourDivProps) => {
-  const [colour, setColour] = useState<string>('white');
+  const [colour, setColour] = useState<string>("white");
 
   return (
-    <div style={{ margin: '2rem' }}>
+    <div style={{ margin: "2rem" }}>
       <ContextMenuHandler
         menuItems={menuItems(setColour)}
         showLowMenu={showLowMenu}
@@ -30,10 +30,10 @@ export const ColourDiv = ({
           suppressContentEditableWarning={showLowMenu}
           style={{
             backgroundColor: colour,
-            textAlign: 'center',
-            verticalAlign: 'center',
-            height: '200px',
-            width: '200px',
+            textAlign: "center",
+            verticalAlign: "center",
+            height: "200px",
+            width: "200px",
           }}
         >
           {text}
