@@ -34,7 +34,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
             className={`context-menu-item${entry.disabled ? " disabled" : ""}`}
           >
             <span
-              aria-label={entry.label}
+              aria-label={typeof entry.label === "string" ? entry.label : undefined}
               aria-disabled={entry.disabled}
               className="context-menu-item-label"
               onMouseDownCapture={(ev) => {

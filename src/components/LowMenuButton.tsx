@@ -9,7 +9,7 @@ export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
   return (
     <div
       className={`low-menu-item${entry.disabled ? " disabled" : ""}`}
-      aria-label={entry.label}
+      aria-label={typeof entry.label === "string" ? entry.label : undefined}
       aria-disabled={entry.disabled}
       onClick={(event) => {
         event.preventDefault();

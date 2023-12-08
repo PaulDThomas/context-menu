@@ -1,5 +1,5 @@
 export interface iMenuItem {
-  label: string;
+  label: string | JSX.Element;
   disabled?: boolean;
   action?: (target?: Range | null) => void;
   group?: iMenuItem[];

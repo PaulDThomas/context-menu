@@ -73,6 +73,10 @@ export const App = () => {
                       }
                     },
                   },
+                  { label: <hr /> },
+                  {
+                    label: <span>This does nothing</span>,
+                  },
                 ]}
               >
                 <span style={{ backgroundColor: "white" }}>Hello</span>
