@@ -21,7 +21,7 @@
     "context menu"
   ],
   "scripts": {
-    "build": "parcel build src/main.ts",
+    "build": "rmdir /q/s .\\.parcel-cache && parcel build src/main.ts",
     "prepare": "husky",
     "start": "parcel demo/index.html --dist-dir demo/dist",
     "test": "jest --watch",
