@@ -4,12 +4,32 @@ const config: Config = {
   // The root of your source code, typically /src
   // `<rootDir>` is a token Jest substitutes
   roots: ["<rootDir>/src"],
+  modulePaths: ["<rootDir>/src"],
+  testEnvironment: "jsdom",
+  verbose: true,
 
   // Jest transformations -- this adds support for TypeScript
   // using ts-jest
   transform: {
-    "^.+\\.tsx?$": "ts-jest",
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        diagnostics: {
+          ignoreCodes: [1343],
+        },
+        astTransformers: {
+          before: [
+            {
+              path: "ts-jest-mock-import-meta",
+              options: { metaObjectReplacement: { url: "https://localhost" } },
+            },
+          ],
+        },
+      },
+    ],
   },
+  // Module file extensions for importing
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
 
   // Runs special logic, such as cleaning up components
   // when using React Testing Library and adds special
@@ -19,13 +39,11 @@ const config: Config = {
   // Matches parent folder `__tests__` and filename
   // should contain `test` or `spec`.
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$",
-  // Module file extensions for importing
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-  // };
 
-  // Added by Paul
+  // Code coverage
   collectCoverage: true,
   coverageProvider: "v8",
+  coverageReporters: ["lcov", "text"],
   collectCoverageFrom: [
     "**/*.{js,jsx}",
     "**/*.{ts,tsx}",
@@ -33,10 +51,11 @@ const config: Config = {
     "!**/interface.ts",
     "!**/main.ts",
   ],
-  testEnvironment: "jsdom",
   moduleNameMapper: {
     "\\.(css|less|scss)$": "<rootDir>/src/__mocks__/styleMock.ts",
   },
+  // Plugin for watch patterns
+  watchPlugins: ["jest-watch-typeahead/filename", "jest-watch-typeahead/testname"],
 };
 
 export default config;
