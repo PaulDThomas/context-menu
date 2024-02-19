@@ -14,7 +14,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-shadow: 2px 2px 2px rgb(64, 64, 64, 0.5);
-  opacity: 0.5;
   transition: opacity 0.3s linear;
   display: flex;
   flex-wrap: wrap;
@@ -23,6 +22,11 @@
   row-gap: 2px;
 }
 
+.low-menu.hidden {
+  opacity: 0;
+}
+
+.low-menu.visible,
 .low-menu:hover {
   opacity: 1;
 }

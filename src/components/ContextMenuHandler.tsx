@@ -30,6 +30,7 @@ export const ContextMenuHandler = ({
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [target, setTarget] = useState<Range | null>(null);
   const [lowTarget, setLowTarget] = useState<Range | null>(null);
+  const [lowMenuVisible, setLowMenuVisible] = useState<boolean>(false);
 
   // Show menu when context is requested
   const showMenu = (e: MouseEvent<HTMLDivElement>) => {
@@ -68,6 +69,12 @@ export const ContextMenuHandler = ({
         onContextMenu={showLowMenu ? undefined : showMenu}
         className="context-menu-handler"
         style={style}
+        onMouseEnter={() => {
+          showLowMenu && setLowMenuVisible(true);
+        }}
+        onMouseLeave={() => {
+          showLowMenu && setLowMenuVisible(false);
+        }}
       >
         {children}
       </div>
@@ -103,11 +110,12 @@ export const ContextMenuHandler = ({
           }}
         >
           <LowMenu
+            visible={lowMenuVisible}
             entries={menuItems}
             target={lowTarget}
           />
         </div>
-      )}{" "}
+      )}
     </>
   );
 };

@@ -5,12 +5,13 @@ import { LowMenuButton } from "./LowMenuButton";
 interface LowMenuProps {
   entries: iMenuItem[];
   target: Range | null;
+  visible: boolean;
 }
 
-export const LowMenu = ({ entries, target }: LowMenuProps): JSX.Element => {
+export const LowMenu = ({ entries, target, visible }: LowMenuProps): JSX.Element => {
   return (
     <div
-      className="low-menu"
+      className={`low-menu ${visible ? "visible" : "hidden"}`}
       aria-label="Low context menu"
     >
       {entries.map((e, i) => (
