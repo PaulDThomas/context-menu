@@ -1,10 +1,10 @@
 import React from "react";
 import { ContextSubMenu } from "./ContextSubMenu";
-import { iMenuItem } from "./interface";
+import { MenuItem } from "./interface";
 
 export interface contextMenuProps {
   visible: boolean;
-  entries: iMenuItem[];
+  entries: MenuItem[];
   target: Range | null;
   xPos: number;
   yPos: number;

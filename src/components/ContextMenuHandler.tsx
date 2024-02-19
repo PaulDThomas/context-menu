@@ -3,11 +3,11 @@ import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import "./ContextMenu.css";
 import { LowMenu } from "./LowMenu";
-import { iMenuItem } from "./interface";
+import { MenuItem } from "./interface";
 
 interface contextMenuHandlerProps {
   children: JSX.Element[] | JSX.Element;
-  menuItems: iMenuItem[];
+  menuItems: MenuItem[];
   showLowMenu?: boolean;
   lowMenuTarget?: Range | null;
   style?: React.CSSProperties;

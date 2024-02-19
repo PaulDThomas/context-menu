@@ -1,9 +1,9 @@
-import { iMenuItem } from "./interface";
+import { MenuItem } from "./interface";
 import "./LowMenu.css";
 import { LowMenuButton } from "./LowMenuButton";
 
 interface LowMenuProps {
-  entries: iMenuItem[];
+  entries: MenuItem[];
   target: Range | null;
   visible: boolean;
 }

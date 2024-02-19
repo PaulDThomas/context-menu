@@ -1,8 +1,8 @@
 import { LowSubMenu } from "./LowSubMenu";
-import { iMenuItem } from "./interface";
+import { MenuItem } from "./interface";
 
 interface LowMenuButtonProps {
-  entry: iMenuItem;
+  entry: MenuItem;
   target: Range | null;
 }
 export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
