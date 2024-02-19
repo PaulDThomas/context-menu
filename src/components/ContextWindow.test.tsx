@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ContextWindow } from "../components/ContextWindow";
-import { ContextWindowStack } from "../components/ContextWindowStack";
+import { ContextWindow } from "./ContextWindow";
+import { ContextWindowStack } from "./ContextWindowStack";
 import { useState } from "react";
 
 describe("Context menu", () => {

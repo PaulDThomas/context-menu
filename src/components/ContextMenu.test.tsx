@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ContextMenuHandler } from "../components/ContextMenuHandler";
+import { ContextMenuHandler } from "./ContextMenuHandler";
 import { menuItems } from "../__mocks__/mockMenu";
 
 describe("Context menu", () => {
