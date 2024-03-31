@@ -1,9 +1,14 @@
-import { MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { MouseEvent, createContext, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import "./ContextMenu.css";
 import { LowMenu } from "./LowMenu";
 import { MenuItem } from "./interface";
+
+export interface ContentMenuHandlerContextProps {
+  menuItems: MenuItem[];
+}
+export const ContentMenuHandlerContext = createContext<ContentMenuHandlerContextProps | null>(null);
 
 interface contextMenuHandlerProps {
   children: JSX.Element[] | JSX.Element;
@@ -23,7 +28,8 @@ export const ContextMenuHandler = ({
   },
 }: contextMenuHandlerProps): JSX.Element => {
   // Menu resources
-  const divRef = useRef<HTMLDivElement | null>(null);
+  const divHandlderRef = useRef<HTMLDivElement | null>(null);
+  const divMenuRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
@@ -31,6 +37,9 @@ export const ContextMenuHandler = ({
   const [target, setTarget] = useState<Range | null>(null);
   const [lowTarget, setLowTarget] = useState<Range | null>(null);
   const [lowMenuVisible, setLowMenuVisible] = useState<boolean>(false);
+
+  // Get holder position
+  const divHandlerPos = divHandlderRef ? divHandlderRef.current?.getBoundingClientRect() : null;
 
   // Show menu when context is requested
   const showMenu = (e: MouseEvent<HTMLDivElement>) => {
@@ -64,11 +73,16 @@ export const ContextMenuHandler = ({
   }, [handleClick, menuVisible]);
 
   return (
-    <>
+    <ContentMenuHandlerContext.Provider
+      value={{
+        menuItems,
+      }}
+    >
       <div
-        onContextMenu={showLowMenu ? undefined : showMenu}
+        ref={divHandlderRef}
         className="context-menu-handler"
         style={style}
+        onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
           showLowMenu && setLowMenuVisible(true);
         }}
@@ -83,7 +97,7 @@ export const ContextMenuHandler = ({
         createPortal(
           <div
             style={{ position: "absolute", top: 0, left: 0 }}
-            ref={divRef}
+            ref={divMenuRef}
           >
             <ContextMenu
               visible={true}
@@ -97,26 +111,31 @@ export const ContextMenuHandler = ({
           </div>,
           document.body,
         )}
-      {showLowMenu && (
-        <div
-          style={{ position: "relative" }}
-          onMouseEnter={() => {
-            const sel = window.getSelection();
-            const lowSel = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-            setLowTarget(lowSel);
-          }}
-          onMouseLeave={() => {
-            setLowTarget(null);
-          }}
-        >
-          <LowMenu
-            visible={lowMenuVisible}
-            entries={menuItems}
-            target={lowTarget}
-          />
-        </div>
-      )}
-    </>
+      {showLowMenu &&
+        divHandlerPos &&
+        createPortal(
+          <div
+            style={{ position: "absolute", top: 0, left: 0 }}
+            onMouseEnter={() => {
+              const sel = window.getSelection();
+              const lowSel = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+              setLowTarget(lowSel);
+            }}
+            onMouseLeave={() => {
+              setLowTarget(null);
+            }}
+          >
+            <LowMenu
+              visible={lowMenuVisible}
+              entries={menuItems}
+              target={lowTarget}
+              xPos={divHandlerPos.left}
+              yPos={divHandlerPos.bottom}
+            />
+          </div>,
+          document.body,
+        )}
+    </ContentMenuHandlerContext.Provider>
   );
 };
 

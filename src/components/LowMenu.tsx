@@ -6,13 +6,18 @@ interface LowMenuProps {
   entries: MenuItem[];
   target: Range | null;
   visible: boolean;
+  xPos: number;
+  yPos: number;
 }
 
-export const LowMenu = ({ entries, target, visible }: LowMenuProps): JSX.Element => {
+export const LowMenu = ({ entries, target, visible, xPos, yPos }: LowMenuProps): JSX.Element => {
   return (
     <div
       className={`low-menu ${visible ? "visible" : "hidden"}`}
       aria-label="Low context menu"
+      style={{
+        transform: `translate(${xPos}px, ${yPos}px)`,
+      }}
     >
       {entries.map((e, i) => (
         <LowMenuButton
