@@ -16,7 +16,8 @@ export const LowMenu = ({ entries, target, visible, xPos, yPos }: LowMenuProps):
       className={`low-menu ${visible ? "visible" : "hidden"}`}
       aria-label="Low context menu"
       style={{
-        transform: `translate(${xPos}px, ${yPos}px)`,
+        left: `${xPos}px`,
+        top: `${yPos}px`,
       }}
     >
       {entries.map((e, i) => (

@@ -13,14 +13,20 @@ export const App = () => {
           className="app-inner"
           style={{ display: "flex", flexDirection: "row" }}
         >
-          <div>
+          <ContextMenuHandler
+            menuItems={[{ label: "Outer item", action: () => console.log("Outer item") }]}
+            style={{ backgroundColor: "lightblue", margin: "6px" }}
+          >
             <ColourDiv text="Div 1" />
             <ColourDiv
               text="Div 2 is here for everyone"
               showLowMenu
             />
-            <ColourDiv text="Div 3" />
-          </div>
+            <ColourDiv text="Div 3">
+              <ColourDiv text="Div 3.1" />
+            </ColourDiv>
+          </ContextMenuHandler>
+
           <div>
             <ContextWindowStack>
               {Array.from({ length: 5 }, (_, k) => k).map((i) => (

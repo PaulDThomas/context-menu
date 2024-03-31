@@ -1,4 +1,13 @@
-import { MouseEvent, createContext, useCallback, useEffect, useRef, useState } from "react";
+import {
+  MouseEvent,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import "./ContextMenu.css";
@@ -10,23 +19,36 @@ export interface ContentMenuHandlerContextProps {
 }
 export const ContentMenuHandlerContext = createContext<ContentMenuHandlerContextProps | null>(null);
 
-interface contextMenuHandlerProps {
+interface contextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: JSX.Element[] | JSX.Element;
   menuItems: MenuItem[];
   showLowMenu?: boolean;
   lowMenuTarget?: Range | null;
-  style?: React.CSSProperties;
 }
 
 export const ContextMenuHandler = ({
   children,
   menuItems,
   showLowMenu = false,
-  style = {
-    height: "fit-content",
-    width: "fit-content",
-  },
+  ...rest
 }: contextMenuHandlerProps): JSX.Element => {
+  // Check for higher content menu
+  const higherContext = useContext(ContentMenuHandlerContext);
+  const thisMenuItems = useMemo(
+    () => [
+      ...(higherContext !== null
+        ? [
+            ...higherContext.menuItems,
+            {
+              label: <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />,
+            },
+          ]
+        : []),
+      ...menuItems,
+    ],
+    [higherContext, menuItems],
+  );
+
   // Menu resources
   const divHandlderRef = useRef<HTMLDivElement | null>(null);
   const divMenuRef = useRef<HTMLDivElement | null>(null);
@@ -75,13 +97,14 @@ export const ContextMenuHandler = ({
   return (
     <ContentMenuHandlerContext.Provider
       value={{
-        menuItems,
+        menuItems: thisMenuItems,
       }}
     >
       <div
         ref={divHandlderRef}
-        className="context-menu-handler"
-        style={style}
+        {...rest}
+        className={`content-menu-handler${rest.className !== undefined ? ` ${rest.className}` : ""}`}
+        style={{ ...rest.style, height: "fit-content", width: "fit-content" }}
         onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
           showLowMenu && setLowMenuVisible(true);
@@ -102,7 +125,7 @@ export const ContextMenuHandler = ({
             <ContextMenu
               visible={true}
               ref={menuRef}
-              entries={menuItems}
+              entries={thisMenuItems}
               xPos={menuXPos}
               yPos={menuYPos}
               target={target}

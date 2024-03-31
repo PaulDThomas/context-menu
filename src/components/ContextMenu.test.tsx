@@ -62,4 +62,28 @@ describe("Context menu", () => {
     expect(setColour).toHaveBeenCalledWith("green");
     expect(greenItem).not.toBeInTheDocument();
   });
+
+  test("Menu in a menu", async () => {
+    render(
+      <ContextMenuHandler menuItems={[{ label: "Outer" }]}>
+        <div data-testid="inside-div">
+          Inside
+          <ContextMenuHandler menuItems={[{ label: "Inner" }]}>
+            <div data-testid="inside-div2">More Inside</div>
+          </ContextMenuHandler>
+        </div>
+      </ContextMenuHandler>,
+    );
+    // Show content menu
+    const testDiv = screen.getByTestId("inside-div");
+    fireEvent.contextMenu(testDiv);
+    expect(screen.queryAllByText("Outer").length).toBe(1);
+    expect(screen.queryAllByText("Inner").length).toBe(0);
+    fireEvent.mouseDown(document);
+    // Show both content menus
+    const testDiv2 = screen.getByTestId("inside-div2");
+    fireEvent.contextMenu(testDiv2);
+    expect(screen.queryAllByText("Outer").length).toBe(1);
+    expect(screen.queryAllByText("Inner").length).toBe(1);
+  });
 });

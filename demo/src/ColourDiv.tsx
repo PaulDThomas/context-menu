@@ -7,6 +7,7 @@ interface ColourDivProps {
   onSelect?: React.ReactEventHandler<HTMLDivElement>;
   showLowMenu?: boolean;
   lowMenuTarget?: Range | null;
+  children?: React.ReactNode;
 }
 
 export const ColourDiv = ({
@@ -14,6 +15,7 @@ export const ColourDiv = ({
   onSelect,
   showLowMenu = false,
   lowMenuTarget = null,
+  children,
 }: ColourDivProps) => {
   const [colour, setColour] = useState<string>("white");
 
@@ -32,11 +34,12 @@ export const ColourDiv = ({
             backgroundColor: colour,
             textAlign: "center",
             verticalAlign: "center",
-            height: "200px",
-            width: "200px",
+            minHeight: "200px",
+            minWidth: "200px",
           }}
         >
           {text}
+          {children}
         </div>
       </ContextMenuHandler>
     </div>

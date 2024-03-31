@@ -18,7 +18,6 @@
   cursor: pointer;
   padding: 0 4px;
   min-width: 80px;
-  height: 21px;
   position: relative;
   display: flex;
   flex-direction: row;
@@ -64,4 +63,5 @@
 
 .context-menu-item-label {
   flex-grow: 1;
+  height: 21px;
 }
