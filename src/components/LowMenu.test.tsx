@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { menuItems } from "../__mocks__/mockMenu";
+import { menuItems } from "../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { act } from "react-dom/test-utils";
 
@@ -25,7 +25,7 @@ describe("Context menu", () => {
     await user.click(h);
     expect(a).toHaveBeenCalled();
     await act(async () => fireEvent.mouseLeave(testDiv));
-    expect(screen.queryByText("Hello")?.closest(".low-menu")).toHaveClass("hidden");
+    expect(screen.queryByText("Hello")?.closest(".lowMenu")).toHaveClass("hidden");
   });
 
   test("Move the mouse", async () => {
@@ -51,15 +51,15 @@ describe("Context menu", () => {
     const lowMenuBlueSubmenu = screen.queryByLabelText("Sub menu for Blue") as HTMLSpanElement;
     expect(lowMenuBlueSubmenu).toBeVisible();
     const cyan = screen.queryByLabelText("Cyan") as HTMLDivElement;
-    expect(cyan.closest(".context-menu")).not.toHaveClass("visible");
+    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
-    expect(cyan.closest(".context-menu")).toHaveClass("visible");
+    expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     fireEvent.mouseLeave(lowMenuBlueSubmenu);
-    expect(cyan.closest(".context-menu")).not.toHaveClass("visible");
+    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
     // Fire close event
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
-    expect(cyan.closest(".context-menu")).toHaveClass("visible");
+    expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     fireEvent.mouseDown(cyan);
-    expect(cyan.closest(".context-menu")).not.toHaveClass("visible");
+    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
   });
 });

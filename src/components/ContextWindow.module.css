@@ -1,4 +1,8 @@
-.contextwindow {
+.contextWindowAnchor {
+  position: relative;
+}
+
+.contextWindow {
   z-index: 2001;
   border: 1px black solid;
   margin: 0;
@@ -15,7 +19,7 @@
   overflow: auto;
 }
 
-.contextwindow-title {
+.contextWindowTitle {
   border-bottom: 1px black dashed;
   padding-bottom: 4px;
   margin: 0 4px 3px 4px;
@@ -27,11 +31,11 @@
   width: calc(100% - 8px);
 }
 
-.contextwindow-title.moving {
+.contextWindowTitle.moving {
   cursor: grabbing;
 }
 
-.contextwindow-title-text {
+.contextWindowTitleText {
   font-size: 18px;
   font-weight: 600;
   display: inline-block;
@@ -41,7 +45,7 @@
   width: calc(100% - 16px);
 }
 
-.contextwindow-title-close {
+.contextWindowTitleClose {
   display: inline-block;
   color: black;
   background-color: white;
@@ -52,34 +56,34 @@
   cursor: pointer;
 }
 
-.contextwindow-title-close:hover {
+.contextWindowTitleClose:hover {
   background-color: black;
   color: white;
 }
 
-.contextwindow-body {
+.contextWindowBody {
   overflow: auto;
   padding-bottom: 8px;
   margin-right: 4px;
   height: calc(100% - 40px);
 }
 
-.contextwindow-body::-webkit-scrollbar {
+.contextWindowBody::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.contextwindow-body::-webkit-scrollbar-track {
+.contextWindowBody::-webkit-scrollbar-track {
   background: white;
   border-radius: 8px;
 }
 
-.contextwindow-body::-webkit-scrollbar-thumb {
+.contextWindowBody::-webkit-scrollbar-thumb {
   background: lightgrey;
   border: none;
   border-radius: 8px;
 }
 
-.contextwindow-body::-webkit-scrollbar-thumb:hover {
+.contextWindowBody::-webkit-scrollbar-thumb:hover {
   background: grey;
 }

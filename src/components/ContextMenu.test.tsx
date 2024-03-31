@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ContextMenuHandler } from "./ContextMenuHandler";
-import { menuItems } from "../__mocks__/mockMenu";
+import { menuItems } from "../__dummy__/mockMenu";
 
 describe("Context menu", () => {
   const a = jest.fn();
@@ -14,7 +14,7 @@ describe("Context menu", () => {
     );
     const testDiv = screen.getByTestId("inside-div");
     fireEvent.contextMenu(testDiv);
-    expect(screen.queryByText("Hello"));
+    expect(screen.queryByText("Hello")).toBeInTheDocument();
     const h = screen.getByText("Hello");
     await user.click(h);
     expect(a).toHaveBeenCalled();
@@ -41,13 +41,13 @@ describe("Context menu", () => {
     const blueItem = screen.getByText("Blue") as HTMLSpanElement;
     const blueCaret = (blueItem.parentElement as HTMLDivElement).querySelector("svg") as SVGElement;
     const blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector(
-      "div.context-menu",
+      "div.contextMenu",
     ) as HTMLDivElement;
-    expect(blueSubMenu.className).toEqual("context-menu");
+    expect(blueSubMenu.className).toEqual("contextMenu");
     fireEvent.mouseOver(blueCaret);
-    expect(blueSubMenu.className).toEqual("context-menu visible");
+    expect(blueSubMenu.className).toEqual("contextMenu visible");
     fireEvent.mouseLeave(blueCaret);
-    expect(blueSubMenu.className).toEqual("context-menu");
+    expect(blueSubMenu.className).toEqual("contextMenu");
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");

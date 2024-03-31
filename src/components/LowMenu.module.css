@@ -1,4 +1,4 @@
-.low-menu {
+.lowMenu {
   z-index: 2;
   position: absolute;
   top: 0;
@@ -22,19 +22,18 @@
   row-gap: 2px;
 }
 
-.low-menu.hidden {
+.lowMenu.hidden {
   opacity: 0;
 }
 
-.low-menu.visible,
-.low-menu:hover {
+.lowMenu.visible,
+.lowMenu:hover {
   opacity: 1;
 }
 
-.low-menu-item {
+.lowMenuItem {
   background-color: rgb(251, 253, 246);
   border: 0;
-  border-radius: 4px;
   color: rgb(17, 20, 24);
   cursor: pointer;
   padding: 0 4px;
@@ -45,20 +44,20 @@
   white-space: nowrap;
 }
 
-.low-menu-item.disabled {
+.lowMenuItem.disabled {
   background-color: rgba(200, 200, 200);
   cursor: not-allowed;
 }
 
-.low-menu-item:not(.disabled):hover {
+.lowMenuItem:not(.disabled):hover {
   background-color: rgb(251, 233, 230);
 }
 
-.low-menu-item .caret-holder {
+.lowMenu-item .caretHolder {
   align-self: flex-end;
 }
 
-.low-menu-item .caret-holder .sub-menu {
+.lowMenuItem .caretHolder .subMenu {
   z-index: 1;
   position: relative;
 }

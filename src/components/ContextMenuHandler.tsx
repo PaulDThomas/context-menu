@@ -10,7 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
-import "./ContextMenu.css";
+import styles from "./ContextMenu.module.css";
 import { LowMenu } from "./LowMenu";
 import { MenuItem } from "./interface";
 
@@ -23,7 +23,6 @@ interface contextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: JSX.Element[] | JSX.Element;
   menuItems: MenuItem[];
   showLowMenu?: boolean;
-  lowMenuTarget?: Range | null;
 }
 
 export const ContextMenuHandler = ({
@@ -103,8 +102,8 @@ export const ContextMenuHandler = ({
       <div
         ref={divHandlderRef}
         {...rest}
-        className={`content-menu-handler${rest.className !== undefined ? ` ${rest.className}` : ""}`}
-        style={{ ...rest.style, height: "fit-content", width: "fit-content" }}
+        className={[styles.contextMenuHandler, rest.className].join(" ")}
+        style={{ ...rest.style }}
         onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
           showLowMenu && setLowMenuVisible(true);
@@ -119,7 +118,7 @@ export const ContextMenuHandler = ({
         !showLowMenu &&
         createPortal(
           <div
-            style={{ position: "absolute", top: 0, left: 0 }}
+            className={styles.anchor}
             ref={divMenuRef}
           >
             <ContextMenu
@@ -138,7 +137,7 @@ export const ContextMenuHandler = ({
         divHandlerPos &&
         createPortal(
           <div
-            style={{ position: "absolute", top: 0, left: 0 }}
+            className={styles.anchor}
             onMouseEnter={() => {
               const sel = window.getSelection();
               const lowSel = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;

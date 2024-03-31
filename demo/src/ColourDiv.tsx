@@ -1,22 +1,15 @@
 import { useState } from "react";
-import { menuItems } from "../../src/__mocks__/mockMenu";
+import { menuItems } from "../../src/__dummy__/mockMenu";
 import { ContextMenuHandler } from "../../src/main";
 
 interface ColourDivProps {
   text: string;
   onSelect?: React.ReactEventHandler<HTMLDivElement>;
   showLowMenu?: boolean;
-  lowMenuTarget?: Range | null;
   children?: React.ReactNode;
 }
 
-export const ColourDiv = ({
-  text,
-  onSelect,
-  showLowMenu = false,
-  lowMenuTarget = null,
-  children,
-}: ColourDivProps) => {
+export const ColourDiv = ({ text, onSelect, showLowMenu = false, children }: ColourDivProps) => {
   const [colour, setColour] = useState<string>("white");
 
   return (
@@ -24,7 +17,6 @@ export const ColourDiv = ({
       <ContextMenuHandler
         menuItems={menuItems(setColour)}
         showLowMenu={showLowMenu}
-        lowMenuTarget={lowMenuTarget}
       >
         <div
           onSelect={onSelect}

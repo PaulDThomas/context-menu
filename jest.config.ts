@@ -50,9 +50,10 @@ const config: Config = {
     "!**/index.ts",
     "!**/interface.ts",
     "!**/main.ts",
+    "!**/__dummy__/**",
   ],
   moduleNameMapper: {
-    "\\.(css|less|scss)$": "<rootDir>/src/__mocks__/styleMock.ts",
+    "\\.(css|less|scss)$": "<rootDir>/src/__dummy__/styleMock.ts",
   },
   // Plugin for watch patterns
   watchPlugins: ["jest-watch-typeahead/filename", "jest-watch-typeahead/testname"],

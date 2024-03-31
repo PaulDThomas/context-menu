@@ -1,5 +1,5 @@
 import { MenuItem } from "./interface";
-import "./LowMenu.css";
+import styles from "./LowMenu.module.css";
 import { LowMenuButton } from "./LowMenuButton";
 
 interface LowMenuProps {
@@ -13,7 +13,7 @@ interface LowMenuProps {
 export const LowMenu = ({ entries, target, visible, xPos, yPos }: LowMenuProps): JSX.Element => {
   return (
     <div
-      className={`low-menu ${visible ? "visible" : "hidden"}`}
+      className={[styles.lowMenu, visible ? styles.visible : styles.hidden].join(" ")}
       aria-label="Low context menu"
       style={{
         left: `${xPos}px`,

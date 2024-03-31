@@ -21,11 +21,11 @@
       {
         "name": "typescript-plugin-css-modules",
         "options": {
-          "classnameTransform": "asIs"
+          "classnameTransform": "camelCaseOnly"
         }
       }
     ]
   },
-  "include": ["src", "demo"],
-  "exclude": ["node_modules"]
+  "include": ["global.d.ts", "src", "demo", "__mocks__"],
+  "exclude": ["node_modules", "dist", "demo/dist"]
 }

@@ -1,10 +1,10 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import "./ContextWindow.css";
-import { ContextWindowStackContext } from "./ContextWindowStack";
 import { chkPosition } from "../functions/chkPosition";
+import { ContextWindowStackContext } from "./ContextWindowStack";
+import styles from "./ContextWindow.module.css";
 
-interface ContextWindowProps {
+interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
   visible: boolean;
   onOpen?: () => void;
@@ -18,10 +18,10 @@ export const ContextWindow = ({
   id,
   visible,
   title,
-  style,
   children,
   onOpen,
   onClose,
+  ...rest
 }: ContextWindowProps): JSX.Element => {
   const windowStack = useContext(ContextWindowStackContext);
   const windowId = useRef<number | null>(null);
@@ -109,23 +109,24 @@ export const ContextWindow = ({
 
   return (
     <div
-      className="contextwindow-anchor"
+      className={styles.contextWindowAnchor}
       ref={divRef}
     >
       {windowStack &&
         createPortal(
           <div
+            {...rest}
             id={id}
-            className="contextwindow"
+            className={styles.contextWindow}
             style={{
-              ...style,
+              ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
               visibility: windowVisible ? "visible" : "hidden",
               zIndex: zIndex ?? 1,
-              minHeight: style?.minHeight ?? "150px",
-              minWidth: style?.minWidth ?? "200px",
-              maxHeight: style?.maxHeight ?? "1000px",
-              maxWidth: style?.maxWidth ?? "1000px",
+              minHeight: rest.style?.minHeight ?? "150px",
+              minWidth: rest.style?.minWidth ?? "200px",
+              maxHeight: rest.style?.maxHeight ?? "1000px",
+              maxWidth: rest.style?.maxWidth ?? "1000px",
             }}
             onClickCapture={() => {
               windowId && windowId.current && windowStack.pushToTop(windowId.current);
@@ -133,7 +134,9 @@ export const ContextWindow = ({
             ref={windowRef}
           >
             <div
-              className={`contextwindow-title ${moving ? "moving" : ""}`}
+              className={[styles.contextWindowTitle, moving ? styles.moving : ""]
+                .filter((c) => c !== "")
+                .join(" ")}
               onMouseDown={(e: React.MouseEvent) => {
                 if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
                   e.target.style.userSelect = "none";
@@ -144,8 +147,8 @@ export const ContextWindow = ({
                 window.addEventListener("resize", () => checkPosition());
               }}
             >
-              <div className="contextwindow-title-text">{title}</div>
-              <div className="contextwindow-title-close">
+              <div className={styles.contextWindowTitleText}>{title}</div>
+              <div className={styles.contextWindowTitleClose}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -159,7 +162,7 @@ export const ContextWindow = ({
                 </svg>
               </div>
             </div>
-            <div className="contextwindow-body">
+            <div className={styles.contextWindowBody}>
               <div>{children}</div>
             </div>
           </div>,

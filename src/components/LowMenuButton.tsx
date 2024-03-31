@@ -1,3 +1,4 @@
+import styles from "./LowMenu.module.css";
 import { LowSubMenu } from "./LowSubMenu";
 import { MenuItem } from "./interface";
 
@@ -8,7 +9,9 @@ interface LowMenuButtonProps {
 export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
   return (
     <div
-      className={`low-menu-item${entry.disabled ? " disabled" : ""}`}
+      className={[styles.lowMenuItem, entry.disabled ? styles.disabled : ""]
+        .filter((c) => c !== "")
+        .join(" ")}
       aria-label={typeof entry.label === "string" ? entry.label : undefined}
       aria-disabled={entry.disabled}
       onClick={(event) => {
@@ -17,7 +20,7 @@ export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
         entry.action && !entry.disabled && entry.action(target);
       }}
     >
-      <span className="low-menu-item-label">{entry.label}</span>
+      <span>{entry.label}</span>
       {entry.group && (
         <LowSubMenu
           entry={entry}

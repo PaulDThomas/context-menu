@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./ContextMenu.module.css";
 import { ContextSubMenu } from "./ContextSubMenu";
 import { MenuItem } from "./interface";
 
@@ -18,7 +19,9 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
     return (
       <div
         ref={ref}
-        className={`context-menu${visible ? " visible" : ""}`}
+        className={[styles.contextMenu, visible ? styles.visible : ""]
+          .filter((c) => c !== "")
+          .join(" ")}
         style={{
           top: `${yPos}px`,
           left: `${xPos}px`,
@@ -31,13 +34,15 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
         {entries.map((entry, i) => (
           <div
             key={i}
-            className={`context-menu-item${entry.disabled ? " disabled" : ""}`}
+            className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
+              .filter((c) => c !== "")
+              .join(" ")}
           >
             {typeof entry.label === "string" ? (
               <span
                 aria-label={typeof entry.label === "string" ? entry.label : undefined}
                 aria-disabled={entry.disabled}
-                className="context-menu-item-label"
+                className={styles.contextMenuItemLabel}
                 onMouseDownCapture={(ev) => {
                   ev.preventDefault();
                   ev.stopPropagation();
