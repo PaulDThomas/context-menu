@@ -4,3 +4,5 @@ export interface MenuItem {
   action?: (target?: Range | null) => void;
   group?: MenuItem[];
 }
+
+export type Effect = "fadeIn" | "fadeOut";

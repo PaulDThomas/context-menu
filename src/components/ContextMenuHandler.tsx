@@ -56,6 +56,7 @@ export const ContextMenuHandler = ({
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [lowMenuVisible, setLowMenuVisible] = useState<boolean>(false);
+  const [lowMenuInDom, setLowMenuInDom] = useState<boolean>(false);
 
   // Get holder position
   const divHandlerPos = divHandlderRef ? divHandlderRef.current?.getBoundingClientRect() : null;
@@ -89,6 +90,8 @@ export const ContextMenuHandler = ({
     };
   }, [handleClick, menuVisible]);
 
+  const fadeOutController = useRef<AbortController>(new AbortController());
+
   return (
     <ContentMenuHandlerContext.Provider
       value={{
@@ -102,10 +105,19 @@ export const ContextMenuHandler = ({
         style={{ ...rest.style }}
         onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
-          showLowMenu && setLowMenuVisible(true);
+          if (showLowMenu) {
+            fadeOutController.current.abort();
+            setLowMenuInDom(true);
+            setLowMenuVisible(false);
+            setTimeout(() => setLowMenuVisible(true), 1);
+          }
         }}
         onMouseLeave={() => {
-          showLowMenu && setLowMenuVisible(false);
+          if (showLowMenu) {
+            fadeOutController.current.abort();
+            fadeOutController.current = new AbortController();
+            setLowMenuVisible(false);
+          }
         }}
       >
         {children}
@@ -130,6 +142,7 @@ export const ContextMenuHandler = ({
         )}
       {showLowMenu &&
         divHandlerPos &&
+        lowMenuInDom &&
         createPortal(
           <div className={styles.anchor}>
             <LowMenu
