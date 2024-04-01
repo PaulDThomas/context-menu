@@ -5,11 +5,10 @@ import { MenuItem } from "./interface";
 
 export interface LowSubMenuProps {
   entry: MenuItem;
-  target: Range | null;
   lowMenu?: boolean;
 }
 
-export const LowSubMenu = ({ entry, target }: LowSubMenuProps): JSX.Element => {
+export const LowSubMenu = ({ entry }: LowSubMenuProps): JSX.Element => {
   const [visible, setVisible] = useState<boolean>(false);
   if (!entry.group || entry.group.length === 0) return <></>;
   return (
@@ -36,7 +35,6 @@ export const LowSubMenu = ({ entry, target }: LowSubMenuProps): JSX.Element => {
         <ContextMenu
           visible={visible}
           entries={entry.group}
-          target={target}
           xPos={14}
           yPos={entry.group.length * -21 - 8}
           toClose={() => setVisible(false)}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import styles from "./ContextMenu.module.css";
 import { ContextSubMenu } from "./ContextSubMenu";
 import { MenuItem } from "./interface";
@@ -6,15 +6,14 @@ import { MenuItem } from "./interface";
 export interface contextMenuProps {
   visible: boolean;
   entries: MenuItem[];
-  target: Range | null;
   xPos: number;
   yPos: number;
   toClose: () => void;
 }
 
 export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
-  ({ visible, entries, target, xPos, yPos, toClose }, ref): JSX.Element => {
-    ContextMenu.displayName = "ContextMenu";
+  ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
+    const [target, setTarget] = useState<Range | null>(null);
 
     return (
       <div
@@ -43,6 +42,14 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
                 aria-label={typeof entry.label === "string" ? entry.label : undefined}
                 aria-disabled={entry.disabled}
                 className={styles.contextMenuItemLabel}
+                onMouseEnter={() => {
+                  const sel = window.getSelection();
+                  const target = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+                  setTarget(target);
+                }}
+                onMouseLeave={() => {
+                  setTarget(null);
+                }}
                 onMouseDownCapture={(ev) => {
                   ev.preventDefault();
                   ev.stopPropagation();
@@ -59,7 +66,6 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
               <ContextSubMenu
                 toClose={toClose}
                 entries={entry.group}
-                target={target}
               />
             )}
           </div>

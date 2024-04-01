@@ -55,8 +55,6 @@ export const ContextMenuHandler = ({
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
-  const [target, setTarget] = useState<Range | null>(null);
-  const [lowTarget, setLowTarget] = useState<Range | null>(null);
   const [lowMenuVisible, setLowMenuVisible] = useState<boolean>(false);
 
   // Get holder position
@@ -64,8 +62,6 @@ export const ContextMenuHandler = ({
 
   // Show menu when context is requested
   const showMenu = (e: MouseEvent<HTMLDivElement>) => {
-    const sel = window.getSelection();
-    setTarget(sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null);
     e.preventDefault();
     e.stopPropagation();
     setMenuVisible(true);
@@ -127,7 +123,6 @@ export const ContextMenuHandler = ({
               entries={thisMenuItems}
               xPos={menuXPos}
               yPos={menuYPos}
-              target={target}
               toClose={() => setMenuVisible(false)}
             />
           </div>,
@@ -136,21 +131,10 @@ export const ContextMenuHandler = ({
       {showLowMenu &&
         divHandlerPos &&
         createPortal(
-          <div
-            className={styles.anchor}
-            onMouseEnter={() => {
-              const sel = window.getSelection();
-              const lowSel = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-              setLowTarget(lowSel);
-            }}
-            onMouseLeave={() => {
-              setLowTarget(null);
-            }}
-          >
+          <div className={styles.anchor}>
             <LowMenu
               visible={lowMenuVisible}
               entries={menuItems}
-              target={lowTarget}
               xPos={divHandlerPos.left}
               yPos={divHandlerPos.bottom}
             />
