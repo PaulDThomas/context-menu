@@ -18,7 +18,7 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
     return (
       <div
         ref={ref}
-        className={[styles.contextMenu, visible ? styles.visible : ""]
+        className={[styles.contextMenu, visible ? styles.visible : styles.hidden]
           .filter((c) => c !== "")
           .join(" ")}
         style={{

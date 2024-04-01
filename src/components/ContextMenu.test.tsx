@@ -73,21 +73,38 @@ describe("Context menu", () => {
     const blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector(
       "div.contextMenu",
     ) as HTMLDivElement;
-    expect(blueSubMenu.className).toEqual("contextMenu");
-    fireEvent.mouseOver(blueCaret);
-    expect(blueSubMenu.className).toEqual("contextMenu visible");
+    expect(blueSubMenu).toHaveClass("hidden");
+    await act(async () => {
+      fireEvent.mouseOver(blueCaret);
+      jest.runAllTimers();
+    });
+    expect(blueSubMenu).toHaveClass("visible");
     fireEvent.mouseLeave(blueCaret);
-    expect(blueSubMenu.className).toEqual("contextMenu");
+    expect(blueSubMenu).toHaveClass("hidden");
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
     await user.click(notDiv);
+    await act(async () => {
+      jest.runAllTimers();
+    });
     expect(screen.queryByText("Blue")).not.toBeInTheDocument();
 
     // Content menu click & close
-    fireEvent.contextMenu(testDiv);
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
     const greenItem = screen.getByText("Green");
-    await user.click(greenItem);
+    await act(async () => {
+      await user.click(greenItem);
+      jest.runAllTimers();
+    });
+    // Wait for the menu to be removed
+    await act(async () => {
+      jest.runAllTimers();
+    });
     expect(setColour).toHaveBeenCalledTimes(1);
     expect(setColour).toHaveBeenCalledWith("green");
     expect(greenItem).not.toBeInTheDocument();

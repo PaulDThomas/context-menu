@@ -16,17 +16,21 @@
 
 .contextMenu {
   position: absolute;
-  visibility: hidden;
   border: 1px solid;
   border-color: rgb(17, 20, 24);
   opacity: 1;
   background-color: rgb(251, 253, 246);
   z-index: 10000;
   box-shadow: 4px 4px 4px rgb(64, 64, 64, 0.75);
+  transition: opacity 0.3s linear;
+}
+
+.contextMenu.hidden {
+  opacity: 0;
 }
 
 .contextMenu.visible {
-  visibility: inherit;
+  opacity: 1;
 }
 
 .contextMenuItem {
