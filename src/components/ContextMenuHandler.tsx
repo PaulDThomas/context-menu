@@ -50,13 +50,13 @@ export const ContextMenuHandler = ({
 
   // Menu resources
   const divHandlderRef = useRef<HTMLDivElement | null>(null);
-  const divMenuRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
-  const [lowMenuVisible, setLowMenuVisible] = useState<boolean>(false);
   const [lowMenuInDom, setLowMenuInDom] = useState<boolean>(false);
+  const [mouseOverHandlerDiv, setMouseOverHandlerDiv] = useState<boolean>(false);
+  const [mouseOverMenu, setMouseOverMenu] = useState<boolean>(false);
 
   // Get holder position
   const divHandlerPos = divHandlderRef ? divHandlderRef.current?.getBoundingClientRect() : null;
@@ -90,7 +90,16 @@ export const ContextMenuHandler = ({
     };
   }, [handleClick, menuVisible]);
 
-  const fadeOutController = useRef<AbortController>(new AbortController());
+  const removeController = useRef<AbortController>(new AbortController());
+  useEffect(() => {
+    if (!mouseOverMenu && !menuVisible && !mouseOverHandlerDiv) {
+      removeController.current.abort();
+      removeController.current = new AbortController();
+      setTimeout(() => {
+        if (!removeController.current.signal.aborted) setLowMenuInDom(false);
+      }, 500);
+    }
+  }, [mouseOverHandlerDiv, menuVisible, mouseOverMenu]);
 
   return (
     <ContentMenuHandlerContext.Provider
@@ -105,19 +114,17 @@ export const ContextMenuHandler = ({
         style={{ ...rest.style }}
         onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
-          if (showLowMenu) {
-            fadeOutController.current.abort();
-            setLowMenuInDom(true);
-            setLowMenuVisible(false);
-            setTimeout(() => setLowMenuVisible(true), 1);
-          }
+          setLowMenuInDom(true);
+          setMouseOverHandlerDiv(false);
+          setTimeout(() => {
+            removeController.current.abort();
+            setMouseOverHandlerDiv(true);
+          }, 1);
         }}
         onMouseLeave={() => {
-          if (showLowMenu) {
-            fadeOutController.current.abort();
-            fadeOutController.current = new AbortController();
-            setLowMenuVisible(false);
-          }
+          removeController.current.abort();
+          removeController.current = new AbortController();
+          setMouseOverHandlerDiv(false);
         }}
       >
         {children}
@@ -127,7 +134,15 @@ export const ContextMenuHandler = ({
         createPortal(
           <div
             className={styles.anchor}
-            ref={divMenuRef}
+            onMouseEnter={() => {
+              removeController.current.abort();
+              setMouseOverMenu(true);
+            }}
+            onMouseLeave={() => {
+              removeController.current.abort();
+              removeController.current = new AbortController();
+              setMouseOverMenu(false);
+            }}
           >
             <ContextMenu
               visible={true}
@@ -144,9 +159,20 @@ export const ContextMenuHandler = ({
         divHandlerPos &&
         lowMenuInDom &&
         createPortal(
-          <div className={styles.anchor}>
+          <div
+            className={styles.anchor}
+            onMouseEnter={() => {
+              removeController.current.abort();
+              setMouseOverMenu(true);
+            }}
+            onMouseLeave={() => {
+              removeController.current.abort();
+              removeController.current = new AbortController();
+              setMouseOverMenu(false);
+            }}
+          >
             <LowMenu
-              visible={lowMenuVisible}
+              visible={mouseOverHandlerDiv}
               entries={menuItems}
               xPos={divHandlerPos.left}
               yPos={divHandlerPos.bottom}

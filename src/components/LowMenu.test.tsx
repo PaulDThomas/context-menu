@@ -4,7 +4,7 @@ import { menuItems } from "../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { act } from "react-dom/test-utils";
 
-describe("Context menu", () => {
+describe("Low menu", () => {
   const a = jest.fn();
   const user = userEvent.setup();
   test("Empty render, click action", async () => {
