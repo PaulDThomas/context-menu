@@ -1,13 +1,22 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { act } from "react-dom/test-utils";
 import { menuItems } from "../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
-import { act } from "react-dom/test-utils";
 
 describe("Low menu", () => {
-  const a = jest.fn();
-  const user = userEvent.setup();
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const user = userEvent.setup({ delay: null });
+
   test("Empty render, click action", async () => {
+    const a = jest.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -42,7 +51,9 @@ describe("Low menu", () => {
       ),
     );
     const testDiv = screen.getByTestId("inside-div");
-    fireEvent.mouseEnter(testDiv);
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+    });
 
     // Show context submenu
     const lowMenuBlue = screen.queryByLabelText("Blue") as HTMLDivElement;
@@ -50,16 +61,22 @@ describe("Low menu", () => {
     fireEvent.mouseEnter(lowMenuBlue);
     const lowMenuBlueSubmenu = screen.queryByLabelText("Sub menu for Blue") as HTMLSpanElement;
     expect(lowMenuBlueSubmenu).toBeVisible();
-    const cyan = screen.queryByLabelText("Cyan") as HTMLDivElement;
-    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
+    expect(screen.queryByLabelText("Cyan")).not.toBeInTheDocument();
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
+    const cyan = screen.queryByLabelText("Cyan") as HTMLDivElement;
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
-    fireEvent.mouseLeave(lowMenuBlueSubmenu);
-    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
+    await act(async () => {
+      fireEvent.mouseLeave(lowMenuBlueSubmenu);
+      jest.runAllTimers();
+    });
+    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
     // Fire close event
     fireEvent.mouseEnter(lowMenuBlueSubmenu);
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
-    fireEvent.mouseDown(cyan);
-    expect(cyan.closest(".contextMenu")).not.toHaveClass("visible");
+    await act(async () => {
+      fireEvent.mouseDown(cyan);
+      jest.runAllTimers();
+    });
+    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
 });

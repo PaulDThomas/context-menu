@@ -62,7 +62,6 @@ export const ContextMenuHandler = ({
 
   // Handle click off the menu
   const handleClick = useCallback((e: globalThis.MouseEvent) => {
-    console.log("Handle click");
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current?.contains(e.target)) ||
@@ -136,35 +135,8 @@ export const ContextMenuHandler = ({
       >
         {children}
       </div>
-      {!showLowMenu &&
-        menuInDom &&
-        createPortal(
-          <div
-            className={styles.anchor}
-            onMouseEnter={() => {
-              removeController.current.abort();
-              setMouseOverMenu(true);
-            }}
-            onMouseLeave={() => {
-              removeController.current.abort();
-              removeController.current = new AbortController();
-              setMouseOverMenu(false);
-            }}
-          >
-            <ContextMenu
-              visible={menuVisible}
-              ref={menuRef}
-              entries={thisMenuItems}
-              xPos={menuXPos}
-              yPos={menuYPos}
-              toClose={() => setMenuVisible(false)}
-            />
-          </div>,
-          document.body,
-        )}
-      {showLowMenu &&
+      {menuInDom &&
         divHandlerPos &&
-        menuInDom &&
         createPortal(
           <div
             className={styles.anchor}
@@ -178,12 +150,26 @@ export const ContextMenuHandler = ({
               setMouseOverMenu(false);
             }}
           >
-            <LowMenu
-              visible={mouseOverHandlerDiv}
-              entries={menuItems}
-              xPos={divHandlerPos.left}
-              yPos={divHandlerPos.bottom}
-            />
+            {showLowMenu ? (
+              <LowMenu
+                visible={mouseOverHandlerDiv}
+                entries={menuItems}
+                xPos={divHandlerPos.left}
+                yPos={divHandlerPos.bottom}
+              />
+            ) : (
+              <ContextMenu
+                visible={menuVisible}
+                ref={menuRef}
+                entries={thisMenuItems}
+                xPos={menuXPos}
+                yPos={menuYPos}
+                toClose={() => {
+                  setMenuVisible(false);
+                  setMouseOverMenu(false);
+                }}
+              />
+            )}
           </div>,
           document.body,
         )}

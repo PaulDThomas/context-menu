@@ -32,13 +32,15 @@ export const LowSubMenu = ({ entry }: LowSubMenuProps): JSX.Element => {
         <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z" />
       </svg>
       <div className={styles.subMenu}>
-        <ContextMenu
-          visible={visible}
-          entries={entry.group}
-          xPos={14}
-          yPos={entry.group.length * -21 - 8}
-          toClose={() => setVisible(false)}
-        />
+        {visible && (
+          <ContextMenu
+            visible={visible}
+            entries={entry.group}
+            xPos={14}
+            yPos={entry.group.length * -21 - 8}
+            toClose={() => setVisible(false)}
+          />
+        )}
       </div>
     </span>
   );
