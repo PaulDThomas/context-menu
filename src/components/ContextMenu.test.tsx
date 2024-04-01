@@ -1,29 +1,47 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ContextMenuHandler } from "./ContextMenuHandler";
 import { menuItems } from "../__dummy__/mockMenu";
+import { ContextMenuHandler } from "./ContextMenuHandler";
 
 describe("Context menu", () => {
-  test("Empty render, click expan", async () => {
-    const user = userEvent.setup();
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+  const user = userEvent.setup({ delay: null });
+
+  test("Empty render, request and click context", async () => {
     const a = jest.fn();
     await act(async () =>
       render(
-        <ContextMenuHandler menuItems={[{ label: "Hello", action: a }]}>
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: "Hello",
+              action: a,
+            },
+          ]}
+        >
           <div data-testid="inside-div" />
         </ContextMenuHandler>,
       ),
     );
     const testDiv = screen.getByTestId("inside-div");
-    fireEvent.contextMenu(testDiv);
-    expect(screen.queryByText("Hello")).toBeInTheDocument();
-    const h = screen.getByText("Hello");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
+    const h = screen.getByText("Hello") as HTMLSpanElement;
+    expect(h).toBeVisible();
     await user.click(h);
     expect(a).toHaveBeenCalled();
   });
 
   test("Move the mouse", async () => {
-    const user = userEvent.setup();
     const setColour = jest.fn();
     await act(async () =>
       render(
@@ -35,11 +53,19 @@ describe("Context menu", () => {
     );
     const testDiv = screen.getByTestId("inside-div");
     // Show content menu
-    fireEvent.contextMenu(testDiv);
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
     expect(screen.queryByText("Blue")).toBeInTheDocument();
 
     // Do nothing for more contenxt menu
-    fireEvent.contextMenu(screen.queryByText("Blue") as HTMLDivElement);
+    await act(async () => {
+      fireEvent.contextMenu(screen.queryByText("Blue") as HTMLDivElement);
+      jest.runAllTimers();
+      fireEvent.mouseLeave(screen.queryByText("Blue") as HTMLDivElement);
+    });
 
     // Mouse over & leave
     const blueItem = screen.getByText("Blue") as HTMLSpanElement;
@@ -82,13 +108,21 @@ describe("Context menu", () => {
     );
     // Show content menu
     const testDiv = screen.getByTestId("inside-div");
-    fireEvent.contextMenu(testDiv);
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(0);
     fireEvent.mouseDown(document);
     // Show both content menus
     const testDiv2 = screen.getByTestId("inside-div2");
-    fireEvent.contextMenu(testDiv2);
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv2);
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(1);
   });

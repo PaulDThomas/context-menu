@@ -54,7 +54,7 @@ export const ContextMenuHandler = ({
   const [menuXPos, setMenuXPos] = useState<number>(0);
   const [menuYPos, setMenuYPos] = useState<number>(0);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
-  const [lowMenuInDom, setLowMenuInDom] = useState<boolean>(false);
+  const [menuInDom, setMenuInDom] = useState<boolean>(false);
   const [mouseOverHandlerDiv, setMouseOverHandlerDiv] = useState<boolean>(false);
   const [mouseOverMenu, setMouseOverMenu] = useState<boolean>(false);
 
@@ -96,7 +96,7 @@ export const ContextMenuHandler = ({
       removeController.current.abort();
       removeController.current = new AbortController();
       setTimeout(() => {
-        if (!removeController.current.signal.aborted) setLowMenuInDom(false);
+        if (!removeController.current.signal.aborted) setMenuInDom(false);
       }, 500);
     }
   }, [mouseOverHandlerDiv, menuVisible, mouseOverMenu]);
@@ -114,7 +114,7 @@ export const ContextMenuHandler = ({
         style={{ ...rest.style }}
         onContextMenu={showLowMenu ? undefined : showMenu}
         onMouseEnter={() => {
-          setLowMenuInDom(true);
+          setMenuInDom(true);
           setMouseOverHandlerDiv(false);
           setTimeout(() => {
             removeController.current.abort();
@@ -129,8 +129,9 @@ export const ContextMenuHandler = ({
       >
         {children}
       </div>
-      {menuVisible &&
-        !showLowMenu &&
+      {!showLowMenu &&
+        menuVisible &&
+        menuInDom &&
         createPortal(
           <div
             className={styles.anchor}
@@ -157,7 +158,7 @@ export const ContextMenuHandler = ({
         )}
       {showLowMenu &&
         divHandlerPos &&
-        lowMenuInDom &&
+        menuInDom &&
         createPortal(
           <div
             className={styles.anchor}

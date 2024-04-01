@@ -50,9 +50,9 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
                 onMouseLeave={() => {
                   setTarget(null);
                 }}
-                onMouseDownCapture={(ev) => {
-                  ev.preventDefault();
-                  ev.stopPropagation();
+                onMouseDownCapture={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   entry.action && !entry.disabled && entry.action(target);
                   !entry.disabled && toClose();
                 }}
