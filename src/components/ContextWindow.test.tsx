@@ -73,7 +73,7 @@ describe("Context menu", () => {
       );
     });
     const title = screen.queryByText("Window title") as HTMLSpanElement;
-    expect(title).not.toBeVisible();
+    expect(title).not.toBeInTheDocument();
   });
 
   test("Move the mouse, turn it on and off", async () => {
@@ -105,12 +105,12 @@ describe("Context menu", () => {
     await act(async () => {
       render(<WindowWithInput />);
     });
-    const title = screen.queryByText("Test window") as HTMLSpanElement;
     const chk = screen.queryByLabelText("testwindow-checkbox") as HTMLInputElement;
     expect(chk).toBeInTheDocument();
-    expect(title).not.toBeVisible();
+    expect(screen.queryByText("Test window")).not.toBeInTheDocument();
     await user.click(chk);
     expect(chk).toBeChecked();
+    const title = screen.queryByText("Test window") as HTMLSpanElement;
     expect(title).toBeVisible();
     fireEvent.mouseDown(title);
     fireEvent.mouseMove(title, { movementX: 5000, movementY: -5000 });

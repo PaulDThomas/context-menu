@@ -27,6 +27,7 @@ export const ContextWindow = ({
   const windowId = useRef<number | null>(null);
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
+  const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
   const [windowVisible, setWindowVisible] = useState<boolean>(false);
   const zIndex = useMemo(() => {
     return windowStack?.currentWindows.find((w) => w.windowId === windowId.current)?.zIndex ?? 1;
@@ -78,7 +79,10 @@ export const ContextWindow = ({
   // Update visibility
   useEffect(() => {
     if (windowStack) {
-      if (visible && !windowVisible) {
+      // Visible set, but not in DOM
+      if (visible && !windowInDOM) {
+        setWindowInDOM(true);
+      } else if (visible && windowInDOM && !windowVisible) {
         if (!windowId.current) {
           const maxWindowId = Math.max(0, ...windowStack.currentWindows.map((w) => w.windowId));
           windowId.current = maxWindowId + 1;
@@ -103,9 +107,11 @@ export const ContextWindow = ({
         checkPosition();
       } else if (windowId.current && !visible && windowVisible) {
         setWindowVisible(false);
+      } else if (windowId.current && !visible && windowInDOM) {
+        setWindowInDOM(false);
       }
     }
-  }, [checkPosition, onOpen, visible, windowStack, windowVisible]);
+  }, [checkPosition, onOpen, visible, windowInDOM, windowStack, windowVisible]);
 
   return (
     <div
@@ -113,6 +119,7 @@ export const ContextWindow = ({
       ref={divRef}
     >
       {windowStack &&
+        windowInDOM &&
         createPortal(
           <div
             {...rest}
