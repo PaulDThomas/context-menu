@@ -1,24 +1,26 @@
-import React from 'react';
-import { ContextSubMenu } from './ContextSubMenu';
-import { iMenuItem } from './interface';
+import React, { useState } from "react";
+import styles from "./ContextMenu.module.css";
+import { ContextSubMenu } from "./ContextSubMenu";
+import { MenuItem } from "./interface";
 
 export interface contextMenuProps {
   visible: boolean;
-  entries: iMenuItem[];
-  target: Range | null;
+  entries: MenuItem[];
   xPos: number;
   yPos: number;
   toClose: () => void;
 }
 
 export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
-  ({ visible, entries, target, xPos, yPos, toClose }, ref): JSX.Element => {
-    ContextMenu.displayName = 'ContextMenu';
+  ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
+    const [target, setTarget] = useState<Range | null>(null);
 
     return (
       <div
         ref={ref}
-        className={`context-menu${visible ? ' visible' : ''}`}
+        className={[styles.contextMenu, visible ? styles.visible : styles.hidden]
+          .filter((c) => c !== "")
+          .join(" ")}
         style={{
           top: `${yPos}px`,
           left: `${xPos}px`,
@@ -31,26 +33,39 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
         {entries.map((entry, i) => (
           <div
             key={i}
-            className={`context-menu-item${entry.disabled ? ' disabled' : ''}`}
+            className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
+              .filter((c) => c !== "")
+              .join(" ")}
           >
-            <span
-              aria-label={entry.label}
-              aria-disabled={entry.disabled}
-              className='context-menu-item-label'
-              onMouseDownCapture={(ev) => {
-                ev.preventDefault();
-                ev.stopPropagation();
-                entry.action && !entry.disabled && entry.action(target);
-                !entry.disabled && toClose();
-              }}
-            >
-              {entry.label}
-            </span>
+            {typeof entry.label === "string" ? (
+              <span
+                aria-label={typeof entry.label === "string" ? entry.label : undefined}
+                aria-disabled={entry.disabled}
+                className={styles.contextMenuItemLabel}
+                onMouseEnter={() => {
+                  const sel = window.getSelection();
+                  const target = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+                  setTarget(target);
+                }}
+                onMouseLeave={() => {
+                  setTarget(null);
+                }}
+                onMouseDownCapture={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  entry.action && !entry.disabled && entry.action(target);
+                  !entry.disabled && toClose();
+                }}
+              >
+                {entry.label}
+              </span>
+            ) : (
+              entry.label
+            )}
             {entry.group && (
               <ContextSubMenu
                 toClose={toClose}
                 entries={entry.group}
-                target={target}
               />
             )}
           </div>
@@ -60,4 +75,4 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
   },
 );
 
-ContextMenu.displayName = 'ContextMenu';
+ContextMenu.displayName = "ContextMenu";

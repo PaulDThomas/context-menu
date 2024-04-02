@@ -1,27 +1,37 @@
-import { iMenuItem } from './interface';
-import './LowMenu.css';
-import { LowMenuButton } from './LowMenuButton';
+import styles from "./LowMenu.module.css";
+import { LowMenuButton } from "./LowMenuButton";
+import { MenuItem } from "./interface";
 
 interface LowMenuProps {
-  entries: iMenuItem[];
-  target: Range | null;
+  entries: MenuItem[];
+  visible: boolean;
+  xPos: number;
+  yPos: number;
+  maxWidth: number;
 }
 
-export const LowMenu = ({ entries, target }: LowMenuProps): JSX.Element => {
+export const LowMenu = ({ entries, visible, xPos, yPos, maxWidth }: LowMenuProps): JSX.Element => {
   return (
     <div
-      className='low-menu'
-      aria-label='Low context menu'
+      className={[styles.lowMenu, visible ? styles.visible : styles.hidden].join(" ")}
+      aria-label="Low context menu"
+      style={{
+        left: `${xPos}px`,
+        top: `${yPos}px`,
+        maxWidth: `calc(${maxWidth}px)`,
+        width: `calc(${maxWidth}px - 4px)`,
+      }}
     >
-      {entries.map((e, i) => (
-        <LowMenuButton
-          key={i}
-          entry={e}
-          target={target}
-        />
-      ))}
+      <div className={styles.lowMenuButtonHolder}>
+        {entries.map((e, i) => (
+          <LowMenuButton
+            key={i}
+            entry={e}
+          />
+        ))}
+      </div>
     </div>
   );
 };
 
-LowMenu.displayName = 'LowMenu';
+LowMenu.displayName = "LowMenu";

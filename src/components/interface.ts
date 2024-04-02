@@ -1,6 +1,8 @@
-export interface iMenuItem {
-  label: string;
+export interface MenuItem {
+  label: string | JSX.Element;
   disabled?: boolean;
   action?: (target?: Range | null) => void;
-  group?: iMenuItem[];
+  group?: MenuItem[];
 }
+
+export type Effect = "fadeIn" | "fadeOut";

@@ -1,39 +1,51 @@
-import { Fragment, useState } from 'react';
-import { ContextWindow } from '../../src/components/ContextWindow';
-import { ContextWindowStack } from '../../src/components/ContextWindowStack';
-import { ContextMenuHandler } from '../../src/main';
-import { ColourDiv } from './ColourDiv';
+import { Fragment, useState } from "react";
+import { ContextWindow } from "../../src/components/ContextWindow";
+import { ContextWindowStack } from "../../src/components/ContextWindowStack";
+import { ContextMenuHandler } from "../../src/main";
+import { ColourDiv } from "./ColourDiv";
 
 export const App = () => {
   const [showWindow, setShowWindow] = useState<boolean[]>(Array.from({ length: 5 }, () => false));
   return (
-    <div className='app-holder'>
-      <div className='app-border'>
+    <div className="app-holder">
+      <div className="app-border">
         <div
-          className='app-inner'
-          style={{ display: 'flex', flexDirection: 'row' }}
+          className="app-inner"
+          style={{ display: "flex", flexDirection: "row" }}
         >
-          <div>
-            <ColourDiv text='Div 1' />
+          <ContextMenuHandler
+            menuItems={[{ label: "Outer item", action: () => console.log("Outer item") }]}
+            style={{ backgroundColor: "lightblue", margin: "6px" }}
+          >
+            <ColourDiv text="Div 1" />
             <ColourDiv
-              text='Div 2 is here for everyone'
+              text="Div 2 is here for everyone"
               showLowMenu
+              style={{
+                resize: "both",
+                overflow: "auto",
+                padding: "0.5rem",
+                backgroundColor: "lightgreen",
+              }}
             />
-            <ColourDiv text='Div 3' />
-          </div>
+            <ColourDiv text="Div 3">
+              <ColourDiv text="Div 3.1" />
+            </ColourDiv>
+          </ContextMenuHandler>
+
           <div>
             <ContextWindowStack>
               {Array.from({ length: 5 }, (_, k) => k).map((i) => (
                 <Fragment key={i}>
                   <div
-                    style={{ height: '30px', padding: '1rem' }}
+                    style={{ height: "30px", padding: "1rem" }}
                     onClick={() => {
                       setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
                     }}
                   >
                     <input
                       id={`window-check-${i}`}
-                      type='checkbox'
+                      type="checkbox"
                       checked={showWindow[i]}
                       onChange={(e) => {
                         setShowWindow(
@@ -41,12 +53,12 @@ export const App = () => {
                         );
                       }}
                     />
-                    <label htmlFor='window-check'>Show window {i}</label>
+                    <label htmlFor="window-check">Show window {i}</label>
                   </div>
                   <ContextWindow
                     id={`w-${i}`}
                     visible={showWindow[i]}
-                    title={'Window with a very very very long title, that wants to be squashed'}
+                    title={"Window with a very very very long title, that wants to be squashed"}
                     onClose={() => {
                       setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
                     }}
@@ -60,38 +72,42 @@ export const App = () => {
             <pre>Visible windows: {JSON.stringify(showWindow)}</pre>
             <div>
               <ContextMenuHandler
-                style={{ width: '100%', backgroundColor: 'magenta' }}
+                style={{ width: "100%", backgroundColor: "magenta" }}
                 menuItems={[
                   {
-                    label: 'Target to console',
+                    label: "Target to console",
                     action: (target?: Range | null) => {
                       if (target) {
                         const frag = target.cloneContents();
-                        const div = document.createElement('div');
+                        const div = document.createElement("div");
                         div.append(frag);
                         console.log(div.innerHTML);
                       }
                     },
                   },
+                  { label: <hr /> },
+                  {
+                    label: <span>This does nothing</span>,
+                  },
                 ]}
               >
-                <span style={{ backgroundColor: 'white' }}>Hello</span>
-                <span style={{ backgroundColor: 'green' }}> Green </span>
-                <span style={{ backgroundColor: 'lightblue' }}>Grass</span>
+                <span style={{ backgroundColor: "white" }}>Hello</span>
+                <span style={{ backgroundColor: "green" }}> Green </span>
+                <span style={{ backgroundColor: "lightblue" }}>Grass</span>
               </ContextMenuHandler>
             </div>
             <hr />
             <div>
               <ContextMenuHandler
-                style={{ width: '100%', backgroundColor: 'magenta' }}
+                style={{ width: "100%", backgroundColor: "magenta" }}
                 showLowMenu
                 menuItems={[
                   {
-                    label: 'Target to console',
+                    label: "Target to console",
                     action: (target?: Range | null) => {
                       if (target) {
                         const frag = target.cloneContents();
-                        const div = document.createElement('div');
+                        const div = document.createElement("div");
                         div.append(frag);
                         console.log(div.innerHTML);
                       }

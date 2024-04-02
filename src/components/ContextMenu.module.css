@@ -1,0 +1,77 @@
+.anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 9pt;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.contextMenuHandler {
+  height: fit-content;
+  width: fit-content;
+}
+
+.contextMenu {
+  position: absolute;
+  border: 1px solid;
+  border-color: rgb(17, 20, 24);
+  opacity: 1;
+  background-color: rgb(251, 253, 246);
+  z-index: 10000;
+  box-shadow: 4px 4px 4px rgb(64, 64, 64, 0.75);
+  transition: opacity 0.3s linear;
+}
+
+.contextMenu.hidden {
+  opacity: 0;
+}
+
+.contextMenu.visible {
+  opacity: 1;
+}
+
+.contextMenuItem {
+  color: rgb(17, 20, 24);
+  cursor: pointer;
+  padding: 0 4px;
+  min-width: 80px;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  white-space: nowrap;
+}
+
+.contextMenuItem.disabled {
+  background-color: rgba(0, 0, 0, 0.2);
+  cursor: not-allowed;
+}
+
+.contextMenuItem:first-child {
+  padding-top: 4px;
+}
+
+.contextMenuItem:last-child {
+  padding-bottom: 4px;
+}
+
+.contextMenuItem:not(.disabled):hover {
+  background-color: rgb(251, 233, 230);
+}
+
+.contextMenuItem .caretHolder {
+  align-self: flex-end;
+}
+
+.contextMenuItem .caretHolder .subMenu {
+  z-index: 1;
+  position: relative;
+}
+
+.contextMenuItemLabel {
+  flex-grow: 1;
+  height: 19px;
+}

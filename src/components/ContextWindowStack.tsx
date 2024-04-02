@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react';
+import { createContext, useState } from "react";
 
 export interface ContextWindowZIndex {
   windowId: number;
@@ -51,4 +51,4 @@ export const ContextWindowStack = ({
   );
 };
 
-ContextWindowStack.displayName = 'ContextWindowStack';
+ContextWindowStack.displayName = "ContextWindowStack";

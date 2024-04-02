@@ -1,42 +1,45 @@
-import { useState } from 'react';
-import { menuItems } from '../../src/__mocks__/mockMenu';
-import { ContextMenuHandler } from '../../src/main';
+import { useState } from "react";
+import { menuItems } from "../../src/__dummy__/mockMenu";
+import { ContextMenuHandler } from "../../src/main";
 
-interface ColourDivProps {
+interface ColourDivProps extends React.HTMLAttributes<HTMLDivElement> {
   text: string;
   onSelect?: React.ReactEventHandler<HTMLDivElement>;
   showLowMenu?: boolean;
-  lowMenuTarget?: Range | null;
+  children?: React.ReactNode;
 }
 
 export const ColourDiv = ({
   text,
   onSelect,
   showLowMenu = false,
-  lowMenuTarget = null,
+  children,
+  ...rest
 }: ColourDivProps) => {
-  const [colour, setColour] = useState<string>('white');
+  const [colour, setColour] = useState<string>("white");
 
   return (
-    <div style={{ margin: '2rem' }}>
+    <div style={{ margin: "2rem" }}>
       <ContextMenuHandler
         menuItems={menuItems(setColour)}
         showLowMenu={showLowMenu}
-        lowMenuTarget={lowMenuTarget}
       >
         <div
+          {...rest}
           onSelect={onSelect}
           contentEditable={showLowMenu}
           suppressContentEditableWarning={showLowMenu}
           style={{
+            ...rest.style,
             backgroundColor: colour,
-            textAlign: 'center',
-            verticalAlign: 'center',
-            height: '200px',
-            width: '200px',
+            textAlign: "center",
+            verticalAlign: "center",
+            minHeight: "200px",
+            minWidth: "200px",
           }}
         >
           {text}
+          {children}
         </div>
       </ContextMenuHandler>
     </div>

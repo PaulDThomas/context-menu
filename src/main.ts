@@ -1,1 +1,2 @@
-export * from './components';
+import "../global.d.ts";
+export * from "./components";

@@ -1,31 +1,38 @@
-import { LowSubMenu } from './LowSubMenu';
-import { iMenuItem } from './interface';
+import styles from "./LowMenu.module.css";
+import { LowSubMenu } from "./LowSubMenu";
+import { MenuItem } from "./interface";
+import { useState } from "react";
 
 interface LowMenuButtonProps {
-  entry: iMenuItem;
-  target: Range | null;
+  entry: MenuItem;
 }
-export const LowMenuButton = ({ entry, target }: LowMenuButtonProps) => {
+export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
+  const [target, setTarget] = useState<Range | null>(null);
   return (
     <div
-      className={`low-menu-item${entry.disabled ? ' disabled' : ''}`}
-      aria-label={entry.label}
+      className={[styles.lowMenuItem, entry.disabled ? styles.disabled : ""]
+        .filter((c) => c !== "")
+        .join(" ")}
+      aria-label={typeof entry.label === "string" ? entry.label : undefined}
       aria-disabled={entry.disabled}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
+      onMouseEnter={() => {
+        const sel = window.getSelection();
+        const target = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+        setTarget(target);
+      }}
+      onMouseLeave={() => {
+        setTarget(null);
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
         entry.action && !entry.disabled && entry.action(target);
       }}
     >
-      <span className='low-menu-item-label'>{entry.label}</span>
-      {entry.group && (
-        <LowSubMenu
-          entry={entry}
-          target={target}
-        />
-      )}
+      <span>{entry.label}</span>
+      {entry.group && <LowSubMenu entry={entry} />}
     </div>
   );
 };
 
-LowMenuButton.displayName = 'LowMenuButton';
+LowMenuButton.displayName = "LowMenuButton";
