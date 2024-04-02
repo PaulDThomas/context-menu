@@ -21,6 +21,12 @@ export const App = () => {
             <ColourDiv
               text="Div 2 is here for everyone"
               showLowMenu
+              style={{
+                resize: "both",
+                overflow: "auto",
+                padding: "0.5rem",
+                backgroundColor: "lightgreen",
+              }}
             />
             <ColourDiv text="Div 3">
               <ColourDiv text="Div 3.1" />

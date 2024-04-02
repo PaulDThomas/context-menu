@@ -156,6 +156,7 @@ export const ContextMenuHandler = ({
                 entries={menuItems}
                 xPos={divHandlerPos.left}
                 yPos={divHandlerPos.bottom}
+                maxWidth={divHandlerPos.width}
               />
             ) : (
               <ContextMenu
