@@ -4,7 +4,7 @@ const config: Config = {
   // The root of your source code, typically /src
   // `<rootDir>` is a token Jest substitutes
   roots: ["<rootDir>/src"],
-  modulePaths: ["<rootDir>/src"],
+  modulePaths: ["node_modules", "<rootDir>/src"],
   testEnvironment: "jsdom",
   verbose: true,
 
@@ -43,7 +43,6 @@ const config: Config = {
   // Code coverage
   collectCoverage: true,
   coverageProvider: "v8",
-  coverageReporters: ["lcov", "text"],
   collectCoverageFrom: [
     "**/*.{js,jsx}",
     "**/*.{ts,tsx}",
@@ -53,7 +52,7 @@ const config: Config = {
     "!**/__dummy__/**",
   ],
   moduleNameMapper: {
-    "\\.(css|less|scss)$": "<rootDir>/src/__dummy__/styleMock.ts",
+    "\\.(css|less|scss)$": "<rootDir>/__dummy__/styleMock.ts",
   },
   // Plugin for watch patterns
   watchPlugins: ["jest-watch-typeahead/filename", "jest-watch-typeahead/testname"],
