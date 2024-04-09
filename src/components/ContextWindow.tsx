@@ -11,7 +11,7 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   onClose?: () => void;
   title: string;
   style?: React.CSSProperties;
-  children: JSX.Element[] | JSX.Element | string;
+  children: React.ReactNode;
 }
 
 export const ContextWindow = ({
@@ -123,8 +123,9 @@ export const ContextWindow = ({
         createPortal(
           <div
             {...rest}
+            ref={windowRef}
             id={id}
-            className={styles.contextWindow}
+            className={[styles.contextWindow, rest.className].join(" ")}
             style={{
               ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
@@ -135,10 +136,10 @@ export const ContextWindow = ({
               maxHeight: rest.style?.maxHeight ?? "1000px",
               maxWidth: rest.style?.maxWidth ?? "1000px",
             }}
-            onClickCapture={() => {
+            onClickCapture={(e) => {
               windowId && windowId.current && windowStack.pushToTop(windowId.current);
+              rest.onClickCapture && rest.onClickCapture(e);
             }}
-            ref={windowRef}
           >
             <div
               className={[styles.contextWindowTitle, moving ? styles.moving : ""]

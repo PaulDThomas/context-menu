@@ -18,8 +18,8 @@ export interface ContentMenuHandlerContextProps {
 }
 export const ContentMenuHandlerContext = createContext<ContentMenuHandlerContextProps | null>(null);
 
-interface contextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: JSX.Element[] | JSX.Element;
+export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
   menuItems: MenuItem[];
   showLowMenu?: boolean;
 }
@@ -29,7 +29,7 @@ export const ContextMenuHandler = ({
   menuItems,
   showLowMenu = false,
   ...rest
-}: contextMenuHandlerProps): JSX.Element => {
+}: ContextMenuHandlerProps): JSX.Element => {
   // Check for higher content menu
   const higherContext = useContext(ContentMenuHandlerContext);
   const thisMenuItems = useMemo(
@@ -101,7 +101,6 @@ export const ContextMenuHandler = ({
         ref={divHandlderRef}
         {...rest}
         className={[styles.contextMenuHandler, rest.className].join(" ")}
-        style={{ ...rest.style }}
         onContextMenu={(e) => {
           if (!showLowMenu) {
             setMenuInDom(true);
@@ -115,7 +114,7 @@ export const ContextMenuHandler = ({
             }, 1);
           }
         }}
-        onMouseEnter={() => {
+        onMouseEnter={(e) => {
           if (showLowMenu) {
             setMenuInDom(true);
             setMouseOverHandlerDiv(false);
@@ -124,13 +123,15 @@ export const ContextMenuHandler = ({
               setMouseOverHandlerDiv(true);
             }, 1);
           }
+          rest.onMouseEnter && rest.onMouseEnter(e);
         }}
-        onMouseLeave={() => {
+        onMouseLeave={(e) => {
           if (showLowMenu) {
             removeController.current.abort();
             removeController.current = new AbortController();
             setMouseOverHandlerDiv(false);
           }
+          rest.onMouseLeave && rest.onMouseLeave(e);
         }}
       >
         {children}

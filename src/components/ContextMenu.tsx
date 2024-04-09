@@ -3,7 +3,7 @@ import styles from "./ContextMenu.module.css";
 import { ContextSubMenu } from "./ContextSubMenu";
 import { MenuItem } from "./interface";
 
-export interface contextMenuProps {
+export interface ContextMenuProps {
   visible: boolean;
   entries: MenuItem[];
   xPos: number;
@@ -11,7 +11,7 @@ export interface contextMenuProps {
   toClose: () => void;
 }
 
-export const ContextMenu = React.forwardRef<HTMLDivElement, contextMenuProps>(
+export const ContextMenu = React.forwardRef<HTMLDivElement, ContextMenuProps>(
   ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
     const [target, setTarget] = useState<Range | null>(null);
 
