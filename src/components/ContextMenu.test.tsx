@@ -37,7 +37,7 @@ describe("Context menu", () => {
     });
     const h = screen.getByText("Hello") as HTMLSpanElement;
     expect(h).toBeVisible();
-    await user.click(h);
+    await act(async () => await user.click(h));
     expect(a).toHaveBeenCalled();
   });
 
@@ -84,7 +84,7 @@ describe("Context menu", () => {
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
-    await user.click(notDiv);
+    await act(async () => await user.click(notDiv));
     await act(async () => {
       jest.runAllTimers();
     });

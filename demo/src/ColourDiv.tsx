@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { menuItems } from "../../src/__dummy__/mockMenu";
 import { ContextMenuHandler } from "../../src/main";
+import { menuItems } from "../../__dummy__/mockMenu";
 
 interface ColourDivProps extends React.HTMLAttributes<HTMLDivElement> {
   text: string;

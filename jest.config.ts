@@ -3,7 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   // The root of your source code, typically /src
   // `<rootDir>` is a token Jest substitutes
-  roots: ["<rootDir>/src"],
+  roots: ["<rootDir>", "<rootDir>/src"],
   modulePaths: ["node_modules", "<rootDir>/src"],
   testEnvironment: "jsdom",
   verbose: true,
@@ -44,8 +44,8 @@ const config: Config = {
   collectCoverage: true,
   coverageProvider: "v8",
   collectCoverageFrom: [
-    "**/*.{js,jsx}",
-    "**/*.{ts,tsx}",
+    "src/**/*.{js,jsx}",
+    "src/**/*.{ts,tsx}",
     "!**/index.ts",
     "!**/interface.ts",
     "!**/main.ts",

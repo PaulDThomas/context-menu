@@ -1,6 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { act } from "react-dom/test-utils";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 
@@ -31,7 +30,7 @@ describe("Low menu", () => {
     fireEvent.mouseEnter(testDiv);
     expect(screen.queryByText("Hello")).toBeInTheDocument();
     const h = screen.getByText("Hello");
-    await user.click(h);
+    await act(async () => await user.click(h));
     expect(a).toHaveBeenCalled();
     await act(async () => fireEvent.mouseLeave(testDiv));
     expect(screen.queryByText("Hello")?.closest(".lowMenu")).toHaveClass("hidden");

@@ -19,14 +19,7 @@
     "declaration": true,
     "jsx": "react-jsx",
     "noImplicitAny": true,
-    "plugins": [
-      {
-        "name": "typescript-plugin-css-modules",
-        "options": {
-          "classnameTransform": "camelCaseOnly"
-        }
-      }
-    ]
+    "plugins": []
   },
   "include": ["global.d.ts", "src", "demo", "__dummy__"],
   "exclude": ["node_modules", "dist", "demo/dist"]
