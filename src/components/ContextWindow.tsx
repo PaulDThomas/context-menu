@@ -118,6 +118,18 @@ export const ContextWindow = ({
       className={styles.contextWindowAnchor}
       ref={divRef}
     >
+      {!windowStack && (
+        <div {...rest}>
+          {process.env.NODE_ENV !== "production" && (
+            <div
+              style={{ backgroundColor: "red", color: "white", padding: "8px", fontSize: "1000" }}
+            >
+              WARNING: No ContextWindowStack found
+            </div>
+          )}
+          {children}
+        </div>
+      )}
       {windowStack &&
         windowInDOM &&
         createPortal(

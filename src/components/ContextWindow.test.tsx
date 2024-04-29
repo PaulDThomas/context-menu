@@ -4,7 +4,7 @@ import { ContextWindow } from "./ContextWindow";
 import { ContextWindowStack } from "./ContextWindowStack";
 import { useState } from "react";
 
-describe("Context menu", () => {
+describe("Context window", () => {
   test("Not there", async () => {
     await act(async () => {
       render(
@@ -20,19 +20,19 @@ describe("Context menu", () => {
     expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
-  test("Not there because there is no stack", async () => {
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"w1"}
-          visible={true}
-          title={"Window title"}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
-      );
-    });
+  test("WARNING because there is no stack", async () => {
+    render(
+      <ContextWindow
+        id={"w1"}
+        visible={true}
+        title={"Window title"}
+      >
+        <span>Hi</span>
+      </ContextWindow>,
+    );
     expect(screen.queryByText("Window title")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hi")).toBeInTheDocument();
+    expect(screen.queryByText(/WARNING/)).toBeInTheDocument();
   });
 
   test("With stack, should be visible, and check close", async () => {
