@@ -17,6 +17,8 @@
   border-bottom-left-radius: 8px;
   resize: both;
   overflow: auto;
+  max-height: 95vh;
+  max-width: 95vw;
 }
 
 .contextWindowTitle {
