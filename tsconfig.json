@@ -19,7 +19,8 @@
     "declaration": true,
     "jsx": "react-jsx",
     "noImplicitAny": true,
-    "plugins": []
+    "plugins": [],
+    "types": ["node", "jest"]
   },
   "include": ["global.d.ts", "src", "demo", "__dummy__"],
   "exclude": ["node_modules", "dist", "demo/dist"]
