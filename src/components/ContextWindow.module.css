@@ -23,12 +23,15 @@
 
 .contextWindowTitle {
   border-bottom: 1px black dashed;
+  box-sizing: unset;
   padding-bottom: 4px;
   margin: 0 4px 3px 4px;
   height: 24px;
+  line-height: 24px;
   max-height: 24px;
   cursor: grab;
-  align-items: top;
+  font-size: 18px;
+  font-weight: 600;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -40,8 +43,6 @@
 }
 
 .contextWindowTitleText {
-  font-size: 18px;
-  font-weight: 600;
   display: inline-block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -50,9 +51,8 @@
 }
 
 .contextWindowTitleClose {
-  display: inline-block;
+  display: flex;
   color: black;
-  background-color: white;
   height: 16px;
   width: 16px;
   border-radius: 3px;
