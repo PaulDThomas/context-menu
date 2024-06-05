@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { forwardRef } from "react";
 import styles from "./ContextMenu.module.css";
-import { ContextSubMenu } from "./ContextSubMenu";
+import { ContextMenuEntry } from "./ContextMenuEntry";
 import { MenuItem } from "./interface";
 
 export interface ContextMenuProps {
@@ -11,10 +11,8 @@ export interface ContextMenuProps {
   toClose: () => void;
 }
 
-export const ContextMenu = React.forwardRef<HTMLDivElement, ContextMenuProps>(
+export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
-    const [target, setTarget] = useState<Range | null>(null);
-
     return (
       <div
         ref={ref}
@@ -31,44 +29,11 @@ export const ContextMenu = React.forwardRef<HTMLDivElement, ContextMenuProps>(
         }}
       >
         {entries.map((entry, i) => (
-          <div
+          <ContextMenuEntry
             key={i}
-            className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
-              .filter((c) => c !== "")
-              .join(" ")}
-          >
-            {typeof entry.label === "string" ? (
-              <span
-                aria-label={typeof entry.label === "string" ? entry.label : undefined}
-                aria-disabled={entry.disabled}
-                className={styles.contextMenuItemLabel}
-                onMouseEnter={() => {
-                  const sel = window.getSelection();
-                  const target = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-                  setTarget(target);
-                }}
-                onMouseLeave={() => {
-                  setTarget(null);
-                }}
-                onMouseDownCapture={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  entry.action && !entry.disabled && entry.action(target);
-                  !entry.disabled && toClose();
-                }}
-              >
-                {entry.label}
-              </span>
-            ) : (
-              entry.label
-            )}
-            {entry.group && (
-              <ContextSubMenu
-                toClose={toClose}
-                entries={entry.group}
-              />
-            )}
-          </div>
+            entry={entry}
+            toClose={toClose}
+          />
         ))}
       </div>
     );
