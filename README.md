@@ -26,7 +26,7 @@ Sub menus can be added within each item.
 Wrap around the elements that need to have the menu.
 
 ```
-import { ContextMenuProvider, iMenuItem } from '@asup/context-menu';
+import { ContextMenuProvider, IMenuItem } from '@asup/context-menu';
 
 <ContextMenuHandler
   menuItems={[
