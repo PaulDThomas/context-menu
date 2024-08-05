@@ -121,4 +121,20 @@ describe("Context window", () => {
     await act(async () => await user.click(chk));
     expect(title).not.toBeVisible();
   });
+
+  test("Window with custom title element", async () => {
+    render(
+      <ContextWindowStack>
+        <ContextWindow
+          id={"testwindow"}
+          visible={true}
+          title={"Test window"}
+          titleElement={<>Window that is a test</>}
+        >
+          <span>Hello world of tests</span>
+        </ContextWindow>
+      </ContextWindowStack>,
+    );
+    expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
+  });
 });

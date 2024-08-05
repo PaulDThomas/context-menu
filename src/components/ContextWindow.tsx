@@ -1,8 +1,8 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
-import { ContextWindowStackContext } from "./ContextWindowStack";
 import styles from "./ContextWindow.module.css";
+import { ContextWindowStackContext } from "./ContextWindowStack";
 
 interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -10,6 +10,7 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   onOpen?: () => void;
   onClose?: () => void;
   title: string;
+  titleElement?: ReactNode;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }
@@ -18,6 +19,7 @@ export const ContextWindow = ({
   id,
   visible,
   title,
+  titleElement,
   children,
   onOpen,
   onClose,
@@ -167,7 +169,12 @@ export const ContextWindow = ({
                 window.addEventListener("resize", () => checkPosition());
               }}
             >
-              <div className={styles.contextWindowTitleText}>{title}</div>
+              <div
+                className={styles.contextWindowTitleText}
+                title={title}
+              >
+                {titleElement ? titleElement : title}
+              </div>
               <div className={styles.contextWindowTitleClose}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
