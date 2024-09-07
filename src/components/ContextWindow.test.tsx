@@ -53,7 +53,7 @@ describe("Context window", () => {
       );
     });
     expect(screen.queryByText("Window title")).toBeInTheDocument();
-    const closeCross = screen.queryByLabelText("Close window") as Element;
+    const closeCross = screen.queryByLabelText("Close") as Element;
     await act(async () => await user.click(closeCross));
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
