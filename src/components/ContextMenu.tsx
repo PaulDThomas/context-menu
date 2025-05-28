@@ -23,7 +23,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           top: `${yPos}px`,
           left: `${xPos}px`,
         }}
-        onContextMenuCapture={(e) => {
+        onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
         }}

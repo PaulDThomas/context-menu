@@ -39,8 +39,12 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
           onMouseDownCapture={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            entry.action && !entry.disabled && entry.action(target);
-            !entry.disabled && toClose();
+            if (!entry.disabled) {
+              if (entry.action) {
+                entry.action(target, e);
+              }
+              toClose();
+            }
           }}
         >
           {entry.label}

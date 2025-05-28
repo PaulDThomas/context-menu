@@ -101,7 +101,7 @@ export const ContextMenuHandler = ({
         ref={divHandlderRef}
         {...rest}
         className={[styles.contextMenuHandler, rest.className].join(" ")}
-        onContextMenu={(e) => {
+        onContextMenu={async (e) => {
           if (!showLowMenu) {
             setMenuInDom(true);
             e.preventDefault();
@@ -114,7 +114,7 @@ export const ContextMenuHandler = ({
             }, 1);
           }
         }}
-        onMouseEnter={(e) => {
+        onMouseEnter={async (e) => {
           if (showLowMenu) {
             setMenuInDom(true);
             setMouseOverHandlerDiv(false);
@@ -125,7 +125,7 @@ export const ContextMenuHandler = ({
           }
           rest.onMouseEnter && rest.onMouseEnter(e);
         }}
-        onMouseLeave={(e) => {
+        onMouseLeave={async (e) => {
           if (showLowMenu) {
             removeController.current.abort();
             removeController.current = new AbortController();
