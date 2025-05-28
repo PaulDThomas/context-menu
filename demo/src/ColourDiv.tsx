@@ -7,6 +7,8 @@ interface ColourDivProps extends React.HTMLAttributes<HTMLDivElement> {
   onSelect?: React.ReactEventHandler<HTMLDivElement>;
   showLowMenu?: boolean;
   children?: React.ReactNode;
+  height?: number;
+  width?: number;
 }
 
 export const ColourDiv = ({
@@ -14,6 +16,8 @@ export const ColourDiv = ({
   onSelect,
   showLowMenu = false,
   children,
+  height = 200,
+  width = 200,
   ...rest
 }: ColourDivProps) => {
   const [colour, setColour] = useState<string>("white");
@@ -27,15 +31,15 @@ export const ColourDiv = ({
         <div
           {...rest}
           onSelect={onSelect}
-          contentEditable={showLowMenu}
-          suppressContentEditableWarning={showLowMenu}
+          contentEditable={showLowMenu || rest.contentEditable}
+          suppressContentEditableWarning
           style={{
             ...rest.style,
             backgroundColor: colour,
             textAlign: "center",
             verticalAlign: "center",
-            minHeight: "200px",
-            minWidth: "200px",
+            height: `${height}px`,
+            width: `${width}px`,
           }}
         >
           {text}

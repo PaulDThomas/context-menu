@@ -1,0 +1,37 @@
+.autoHeightWrapper {
+  overflow: hidden;
+  transition-timing-function: height ease-in-out;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.autoHeightInner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 1;
+  display: block;
+  height: fit-content;
+  flex: 1;
+}
+
+.autoHeightInner.resize {
+  opacity: 0;
+}
+
+.autoHeightTransition {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 0;
+  height: fit-content;
+  flex: 1;
+}
+
+.autoHeightTransition.resize {
+  opacity: 1;
+}
