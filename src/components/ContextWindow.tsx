@@ -124,7 +124,7 @@ export const ContextWindow = ({
         <div {...rest}>
           {process.env.NODE_ENV !== "production" && (
             <div
-              style={{ backgroundColor: "red", color: "white", padding: "8px", fontSize: "1000" }}
+              style={{ backgroundColor: "red", color: "white", padding: "8px", fontSize: "48px" }}
             >
               WARNING: No ContextWindowStack found
             </div>
@@ -139,7 +139,7 @@ export const ContextWindow = ({
             {...rest}
             ref={windowRef}
             id={id}
-            className={[styles.contextWindow, rest.className].join(" ")}
+            className={[styles.contextWindow, rest.className].filter((c) => c).join(" ")}
             style={{
               ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
