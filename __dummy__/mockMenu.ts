@@ -1,4 +1,4 @@
-import { MenuItem } from "../components/interface";
+import { MenuItem } from "components/interface";
 
 export const menuItems = (setColour: (colour: string) => void): MenuItem[] => {
   return [

@@ -1,8 +1,8 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
-import { ContextWindowStackContext } from "./ContextWindowStack";
 import styles from "./ContextWindow.module.css";
+import { ContextWindowStackContext } from "./ContextWindowStack";
 
 interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -10,14 +10,16 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   onOpen?: () => void;
   onClose?: () => void;
   title: string;
+  titleElement?: ReactNode;
   style?: React.CSSProperties;
-  children: JSX.Element[] | JSX.Element | string;
+  children: React.ReactNode;
 }
 
 export const ContextWindow = ({
   id,
   visible,
   title,
+  titleElement,
   children,
   onOpen,
   onClose,
@@ -118,13 +120,26 @@ export const ContextWindow = ({
       className={styles.contextWindowAnchor}
       ref={divRef}
     >
+      {!windowStack && (
+        <div {...rest}>
+          {process.env.NODE_ENV !== "production" && (
+            <div
+              style={{ backgroundColor: "red", color: "white", padding: "8px", fontSize: "48px" }}
+            >
+              WARNING: No ContextWindowStack found
+            </div>
+          )}
+          {children}
+        </div>
+      )}
       {windowStack &&
         windowInDOM &&
         createPortal(
           <div
             {...rest}
+            ref={windowRef}
             id={id}
-            className={styles.contextWindow}
+            className={[styles.contextWindow, rest.className].filter((c) => c).join(" ")}
             style={{
               ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
@@ -135,10 +150,10 @@ export const ContextWindow = ({
               maxHeight: rest.style?.maxHeight ?? "1000px",
               maxWidth: rest.style?.maxWidth ?? "1000px",
             }}
-            onClickCapture={() => {
+            onClickCapture={(e) => {
               windowId && windowId.current && windowStack.pushToTop(windowId.current);
+              rest.onClickCapture && rest.onClickCapture(e);
             }}
-            ref={windowRef}
           >
             <div
               className={[styles.contextWindowTitle, moving ? styles.moving : ""]
@@ -154,16 +169,25 @@ export const ContextWindow = ({
                 window.addEventListener("resize", () => checkPosition());
               }}
             >
-              <div className={styles.contextWindowTitleText}>{title}</div>
-              <div className={styles.contextWindowTitleClose}>
+              <div
+                className={styles.contextWindowTitleText}
+                title={title}
+              >
+                {titleElement ? titleElement : title}
+              </div>
+              <div
+                className={styles.contextWindowTitleClose}
+                role="button"
+                aria-label="Close"
+                onClick={onClose}
+                title={`Close ${title && title.trim() !== "" ? title : "window"}`}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
                   height="16"
                   fill="currentColor"
                   viewBox="0 0 16 16"
-                  aria-label="Close window"
-                  onClick={onClose}
                 >
                   <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                 </svg>

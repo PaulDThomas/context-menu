@@ -1,39 +1,57 @@
 import { Fragment, useState } from "react";
 import { ContextWindow } from "../../src/components/ContextWindow";
 import { ContextWindowStack } from "../../src/components/ContextWindowStack";
-import { ContextMenuHandler } from "../../src/main";
+import { AutoHeight, ContextMenuHandler } from "../../src/main";
 import { ColourDiv } from "./ColourDiv";
 
 export const App = () => {
   const [showWindow, setShowWindow] = useState<boolean[]>(Array.from({ length: 5 }, () => false));
+  const [height, setHeight] = useState<number | null>(null);
+  const [thing, setThing] = useState<string>("Thing1");
+
   return (
     <div className="app-holder">
       <div className="app-border">
-        <div
-          className="app-inner"
-          style={{ display: "flex", flexDirection: "row" }}
-        >
-          <ContextMenuHandler
-            menuItems={[{ label: "Outer item", action: () => console.log("Outer item") }]}
-            style={{ backgroundColor: "lightblue", margin: "6px" }}
-          >
-            <ColourDiv text="Div 1" />
-            <ColourDiv
-              text="Div 2 is here for everyone"
-              showLowMenu
-              style={{
-                resize: "both",
-                overflow: "auto",
-                padding: "0.5rem",
-                backgroundColor: "lightgreen",
-              }}
-            />
-            <ColourDiv text="Div 3">
-              <ColourDiv text="Div 3.1" />
-            </ColourDiv>
-          </ContextMenuHandler>
+        <div className="app-inner">
+          <div className="col">
+            <ContextMenuHandler
+              menuItems={[{ label: "Outer item", action: () => console.log("Outer item") }]}
+              style={{ backgroundColor: "lightblue", margin: "6px" }}
+            >
+              <ColourDiv
+                text="Div 1"
+                contentEditable
+                onBlur={(e) => {
+                  console.log("Div 1 content:Blur: ", e.currentTarget.textContent);
+                }}
+              />
+              <ColourDiv
+                text="Div 2 is here for everyone"
+                showLowMenu
+                style={{
+                  resize: "both",
+                  overflow: "auto",
+                  padding: "0.5rem",
+                  backgroundColor: "lightgreen",
+                }}
+              />
+              <ColourDiv
+                text="Div 3"
+                width={300}
+                height={300}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "column",
+                }}
+              >
+                <ColourDiv text="Div 3.1" />
+              </ColourDiv>
+            </ContextMenuHandler>
+          </div>
 
-          <div>
+          <div className="col">
             <ContextWindowStack>
               {Array.from({ length: 5 }, (_, k) => k).map((i) => (
                 <Fragment key={i}>
@@ -53,7 +71,7 @@ export const App = () => {
                         );
                       }}
                     />
-                    <label htmlFor="window-check">Show window {i}</label>
+                    <label htmlFor={`window-check-${i}`}>Show window {i}</label>
                   </div>
                   <ContextWindow
                     id={`w-${i}`}
@@ -123,6 +141,61 @@ export const App = () => {
                 </div>
               </ContextMenuHandler>
             </div>
+          </div>
+          <div
+            className="col"
+            style={{
+              alignItems: "center",
+              position: "relative",
+            }}
+          >
+            <select
+              name="auto-height-select"
+              style={{ marginTop: "1rem", order: 9, right: "1rem" }}
+              value={`${height}`}
+              onChange={(e) => setHeight(parseInt(e.currentTarget.value))}
+            >
+              <option value={""}>Auto height</option>
+              <option value={300}>300</option>
+              <option value={600}>600</option>
+              <option value={900}>900</option>
+            </select>
+            <select
+              name="auto-height-thing-select"
+              style={{ marginTop: "1rem", order: 10, left: "1rem" }}
+              value={thing}
+              onChange={(e) => setThing(e.currentTarget.value)}
+            >
+              <option>Thing1</option>
+              <option>Thing2</option>
+              <option>Nowt</option>
+            </select>
+
+            <AutoHeight
+              hide={thing === "Thing2"}
+              style={{
+                order: 1,
+                marginTop: "1rem",
+                width: "calc(100% - 2rem)",
+                backgroundColor: "lightgrey",
+              }}
+            >
+              {thing === "Thing1" ? (
+                <div
+                  style={{
+                    padding: "1rem",
+                    backgroundColor: "lightgrey",
+                    height: height ? `${height}px` : "auto",
+                  }}
+                >
+                  Resize to {`${height}`}
+                </div>
+              ) : thing === "Thing2" ? (
+                <>Blah blah blah!!!!</>
+              ) : (
+                <div style={{ padding: "1rem" }}>Nothing to see here</div>
+              )}
+            </AutoHeight>
           </div>
         </div>
       </div>

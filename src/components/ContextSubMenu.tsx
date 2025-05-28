@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
 import { MenuItem } from "./interface";
@@ -7,21 +6,12 @@ export interface ContextSubMenuProps {
   entries: MenuItem[];
   toClose: () => void;
   lowMenu?: boolean;
+  visible: boolean;
 }
 
-export const ContextSubMenu = ({ entries, toClose }: ContextSubMenuProps): JSX.Element => {
-  const [visible, setVisible] = useState<boolean>(false);
-
+export const ContextSubMenu = ({ entries, toClose, visible }: ContextSubMenuProps): JSX.Element => {
   return (
-    <span
-      className={styles.caretHolder}
-      onMouseEnter={() => {
-        setVisible(true);
-      }}
-      onMouseLeave={() => {
-        setVisible(false);
-      }}
-    >
+    <span className={styles.caretHolder}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"
