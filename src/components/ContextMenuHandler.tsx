@@ -136,7 +136,7 @@ export const ContextMenuHandler = ({
               setMouseOverHandlerDiv(true);
             }, 1);
           }
-          rest.onMouseEnter && rest.onMouseEnter(e);
+          rest.onMouseEnter?.(e);
         }}
         onMouseLeave={async (e) => {
           if (showLowMenu) {
@@ -144,7 +144,7 @@ export const ContextMenuHandler = ({
             removeController.current = new AbortController();
             setMouseOverHandlerDiv(false);
           }
-          rest.onMouseLeave && rest.onMouseLeave(e);
+          rest.onMouseLeave?.(e);
         }}
       >
         {children}
