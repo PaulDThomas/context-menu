@@ -26,7 +26,7 @@ export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        entry.action && !entry.disabled && entry.action(target);
+        if (!entry.disabled) entry.action?.(target);
       }}
     >
       <span>{entry.label}</span>

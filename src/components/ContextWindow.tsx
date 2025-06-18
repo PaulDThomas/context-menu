@@ -91,7 +91,7 @@ export const ContextWindow = ({
         }
         windowStack.pushToTop(windowId.current);
         setWindowVisible(visible);
-        onOpen && onOpen();
+        onOpen?.();
         // Get starting position
         if (divRef.current && windowRef.current) {
           const parentPos = divRef.current.getBoundingClientRect();
@@ -151,8 +151,8 @@ export const ContextWindow = ({
               maxWidth: rest.style?.maxWidth ?? "1000px",
             }}
             onClickCapture={(e) => {
-              windowId && windowId.current && windowStack.pushToTop(windowId.current);
-              rest.onClickCapture && rest.onClickCapture(e);
+              if (windowId.current) windowStack.pushToTop(windowId.current);
+              rest.onClickCapture?.(e);
             }}
           >
             <div
@@ -163,7 +163,7 @@ export const ContextWindow = ({
                 if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
                   e.target.style.userSelect = "none";
                 setMoving(true);
-                windowId && windowId.current && windowStack.pushToTop(windowId.current);
+                if (windowId.current) windowStack.pushToTop(windowId.current);
                 document.addEventListener("mouseup", mouseUp);
                 document.addEventListener("mousemove", mouseMove);
                 window.addEventListener("resize", () => checkPosition());

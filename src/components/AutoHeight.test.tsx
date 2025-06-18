@@ -2,14 +2,29 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { AutoHeight } from "./AutoHeight";
 
 describe("AutoHeight Component", () => {
-  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-    configurable: true,
-    get() {
-      return this.children?.[0]?.dataset?.height !== undefined
-        ? parseInt(this.children![0].dataset.height)
-        : undefined;
-    },
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get() {
+        return this.children?.[0]?.dataset?.height !== undefined
+          ? parseInt(this.children![0].dataset.height)
+          : undefined;
+      },
+    });
+    // Mock ResizeObserver to avoid errors in tests
+    window.ResizeObserver = class {
+      observe = jest.fn();
+      unobserve = jest.fn();
+      disconnect = jest.fn();
+    };
+    jest.useFakeTimers();
   });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
   test("renders children correctly", () => {
     render(
       <AutoHeight>
@@ -56,6 +71,7 @@ describe("AutoHeight Component", () => {
     expect(child).not.toBeInTheDocument();
     const wrapper = container.querySelector(".autoHeightWrapper");
     await act(async () => fireEvent(wrapper!, new Event("transitionend")));
+    expect(screen.queryByText("Hidden Content")).not.toBeInTheDocument();
     expect(wrapper).toHaveStyle("height: 1px");
   });
 
@@ -70,10 +86,10 @@ describe("AutoHeight Component", () => {
 
     rerender(
       <AutoHeight>
-        <div data-testid="child">Updated Content</div>
+        <div data-testid="another-child">Updated Content</div>
       </AutoHeight>,
     );
-    const updatedChild = screen.getByTestId("child");
+    const updatedChild = screen.getByTestId("another-child");
     expect(updatedChild).toHaveTextContent("Updated Content");
   });
 
@@ -106,6 +122,7 @@ describe("AutoHeight Component", () => {
     const child = screen.getByTestId("child");
     const wrapper = child.closest(".autoHeightWrapper");
     await act(async () => fireEvent(wrapper!, new Event("transitionend")));
+    await act(async () => jest.runAllTimers());
     expect(wrapper).toHaveStyle("height: 100px");
 
     await act(async () =>
@@ -121,6 +138,56 @@ describe("AutoHeight Component", () => {
       ),
     );
     await act(async () => fireEvent(wrapper!, new Event("transitionend")));
+    await act(async () => jest.runAllTimers());
     expect(wrapper).toHaveStyle("height: 200px");
+  });
+
+  test("trigger ResizeObserver", async () => {
+    const resizeObserverMock = jest.fn((callback) => {
+      // Simulate ResizeObserver callback execution
+      callback([{ target: this }]);
+    });
+
+    window.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeObserverMock(callback);
+      }
+      observe = jest.fn();
+      unobserve = jest.fn();
+      disconnect = jest.fn();
+    };
+
+    const { rerender } = await act(async () =>
+      render(
+        <AutoHeight data-testid="autoHeight">
+          <div
+            data-testid="child"
+            data-height="150"
+          >
+            Resizable Content
+          </div>
+        </AutoHeight>,
+      ),
+    );
+    const wrapper = screen.getByTestId("autoHeight");
+    await act(async () => fireEvent(wrapper, new Event("transitionend")));
+    await act(async () => jest.runAllTimers());
+    expect(resizeObserverMock).toHaveBeenCalled();
+
+    await act(async () =>
+      rerender(
+        <AutoHeight data-testid="autoHeight">
+          <div
+            data-testid="child"
+            data-height="300"
+          >
+            Resizable Content Updated
+          </div>
+        </AutoHeight>,
+      ),
+    );
+    await act(async () => fireEvent(wrapper, new Event("transitionend")));
+    await act(async () => jest.runAllTimers());
+    expect(wrapper).toHaveStyle("height: 300px");
   });
 });

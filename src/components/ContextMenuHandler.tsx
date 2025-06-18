@@ -24,6 +24,10 @@ export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivEle
   showLowMenu?: boolean;
 }
 
+function isDivider(label: string | JSX.Element): boolean {
+  return typeof label !== "string" && label.type === "hr";
+}
+
 export const ContextMenuHandler = ({
   children,
   menuItems,
@@ -37,9 +41,18 @@ export const ContextMenuHandler = ({
       ...(higherContext !== null
         ? [
             ...higherContext.menuItems,
-            {
-              label: <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />,
-            },
+            ...[
+              higherContext.menuItems.length > 0 &&
+              !isDivider(higherContext.menuItems[higherContext.menuItems.length - 1].label) &&
+              menuItems.length > 0 &&
+              !isDivider(menuItems[0].label)
+                ? {
+                    label: (
+                      <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />
+                    ),
+                  }
+                : null,
+            ].filter((item) => item !== null),
           ]
         : []),
       ...menuItems,
@@ -123,7 +136,7 @@ export const ContextMenuHandler = ({
               setMouseOverHandlerDiv(true);
             }, 1);
           }
-          rest.onMouseEnter && rest.onMouseEnter(e);
+          rest.onMouseEnter?.(e);
         }}
         onMouseLeave={async (e) => {
           if (showLowMenu) {
@@ -131,7 +144,7 @@ export const ContextMenuHandler = ({
             removeController.current = new AbortController();
             setMouseOverHandlerDiv(false);
           }
-          rest.onMouseLeave && rest.onMouseLeave(e);
+          rest.onMouseLeave?.(e);
         }}
       >
         {children}

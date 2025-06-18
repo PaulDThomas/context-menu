@@ -46,7 +46,25 @@ export const App = () => {
                   flexDirection: "column",
                 }}
               >
-                <ColourDiv text="Div 3.1" />
+                <ContextMenuHandler
+                  menuItems={[
+                    {
+                      label: (
+                        <hr
+                          style={{
+                            flexGrow: 1,
+                            cursor: "none",
+                            margin: "0",
+                            padding: "4",
+                            border: "2px solid green",
+                          }}
+                        />
+                      ),
+                    },
+                  ]}
+                >
+                  <ColourDiv text="Div 3.1" />
+                </ContextMenuHandler>
               </ColourDiv>
             </ContextMenuHandler>
           </div>
