@@ -19,7 +19,6 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     if (ref && typeof ref !== "function" && ref.current instanceof HTMLDivElement) {
       menuHeight = ref.current.offsetHeight;
       menuWidth = ref.current.offsetWidth;
-      console.log("Ref set", menuHeight, menuWidth);
     }
     if (yPos + menuHeight > window.innerHeight)
       yPos = Math.max(window.innerHeight - menuHeight - 4, 0);
