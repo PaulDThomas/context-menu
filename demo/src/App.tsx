@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { ContextWindow } from "../../src/components/ContextWindow";
 import { ContextWindowStack } from "../../src/components/ContextWindowStack";
-import { AutoHeight, ContextMenuHandler } from "../../src/main";
+import { AutoHeight, ClickForMenu, ContextMenuHandler } from "../../src/main";
 import { ColourDiv } from "./ColourDiv";
 
 export const App = () => {
@@ -63,7 +63,31 @@ export const App = () => {
                     },
                   ]}
                 >
-                  <ColourDiv text="Div 3.1" />
+                  <ColourDiv text="Div 3.1">
+                    <ClickForMenu
+                      id={`c4m`}
+                      menuItems={[
+                        {
+                          label: "Click For Menu action 1",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 2",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 3",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 4",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                      ]}
+                    >
+                      Click For Menu
+                    </ClickForMenu>
+                  </ColourDiv>
                 </ContextMenuHandler>
               </ColourDiv>
             </ContextMenuHandler>
