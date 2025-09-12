@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { ContextWindow } from "./ContextWindow";
 import { ContextWindowStack } from "./ContextWindowStack";
-import { useState } from "react";
 
 describe("Context window", () => {
   test("Not there", async () => {

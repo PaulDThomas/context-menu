@@ -1,7 +1,7 @@
+import { useState } from "react";
 import styles from "./LowMenu.module.css";
 import { LowSubMenu } from "./LowSubMenu";
 import { MenuItem } from "./interface";
-import { useState } from "react";
 
 interface LowMenuButtonProps {
   entry: MenuItem;

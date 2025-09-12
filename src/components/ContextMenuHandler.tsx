@@ -87,7 +87,6 @@ export const ContextMenuHandler = ({
   // Update the document click handler
   useEffect(() => {
     if (menuVisible) document.addEventListener("mousedown", handleClick);
-    else document.removeEventListener("mousedown", handleClick);
     return () => {
       document.removeEventListener("mousedown", handleClick);
     };
