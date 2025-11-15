@@ -3,6 +3,9 @@ import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
 
+const MIN_Z_INDEX = 3000;
+const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
+
 interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
   visible: boolean;
@@ -12,10 +15,8 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   titleElement?: ReactNode;
   style?: React.CSSProperties;
   children: React.ReactNode;
+  minZIndex?: number;
 }
-
-const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
-const MIN_Z_INDEX = 1000;
 
 // Helper function to get the highest zIndex from all context windows in the DOM
 const getMaxZIndex = (): number => {
@@ -41,13 +42,14 @@ export const ContextWindow = ({
   children,
   onOpen,
   onClose,
+  minZIndex = MIN_Z_INDEX,
   ...rest
 }: ContextWindowProps): JSX.Element => {
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
   const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
   const [windowVisible, setWindowVisible] = useState<boolean>(false);
-  const [zIndex, setZIndex] = useState<number>(MIN_Z_INDEX);
+  const [zIndex, setZIndex] = useState<number>(minZIndex);
 
   // Position
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
