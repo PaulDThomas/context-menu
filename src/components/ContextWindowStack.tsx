@@ -10,7 +10,7 @@ interface ContextWindowStackProps {
  * @deprecated ContextWindowStack is no longer required. ContextWindow now manages z-index automatically.
  * This component is kept for backwards compatibility and will be removed in a future version.
  * You can safely remove the ContextWindowStack wrapper from your code.
- * 
+ *
  * Note: The `id` and `minZIndex` props are now ignored and have no effect. They remain in the interface for backward compatibility only.
  */
 export const ContextWindowStack = ({ children }: ContextWindowStackProps): JSX.Element => {

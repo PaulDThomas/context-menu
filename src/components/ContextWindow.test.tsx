@@ -510,4 +510,52 @@ describe("Context window", () => {
     Object.defineProperty(window, "innerHeight", { value: origInner, configurable: true });
     HTMLElement.prototype.getBoundingClientRect = orig;
   });
+
+  test("Cleans up event listeners when component unmounts during drag", async () => {
+    // Spy on window.addEventListener and window.removeEventListener
+    const addEventListenerSpy = jest.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+
+    const { unmount } = await act(async () => {
+      return render(
+        <ContextWindow
+          id={"unmounttest"}
+          visible={true}
+          title={"Unmount Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const title = screen.getByTitle("Unmount Test") as HTMLElement;
+    expect(title).toBeInTheDocument();
+
+    // Start dragging - this should add resize listener
+    fireEvent.mouseDown(title);
+
+    // Verify resize listener was added
+    const resizeListenerCallsBefore = addEventListenerSpy.mock.calls.filter(
+      (call) => call[0] === "resize",
+    ).length;
+    expect(resizeListenerCallsBefore).toBe(1);
+
+    // Reset the spy to track cleanup calls
+    removeEventListenerSpy.mockClear();
+
+    // Unmount the component while dragging (without firing mouseUp)
+    act(() => {
+      unmount();
+    });
+
+    // Verify that resize listener was removed during cleanup
+    const resizeRemoveCalls = removeEventListenerSpy.mock.calls.filter(
+      (call) => call[0] === "resize",
+    );
+    expect(resizeRemoveCalls.length).toBeGreaterThanOrEqual(1);
+
+    // Cleanup spies
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+  });
 });

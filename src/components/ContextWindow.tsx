@@ -50,6 +50,7 @@ export const ContextWindow = ({
   const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
   const [windowVisible, setWindowVisible] = useState<boolean>(false);
   const [zIndex, setZIndex] = useState<number>(minZIndex);
+  const resizeListenerRef = useRef<(() => void) | null>(null);
 
   // Position
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -87,7 +88,10 @@ export const ContextWindow = ({
       checkPosition();
       document.removeEventListener("mousemove", mouseMove);
       document.removeEventListener("mouseup", mouseUp);
-      window.removeEventListener("resize", checkPosition);
+      if (resizeListenerRef.current) {
+        window.removeEventListener("resize", resizeListenerRef.current);
+        resizeListenerRef.current = null;
+      }
       if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
         e.target.style.userSelect = "auto";
     },
@@ -131,6 +135,19 @@ export const ContextWindow = ({
     }
   }, [checkPosition, onOpen, pushToTop, visible, windowInDOM, windowVisible]);
 
+  // Cleanup effect to remove event listeners on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up event listeners if component unmounts while dragging
+      document.removeEventListener("mousemove", mouseMove);
+      document.removeEventListener("mouseup", mouseUp);
+      if (resizeListenerRef.current) {
+        window.removeEventListener("resize", resizeListenerRef.current);
+        resizeListenerRef.current = null;
+      }
+    };
+  }, [mouseMove, mouseUp]);
+
   return (
     <div
       className={styles.contextWindowAnchor}
@@ -170,7 +187,9 @@ export const ContextWindow = ({
                 pushToTop();
                 document.addEventListener("mouseup", mouseUp);
                 document.addEventListener("mousemove", mouseMove);
-                window.addEventListener("resize", () => checkPosition());
+                const resizeListener = () => checkPosition();
+                resizeListenerRef.current = resizeListener;
+                window.addEventListener("resize", resizeListener);
               }}
             >
               <div
