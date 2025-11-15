@@ -143,4 +143,126 @@ describe("Context menu", () => {
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(1);
   });
+
+  test("Menu item with JSX.Element label", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: <span data-testid="custom-label">Custom Label</span>,
+            },
+          ]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
+    const customLabel = screen.getByTestId("custom-label");
+    expect(customLabel).toBeVisible();
+    // When label is a JSX element, there's no aria-label set (aria-label should be undefined)
+    const menuItem = customLabel.parentElement;
+    expect(menuItem).not.toHaveAttribute("aria-label");
+  });
+
+  test("Menu with dividers - no divider insertion needed", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[{ label: <hr /> }]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: "Inner" }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv2);
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    expect(screen.queryByText("Inner")).toBeInTheDocument();
+  });
+
+  test("Menu with dividers - last item is divider", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[{ label: "Outer" }, { label: <hr /> }]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: "Inner" }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv2);
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    expect(screen.queryByText("Inner")).toBeInTheDocument();
+    expect(screen.queryByText("Outer")).toBeInTheDocument();
+  });
+
+  test("Menu with dividers - first item is divider", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[{ label: "Outer" }]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: <hr /> }, { label: "Inner" }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv2);
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    expect(screen.queryByText("Inner")).toBeInTheDocument();
+    expect(screen.queryByText("Outer")).toBeInTheDocument();
+  });
+
+  test("ContextMenuHandler with onMouseEnter and onMouseLeave callbacks", async () => {
+    const onMouseEnter = jest.fn();
+    const onMouseLeave = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Test" }]}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseEnter).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.mouseLeave(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseLeave).toHaveBeenCalled();
+  });
 });

@@ -78,4 +78,59 @@ describe("Low menu", () => {
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
+
+  test("LowMenu button with JSX.Element label", async () => {
+    const a = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: <span data-testid="custom-low-label">Custom Low Label</span>,
+              action: a,
+            },
+          ]}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+    });
+    const customLabel = screen.getByTestId("custom-low-label");
+    expect(customLabel).toBeVisible();
+    await act(async () => await user.click(customLabel.parentElement!));
+    expect(a).toHaveBeenCalled();
+  });
+
+  test("LowMenu with onMouseEnter and onMouseLeave callbacks", async () => {
+    const onMouseEnter = jest.fn();
+    const onMouseLeave = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Test" }]}
+          showLowMenu
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseEnter).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.mouseLeave(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseLeave).toHaveBeenCalled();
+  });
 });
