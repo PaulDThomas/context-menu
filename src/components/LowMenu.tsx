@@ -12,7 +12,7 @@ interface LowMenuProps {
 
 export const LowMenu = ({ entries, visible, xPos, yPos, maxWidth }: LowMenuProps): JSX.Element => {
   // Only show the low menu if it is on the screen
-  if (xPos > window.innerWidth || yPos > window.innerHeight) return <></>;
+  if (xPos >= window.innerWidth || yPos >= window.innerHeight) return <></>;
   // Show the menu
   return (
     <div
