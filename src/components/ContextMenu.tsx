@@ -13,6 +13,17 @@ export interface ContextMenuProps {
 
 export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
+    // Check that menu can fit inside the window
+    let menuHeight = entries.length * 34 + 4;
+    let menuWidth = 200;
+    if (ref && typeof ref !== "function" && ref.current instanceof HTMLDivElement) {
+      menuHeight = ref.current.offsetHeight;
+      menuWidth = ref.current.offsetWidth;
+    }
+    if (yPos + menuHeight > window.innerHeight)
+      yPos = Math.max(window.innerHeight - menuHeight - 4, 0);
+    if (xPos + menuWidth > window.innerWidth) xPos = Math.max(window.innerWidth - menuWidth - 4, 0);
+
     return (
       <div
         ref={ref}

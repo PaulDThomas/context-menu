@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ContextWindow } from "./ContextWindow";
-import { ContextWindowStack } from "./ContextWindowStack";
 import { useState } from "react";
+import * as chk from "../functions/chkPosition";
+import { ContextWindow } from "./ContextWindow";
 
 describe("Context window", () => {
   test("Not there", async () => {
@@ -20,36 +20,19 @@ describe("Context window", () => {
     expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
-  test("WARNING because there is no stack", async () => {
-    render(
-      <ContextWindow
-        id={"w1"}
-        visible={true}
-        title={"Window title"}
-      >
-        <span>Hi</span>
-      </ContextWindow>,
-    );
-    expect(screen.queryByText("Window title")).not.toBeInTheDocument();
-    expect(screen.queryByText("Hi")).toBeInTheDocument();
-    expect(screen.queryByText(/WARNING/)).toBeInTheDocument();
-  });
-
-  test("With stack, should be visible, and check close", async () => {
+  test("Should be visible, and check close", async () => {
     const user = userEvent.setup();
     const mockClose = jest.fn();
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"w1"}
-            visible={true}
-            title={"Window title"}
-            onClose={mockClose}
-          >
-            <span>Hi</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"w1"}
+          visible={true}
+          title={"Window title"}
+          onClose={mockClose}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
       );
     });
     expect(screen.queryByText("Window title")).toBeInTheDocument();
@@ -58,18 +41,16 @@ describe("Context window", () => {
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
 
-  test("With stack, not visible", async () => {
+  test("Not visible", async () => {
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"w1"}
-            visible={false}
-            title={"Window title"}
-          >
-            <span>Hi</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"w1"}
+          visible={false}
+          title={"Window title"}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
       );
     });
     const title = screen.queryByText("Window title") as HTMLSpanElement;
@@ -80,7 +61,7 @@ describe("Context window", () => {
     const WindowWithInput = (): JSX.Element => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
-        <ContextWindowStack>
+        <>
           <input
             aria-label="testwindow-checkbox"
             type="checkbox"
@@ -97,7 +78,7 @@ describe("Context window", () => {
           >
             <span>Hello world of tests</span>
           </ContextWindow>
-        </ContextWindowStack>
+        </>
       );
     };
 
@@ -124,244 +105,409 @@ describe("Context window", () => {
 
   test("Window with custom title element", async () => {
     render(
-      <ContextWindowStack>
-        <ContextWindow
-          id={"testwindow"}
-          visible={true}
-          title={"Test window"}
-          titleElement={<>Window that is a test</>}
-        >
-          <span>Hello world of tests</span>
-        </ContextWindow>
-      </ContextWindowStack>,
+      <ContextWindow
+        id={"testwindow"}
+        visible={true}
+        title={"Test window"}
+        titleElement={<>Window that is a test</>}
+      >
+        <span>Hello world of tests</span>
+      </ContextWindow>,
     );
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
   });
 
-  test("Window with onOpen callback", async () => {
-    const onOpen = jest.fn();
+  test("Multiple windows with z-index management", async () => {
+    const user = userEvent.setup();
+    const MultiWindowTest = (): JSX.Element => {
+      const [visible1, setVisible1] = useState<boolean>(false);
+      const [visible2, setVisible2] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible1(true)}>Open Window 1</button>
+          <button onClick={() => setVisible2(true)}>Open Window 2</button>
+          <ContextWindow
+            id={"window1"}
+            visible={visible1}
+            title={"Window 1"}
+            onClose={() => setVisible1(false)}
+          >
+            <span>Content 1</span>
+          </ContextWindow>
+          <ContextWindow
+            id={"window2"}
+            visible={visible2}
+            title={"Window 2"}
+            onClose={() => setVisible2(false)}
+          >
+            <span>Content 2</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    await act(async () => {
+      render(<MultiWindowTest />);
+    });
+
+    // Open first window
+    const openBtn1 = screen.getByText("Open Window 1");
+    await act(async () => await user.click(openBtn1));
+    const window1 = document.getElementById("window1") as HTMLElement;
+    expect(window1).toBeInTheDocument();
+    const zIndex1 = parseInt(window1.style.zIndex, 10);
+    expect(zIndex1).toBeGreaterThanOrEqual(1000);
+
+    // Open second window - should have higher z-index
+    const openBtn2 = screen.getByText("Open Window 2");
+    await act(async () => await user.click(openBtn2));
+    const window2 = document.getElementById("window2") as HTMLElement;
+    expect(window2).toBeInTheDocument();
+    const zIndex2 = parseInt(window2.style.zIndex, 10);
+    expect(zIndex2).toBeGreaterThan(zIndex1);
+
+    // Click on first window - should bring it to top
+    await act(async () => await user.click(window1));
+    const zIndex1Updated = parseInt(window1.style.zIndex, 10);
+    expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+  });
+
+  test("Accepts minZIndex prop and applies it correctly", async () => {
     await act(async () => {
       render(
-        <ContextWindowStack>
+        <>
+          <button>Open Window</button>
           <ContextWindow
             id={"testwindow"}
             visible={true}
             title={"Test window"}
-            onOpen={onOpen}
+            minZIndex={4000}
           >
             <span>Hello world of tests</span>
           </ContextWindow>
-        </ContextWindowStack>,
+        </>,
+      );
+    });
+    const window = document.getElementById("testwindow") as HTMLElement;
+    expect(window).toBeInTheDocument();
+    const zIndex = parseInt(window.style.zIndex, 10);
+    expect(zIndex).toBeGreaterThanOrEqual(4000);
+  });
+
+  test("Close button title shows 'window' when title is blank/whitespace", async () => {
+    // whitespace title
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"blank1"}
+          visible={true}
+          title={" "}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
+      );
+    });
+    const close1 = screen.getByLabelText("Close");
+    expect(close1).toHaveAttribute("title", "Close window");
+    // cleanup and empty title
+    cleanup();
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"blank2"}
+          visible={true}
+          title={""}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
+      );
+    });
+    const close2 = screen.getByLabelText("Close");
+    expect(close2).toHaveAttribute("title", "Close window");
+  });
+
+  test("Calls rest.onClickCapture and handles non-numeric existing z-index", async () => {
+    const onClickCapture = jest.fn();
+
+    // Add a pre-existing element with a bad zIndex value
+    const bad = document.createElement("div");
+    bad.setAttribute("data-context-window", "true");
+    bad.id = "badwin";
+    // non-numeric z-index should be ignored
+    bad.style.zIndex = "not-a-number";
+    document.body.appendChild(bad);
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"clicktest"}
+          visible={true}
+          title={"Click Test"}
+          onClickCapture={onClickCapture}
+        >
+          <span>Content</span>
+        </ContextWindow>,
+      );
+    });
+
+    const win = document.getElementById("clicktest") as HTMLElement;
+    expect(win).toBeInTheDocument();
+
+    // click should call provided handler
+    await act(async () => await user.click(win));
+    expect(onClickCapture).toHaveBeenCalled();
+
+    // zIndex should be at least the default MIN_Z_INDEX (3000)
+    const zIndex = parseInt(win.style.zIndex, 10);
+    expect(zIndex).toBeGreaterThanOrEqual(3000);
+
+    // cleanup added element
+    bad.remove();
+  });
+
+  test("Mouse down on title sets userSelect none and mouseup restores it", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"mouseuser"}
+          visible={true}
+          title={"Mouse Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const title = screen.getByTitle("Mouse Test") as HTMLElement;
+    expect(title).toBeInTheDocument();
+
+    // mouseDown should set userSelect to none on the target
+    fireEvent.mouseDown(title);
+    expect(title.style.userSelect).toBe("none");
+
+    // dispatch mouseup on the title which should restore userSelect to auto
+    fireEvent.mouseUp(title);
+    expect(title.style.userSelect).toBe("auto");
+  });
+
+  test("Mouseup on SVG target restores userSelect on SVG element", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"svgtarget"}
+          visible={true}
+          title={"SVG Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const title = screen.getByTitle("SVG Test") as HTMLElement;
+    expect(title).toBeInTheDocument();
+
+    // Start moving (adds document mouseup listener)
+    fireEvent.mouseDown(title);
+
+    // Find the SVG element (close icon) and fire mouseup on it
+    const svg = document.querySelector("#svgtarget svg") as SVGElement;
+    expect(svg).toBeInTheDocument();
+    // ensure style exists
+    (svg as unknown as HTMLElement).style.userSelect = "none";
+    fireEvent.mouseUp(svg as Element);
+    // style should be reset to auto by handler
+    expect((svg as unknown as HTMLElement).style.userSelect).toBe("auto");
+  });
+
+  test("Mouse down on SVG target sets userSelect none (SVG branch)", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"svgmousedown"}
+          visible={true}
+          title={"SVG Down"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const svg = document.querySelector("#svgmousedown svg") as SVGElement;
+    expect(svg).toBeInTheDocument();
+    fireEvent.mouseDown(svg as Element);
+    expect((svg as unknown as HTMLElement).style.userSelect).toBe("none");
+  });
+
+  test("Calls onOpen when window becomes visible", async () => {
+    const onOpen = jest.fn();
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"open1"}
+          visible={true}
+          title={"Open Test"}
+          onOpen={onOpen}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
       );
     });
     expect(onOpen).toHaveBeenCalled();
   });
 
-  test("Window with empty title", async () => {
-    const user = userEvent.setup();
-    const mockClose = jest.fn();
-    await act(async () => {
-      render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"w1"}
-            visible={true}
-            title={""}
-            onClose={mockClose}
-          >
-            <span>Hi</span>
-          </ContextWindow>
-        </ContextWindowStack>,
-      );
-    });
-    const closeCross = screen.queryByLabelText("Close") as Element;
-    expect(closeCross).toHaveAttribute("title", "Close window");
-    await act(async () => await user.click(closeCross));
-    expect(mockClose).toHaveBeenCalledTimes(1);
-  });
+  test("Resize triggers checkPosition and moves the window (mocked chkPosition)", async () => {
+    const spy = jest
+      .spyOn(chk, "chkPosition")
+      .mockImplementation(() => ({ translateX: 12, translateY: 34 }));
 
-  test("Window with custom styles", async () => {
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"testwindow"}
-            visible={true}
-            title={"Test window"}
-            style={{
-              minHeight: "200px",
-              minWidth: "300px",
-              maxHeight: "800px",
-              maxWidth: "900px",
-            }}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"resizetest"}
+          visible={true}
+          title={"Resize Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
       );
     });
-    const windowTitle = screen.getByText("Test window");
-    const windowRoot = windowTitle.closest("#testwindow") as HTMLDivElement;
-    expect(windowRoot).toHaveStyle({ minHeight: "200px" });
-    expect(windowRoot).toHaveStyle({ minWidth: "300px" });
-    expect(windowRoot).toHaveStyle({ maxHeight: "800px" });
-    expect(windowRoot).toHaveStyle({ maxWidth: "900px" });
-  });
 
-  test("Window with onClickCapture callback", async () => {
-    const user = userEvent.setup();
-    const onClickCapture = jest.fn();
-    await act(async () => {
-      render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"testwindow"}
-            visible={true}
-            title={"Test window"}
-            onClickCapture={onClickCapture}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </ContextWindowStack>,
-      );
-    });
-    const windowBody = screen.getByText("Hello world of tests");
-    await act(async () => await user.click(windowBody));
-    expect(onClickCapture).toHaveBeenCalled();
-  });
+    const win = document.getElementById("resizetest") as HTMLElement;
+    expect(win).toBeInTheDocument();
 
-  test("Mouse up on SVGElement target", async () => {
-    await act(async () => {
-      render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"testwindow"}
-            visible={true}
-            title={"Test window"}
-            style={{
-              transition: "opacity 0s linear",
-            }}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </ContextWindowStack>,
-      );
-    });
-    const title = screen.queryByText("Test window") as HTMLSpanElement;
-    expect(title).toBeVisible();
-    const closeButton = screen.getByLabelText("Close");
-    const svg = closeButton.querySelector("svg") as SVGSVGElement;
+    // trigger mousedown to attach resize listener via onMouseDown
+    const title = screen.getByTitle("Resize Test") as HTMLElement;
     fireEvent.mouseDown(title);
-    fireEvent.mouseMove(title, { movementX: 10, movementY: 10 });
-    fireEvent.mouseUp(svg);
+
+    // dispatch resize - should call our mocked chkPosition and move the window
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    // transform should have been applied twice (initial checkPosition + resize)
+    expect(win.style.transform).toBe("translate(24px, 68px)");
+
+    spy.mockRestore();
   });
 
-  test("Mouse down on SVGElement target", async () => {
+  test("Positions window below when space is available and uses default min sizes", async () => {
+    const orig = HTMLElement.prototype.getBoundingClientRect;
+    const spyRect = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        // window portal element has the data attribute
+        if (
+          (this as HTMLElement).hasAttribute &&
+          (this as HTMLElement).hasAttribute("data-context-window")
+        ) {
+          // window rect: top/bottom such that windowHeight is small
+          return {
+            left: 50,
+            top: 0,
+            right: 250,
+            bottom: 50,
+            width: 200,
+            height: 50,
+          } as DOMRect;
+        }
+        // parent anchor rect
+        return {
+          left: 50,
+          top: 100,
+          right: 250,
+          bottom: 150,
+          width: 200,
+          height: 50,
+        } as DOMRect;
+      });
+
+    // ensure innerHeight large so there's room below
+    const origInner = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", { value: 1000, configurable: true });
+
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"testwindow"}
-            visible={true}
-            title={"Test window"}
-            style={{
-              transition: "opacity 0s linear",
-            }}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"posbelow"}
+          visible={true}
+          title={"Pos Below"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
       );
     });
-    const closeButton = screen.getByLabelText("Close");
-    const svg = closeButton.querySelector("svg") as SVGSVGElement;
-    expect(svg).toBeInTheDocument();
-    fireEvent.mouseDown(svg);
-    fireEvent.mouseMove(svg, { movementX: 10, movementY: 10 });
-    fireEvent.mouseUp(svg);
+
+    const win = document.getElementById("posbelow") as HTMLElement;
+    expect(win).toBeInTheDocument();
+    // left should be parent left
+    expect(win.style.left).toBe("50px");
+    // top should be parent bottom (150px)
+    expect(win.style.top).toBe("150px");
+    // defaults for min sizes
+    expect(win.style.minHeight).toBe("150px");
+    expect(win.style.minWidth).toBe("200px");
+
+    spyRect.mockRestore();
+    Object.defineProperty(window, "innerHeight", { value: origInner, configurable: true });
+    // restore prototype method just in case
+    HTMLElement.prototype.getBoundingClientRect = orig;
   });
 
-  test("Window positioning when not enough space below", async () => {
-    // Mock window.innerHeight to simulate a small viewport
-    const originalInnerHeight = window.innerHeight;
-    Object.defineProperty(window, "innerHeight", {
-      writable: true,
-      configurable: true,
-      value: 50,
-    });
-
-    // Mock getBoundingClientRect to simulate a position where window would overflow
-    const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
-    Element.prototype.getBoundingClientRect = jest.fn(function (this: Element) {
-      if (this.getAttribute("aria-label") === "testwindow-checkbox") {
-        // Parent position near bottom of viewport
+  test("Positions window above when not enough space below", async () => {
+    const orig = HTMLElement.prototype.getBoundingClientRect;
+    const spyRect = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (
+          (this as HTMLElement).hasAttribute &&
+          (this as HTMLElement).hasAttribute("data-context-window")
+        ) {
+          // window height large
+          return {
+            left: 10,
+            top: 900,
+            right: 310,
+            bottom: 1100,
+            width: 300,
+            height: 200,
+          } as DOMRect;
+        }
+        // parent anchor near bottom
         return {
-          top: 40,
-          bottom: 45,
           left: 10,
-          right: 100,
-          width: 90,
-          height: 5,
-          x: 10,
-          y: 40,
-          toJSON: () => ({}),
+          top: 900,
+          right: 310,
+          bottom: 950,
+          width: 300,
+          height: 50,
         } as DOMRect;
-      }
-      if (this.id === "testwindow") {
-        // Window with height that would overflow
-        return {
-          top: 45,
-          bottom: 145,
-          left: 10,
-          right: 110,
-          width: 100,
-          height: 100,
-          x: 10,
-          y: 45,
-          toJSON: () => ({}),
-        } as DOMRect;
-      }
-      return originalGetBoundingClientRect.call(this);
-    });
+      });
 
-    const WindowWithInput = (): JSX.Element => {
-      const [visible, setVisible] = useState<boolean>(false);
-      return (
-        <ContextWindowStack>
-          <input
-            aria-label="testwindow-checkbox"
-            type="checkbox"
-            checked={visible}
-            onChange={() => setVisible(!visible)}
-          />
-          <ContextWindow
-            id={"testwindow"}
-            visible={visible}
-            title={"Test window"}
-            style={{
-              transition: "opacity 0s linear",
-            }}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </ContextWindowStack>
-      );
-    };
+    const origInner = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", { value: 1000, configurable: true });
 
-    const user = userEvent.setup();
     await act(async () => {
-      render(<WindowWithInput />);
+      render(
+        <ContextWindow
+          id={"posabove"}
+          visible={true}
+          title={"Pos Above"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
     });
-    const chk = screen.queryByLabelText("testwindow-checkbox") as HTMLInputElement;
-    await act(async () => await user.click(chk));
-    expect(screen.queryByText("Test window")).toBeVisible();
 
-    // Cleanup
-    Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
-    Object.defineProperty(window, "innerHeight", {
-      writable: true,
-      configurable: true,
-      value: originalInnerHeight,
-    });
+    const win = document.getElementById("posabove") as HTMLElement;
+    expect(win).toBeInTheDocument();
+    // left should be parent left
+    expect(win.style.left).toBe("10px");
+    // top should be Math.max(0, parent.top - windowHeight) = 900 - 200 = 700px
+    expect(win.style.top).toBe("700px");
+
+    spyRect.mockRestore();
+    Object.defineProperty(window, "innerHeight", { value: origInner, configurable: true });
+    HTMLElement.prototype.getBoundingClientRect = orig;
   });
 });
