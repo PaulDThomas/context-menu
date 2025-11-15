@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { ContextWindow } from "./ContextWindow";
-import { ContextWindowStack } from "./ContextWindowStack";
 
 describe("Context window", () => {
   test("Not there", async () => {
@@ -20,36 +19,19 @@ describe("Context window", () => {
     expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
-  test("WARNING because there is no stack", async () => {
-    render(
-      <ContextWindow
-        id={"w1"}
-        visible={true}
-        title={"Window title"}
-      >
-        <span>Hi</span>
-      </ContextWindow>,
-    );
-    expect(screen.queryByText("Window title")).not.toBeInTheDocument();
-    expect(screen.queryByText("Hi")).toBeInTheDocument();
-    expect(screen.queryByText(/WARNING/)).toBeInTheDocument();
-  });
-
-  test("With stack, should be visible, and check close", async () => {
+  test("Should be visible, and check close", async () => {
     const user = userEvent.setup();
     const mockClose = jest.fn();
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"w1"}
-            visible={true}
-            title={"Window title"}
-            onClose={mockClose}
-          >
-            <span>Hi</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"w1"}
+          visible={true}
+          title={"Window title"}
+          onClose={mockClose}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
       );
     });
     expect(screen.queryByText("Window title")).toBeInTheDocument();
@@ -58,18 +40,16 @@ describe("Context window", () => {
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
 
-  test("With stack, not visible", async () => {
+  test("Not visible", async () => {
     await act(async () => {
       render(
-        <ContextWindowStack>
-          <ContextWindow
-            id={"w1"}
-            visible={false}
-            title={"Window title"}
-          >
-            <span>Hi</span>
-          </ContextWindow>
-        </ContextWindowStack>,
+        <ContextWindow
+          id={"w1"}
+          visible={false}
+          title={"Window title"}
+        >
+          <span>Hi</span>
+        </ContextWindow>,
       );
     });
     const title = screen.queryByText("Window title") as HTMLSpanElement;
@@ -80,7 +60,7 @@ describe("Context window", () => {
     const WindowWithInput = (): JSX.Element => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
-        <ContextWindowStack>
+        <>
           <input
             aria-label="testwindow-checkbox"
             type="checkbox"
@@ -97,7 +77,7 @@ describe("Context window", () => {
           >
             <span>Hello world of tests</span>
           </ContextWindow>
-        </ContextWindowStack>
+        </>
       );
     };
 
@@ -124,17 +104,70 @@ describe("Context window", () => {
 
   test("Window with custom title element", async () => {
     render(
-      <ContextWindowStack>
-        <ContextWindow
-          id={"testwindow"}
-          visible={true}
-          title={"Test window"}
-          titleElement={<>Window that is a test</>}
-        >
-          <span>Hello world of tests</span>
-        </ContextWindow>
-      </ContextWindowStack>,
+      <ContextWindow
+        id={"testwindow"}
+        visible={true}
+        title={"Test window"}
+        titleElement={<>Window that is a test</>}
+      >
+        <span>Hello world of tests</span>
+      </ContextWindow>,
     );
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
+  });
+
+  test("Multiple windows with z-index management", async () => {
+    const user = userEvent.setup();
+    const MultiWindowTest = (): JSX.Element => {
+      const [visible1, setVisible1] = useState<boolean>(false);
+      const [visible2, setVisible2] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible1(true)}>Open Window 1</button>
+          <button onClick={() => setVisible2(true)}>Open Window 2</button>
+          <ContextWindow
+            id={"window1"}
+            visible={visible1}
+            title={"Window 1"}
+            onClose={() => setVisible1(false)}
+          >
+            <span>Content 1</span>
+          </ContextWindow>
+          <ContextWindow
+            id={"window2"}
+            visible={visible2}
+            title={"Window 2"}
+            onClose={() => setVisible2(false)}
+          >
+            <span>Content 2</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    await act(async () => {
+      render(<MultiWindowTest />);
+    });
+
+    // Open first window
+    const openBtn1 = screen.getByText("Open Window 1");
+    await act(async () => await user.click(openBtn1));
+    const window1 = document.getElementById("window1") as HTMLElement;
+    expect(window1).toBeInTheDocument();
+    const zIndex1 = parseInt(window1.style.zIndex, 10);
+    expect(zIndex1).toBeGreaterThanOrEqual(1000);
+
+    // Open second window - should have higher z-index
+    const openBtn2 = screen.getByText("Open Window 2");
+    await act(async () => await user.click(openBtn2));
+    const window2 = document.getElementById("window2") as HTMLElement;
+    expect(window2).toBeInTheDocument();
+    const zIndex2 = parseInt(window2.style.zIndex, 10);
+    expect(zIndex2).toBeGreaterThan(zIndex1);
+
+    // Click on first window - should bring it to top
+    await act(async () => await user.click(window1));
+    const zIndex1Updated = parseInt(window1.style.zIndex, 10);
+    expect(zIndex1Updated).toBeGreaterThan(zIndex2);
   });
 });
