@@ -10,9 +10,9 @@ describe("ClickForMenu", () => {
   afterEach(() => {
     jest.useRealTimers();
   });
-  const user = userEvent.setup({ delay: null });
 
   test("Render and open menu", async () => {
+    const user = userEvent.setup({ delay: null });
     const mockClick = jest.fn();
     await act(async () =>
       render(
@@ -51,6 +51,7 @@ describe("ClickForMenu", () => {
   });
 
   test("Normal click if there are no menu items", async () => {
+    const user = userEvent.setup({ delay: null });
     const mockClick = jest.fn();
     const mockClick2 = jest.fn();
     await act(async () =>
@@ -74,6 +75,7 @@ describe("ClickForMenu", () => {
   });
 
   test("Click outside to close menu", async () => {
+    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -81,7 +83,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: () => console.log("Test Action"),
+              action: jest.fn(),
             },
           ]}
         >
@@ -111,6 +113,7 @@ describe("ClickForMenu", () => {
   });
 
   test("Click outside with non-Element target closes menu", async () => {
+    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -118,7 +121,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: () => console.log("Test Action"),
+              action: jest.fn(),
             },
           ]}
         >
@@ -181,6 +184,7 @@ describe("ClickForMenu", () => {
   });
 
   test("Rapid re-open aborts pending hide and keeps menu visible", async () => {
+    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
