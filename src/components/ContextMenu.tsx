@@ -3,6 +3,11 @@ import styles from "./ContextMenu.module.css";
 import { ContextMenuEntry } from "./ContextMenuEntry";
 import { MenuItem } from "./interface";
 
+// Constants for menu size estimation when ref is not yet available
+const ESTIMATED_MENU_ITEM_HEIGHT = 34;
+const ESTIMATED_MENU_PADDING = 4;
+const ESTIMATED_MENU_WIDTH = 200;
+
 export interface ContextMenuProps {
   visible: boolean;
   entries: MenuItem[];
@@ -14,15 +19,20 @@ export interface ContextMenuProps {
 export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
   ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
     // Check that menu can fit inside the window
-    let menuHeight = entries.length * 34 + 4;
-    let menuWidth = 200;
+    let menuHeight = entries.length * ESTIMATED_MENU_ITEM_HEIGHT + ESTIMATED_MENU_PADDING;
+    let menuWidth = ESTIMATED_MENU_WIDTH;
     if (ref && typeof ref !== "function" && ref.current instanceof HTMLDivElement) {
       menuHeight = ref.current.offsetHeight;
       menuWidth = ref.current.offsetWidth;
     }
-    if (yPos + menuHeight > window.innerHeight)
-      yPos = Math.max(window.innerHeight - menuHeight - 4, 0);
-    if (xPos + menuWidth > window.innerWidth) xPos = Math.max(window.innerWidth - menuWidth - 4, 0);
+    const adjustedYPos =
+      yPos + menuHeight > window.innerHeight
+        ? Math.max(window.innerHeight - menuHeight - ESTIMATED_MENU_PADDING, 0)
+        : yPos;
+    const adjustedXPos =
+      xPos + menuWidth > window.innerWidth
+        ? Math.max(window.innerWidth - menuWidth - ESTIMATED_MENU_PADDING, 0)
+        : xPos;
 
     return (
       <div
@@ -31,8 +41,8 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           .filter((c) => c !== "")
           .join(" ")}
         style={{
-          top: `${yPos}px`,
-          left: `${xPos}px`,
+          top: `${adjustedYPos}px`,
+          left: `${adjustedXPos}px`,
         }}
         onContextMenu={(e) => {
           e.preventDefault();
