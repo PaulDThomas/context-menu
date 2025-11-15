@@ -286,7 +286,7 @@ describe("Context window", () => {
     fireEvent.mouseDown(title);
     expect(title.style.userSelect).toBe("none");
 
-    // dispatch mouseup on the title which should restore userSelect to auto
+    // Fire mouseup event on the title which should restore userSelect to auto
     fireEvent.mouseUp(title);
     expect(title.style.userSelect).toBe("auto");
   });
