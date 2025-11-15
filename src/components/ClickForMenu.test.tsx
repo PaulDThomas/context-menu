@@ -109,4 +109,49 @@ describe("ClickForMenu", () => {
 
     expect(menuItem).not.toBeInTheDocument();
   });
+
+  test("Click outside with non-Element target closes menu", async () => {
+    await act(async () =>
+      render(
+        <ClickForMenu
+          id="test-c4m"
+          menuItems={[
+            {
+              label: "Test Action",
+              action: () => console.log("Test Action"),
+            },
+          ]}
+        >
+          <div>Test Child</div>
+        </ClickForMenu>,
+      ),
+    );
+
+    const c4mButton = screen.queryByText("Test Child");
+    expect(c4mButton).toBeInTheDocument();
+    await user.click(c4mButton!);
+    await act(async () => {
+      jest.runAllTimers();
+    });
+
+    const menuItem = screen.queryByText("Test Action");
+    expect(menuItem).toBeInTheDocument();
+    expect(menuItem).toBeVisible();
+
+    // Simulate a click with a non-Element target (e.g., document or text node)
+    const mouseEvent = new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(mouseEvent, "target", {
+      value: document,
+      enumerable: true,
+    });
+    await act(async () => {
+      document.dispatchEvent(mouseEvent);
+      jest.runAllTimers();
+    });
+
+    expect(menuItem).not.toBeInTheDocument();
+  });
 });
