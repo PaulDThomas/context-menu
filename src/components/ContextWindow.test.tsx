@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import * as chk from "../functions/chkPosition";
-import { ContextWindow } from "./ContextWindow";
+import { ContextWindow, MIN_Z_INDEX } from "./ContextWindow";
 
 describe("Context window", () => {
   test("Not there", async () => {
@@ -260,7 +260,7 @@ describe("Context window", () => {
 
     // zIndex should be at least the default MIN_Z_INDEX (3000)
     const zIndex = parseInt(win.style.zIndex, 10);
-    expect(zIndex).toBeGreaterThanOrEqual(3000);
+    expect(zIndex).toBeGreaterThanOrEqual(MIN_Z_INDEX);
 
     // cleanup added element
     bad.remove();

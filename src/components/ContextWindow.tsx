@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
 
-const MIN_Z_INDEX = 3000;
+export const MIN_Z_INDEX = 3000;
 const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
 
 interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
