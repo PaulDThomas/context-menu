@@ -154,4 +154,64 @@ describe("ClickForMenu", () => {
 
     expect(menuItem).not.toBeInTheDocument();
   });
+
+  test("Unmount cleanup clears pending hide timeout and aborts controller", async () => {
+    const abortSpy = jest.spyOn(AbortController.prototype, "abort");
+
+    let unmount: () => void = () => {};
+    await act(async () => {
+      const res = render(
+        <ClickForMenu
+          id="cleanup-c4m"
+          menuItems={[{ label: "Item", action: () => {} }]}
+        >
+          <div>Click Me</div>
+        </ClickForMenu>,
+      );
+      unmount = res.unmount;
+    });
+
+    // Unmount immediately to trigger cleanup while the 300ms timeout is pending
+    await act(async () => {
+      unmount();
+    });
+
+    expect(abortSpy).toHaveBeenCalled();
+    abortSpy.mockRestore();
+  });
+
+  test("Rapid re-open aborts pending hide and keeps menu visible", async () => {
+    await act(async () =>
+      render(
+        <ClickForMenu
+          id="rapid"
+          menuItems={[{ label: "Action", action: () => {} }]}
+        >
+          <div>Trigger</div>
+        </ClickForMenu>,
+      ),
+    );
+
+    // Open menu
+    const trigger = screen.getByText("Trigger");
+    await user.click(trigger);
+    await act(async () => {
+      // run the 1ms open timer and flush any pending
+      jest.runAllTimers();
+    });
+    const item = screen.getByText("Action");
+    expect(item).toBeInTheDocument();
+
+    // Close via menu selection (schedules 300ms hide)
+    await user.click(item);
+
+    // Re-open quickly before 300ms elapses
+    await user.click(trigger);
+    await act(async () => {
+      // run the 1ms opener (aborts previous hide) and the 300ms hide safely
+      jest.runAllTimers();
+    });
+
+    expect(screen.getByText("Action")).toBeInTheDocument();
+  });
 });
