@@ -20,9 +20,12 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       menuHeight = ref.current.offsetHeight;
       menuWidth = ref.current.offsetWidth;
     }
-    if (yPos + menuHeight > window.innerHeight)
-      yPos = Math.max(window.innerHeight - menuHeight - 4, 0);
-    if (xPos + menuWidth > window.innerWidth) xPos = Math.max(window.innerWidth - menuWidth - 4, 0);
+    const adjustedYPos =
+      yPos + menuHeight > window.innerHeight
+        ? Math.max(window.innerHeight - menuHeight - 4, 0)
+        : yPos;
+    const adjustedXPos =
+      xPos + menuWidth > window.innerWidth ? Math.max(window.innerWidth - menuWidth - 4, 0) : xPos;
 
     return (
       <div
@@ -31,8 +34,8 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           .filter((c) => c !== "")
           .join(" ")}
         style={{
-          top: `${yPos}px`,
-          left: `${xPos}px`,
+          top: `${adjustedYPos}px`,
+          left: `${adjustedXPos}px`,
         }}
         onContextMenu={(e) => {
           e.preventDefault();
