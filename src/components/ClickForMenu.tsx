@@ -29,7 +29,7 @@ export const ClickForMenu = ({
   const handleClick = useCallback((e: MouseEvent) => {
     if (
       menuRef.current &&
-      ((e.target instanceof Element && !menuRef.current?.contains(e.target)) ||
+      ((e.target instanceof Element && !menuRef.current.contains(e.target)) ||
         !(e.target instanceof Element))
     ) {
       setMenuInDom(false);

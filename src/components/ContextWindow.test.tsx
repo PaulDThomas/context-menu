@@ -156,7 +156,7 @@ describe("Context window", () => {
     const window1 = document.getElementById("window1") as HTMLElement;
     expect(window1).toBeInTheDocument();
     const zIndex1 = parseInt(window1.style.zIndex, 10);
-    expect(zIndex1).toBeGreaterThanOrEqual(1000);
+    expect(zIndex1).toBeGreaterThanOrEqual(MIN_Z_INDEX);
 
     // Open second window - should have higher z-index
     const openBtn2 = screen.getByText("Open Window 2");
