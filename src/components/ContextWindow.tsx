@@ -144,7 +144,7 @@ export const ContextWindow = ({
               ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
               visibility: windowVisible ? "visible" : "hidden",
-              zIndex: zIndex ?? 1,
+              zIndex: zIndex,
               minHeight: rest.style?.minHeight ?? "150px",
               minWidth: rest.style?.minWidth ?? "200px",
               maxHeight: rest.style?.maxHeight ?? "1000px",

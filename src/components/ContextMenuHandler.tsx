@@ -71,7 +71,7 @@ export const ContextMenuHandler = ({
   const [mouseOverMenu, setMouseOverMenu] = useState<boolean>(false);
 
   // Get holder position
-  const divHandlerPos = divHandlderRef ? divHandlderRef.current?.getBoundingClientRect() : null;
+  const divHandlerPos = divHandlderRef.current?.getBoundingClientRect() ?? null;
 
   // Handle click off the menu
   const handleClick = useCallback((e: globalThis.MouseEvent) => {
