@@ -37,14 +37,31 @@ export const ClickForMenu = ({
   }, []);
 
   const removeController = useRef<AbortController>(new AbortController());
+  const removeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (!menuVisible) {
+      // Clear any existing timeout
+      if (removeTimeoutRef.current) {
+        clearTimeout(removeTimeoutRef.current);
+        removeTimeoutRef.current = null;
+      }
+      // Create a new controller for this hide operation
       removeController.current.abort();
       removeController.current = new AbortController();
-      setTimeout(() => {
-        if (!removeController.current.signal.aborted) setMenuInDom(false);
+      const controller = removeController.current;
+      // Set up the timeout with a reference to the current controller
+      removeTimeoutRef.current = setTimeout(() => {
+        if (!controller.signal.aborted) setMenuInDom(false);
+        removeTimeoutRef.current = null;
       }, 300);
     }
+    return () => {
+      // Clean up on unmount or when menuVisible changes
+      if (removeTimeoutRef.current) {
+        clearTimeout(removeTimeoutRef.current);
+        removeTimeoutRef.current = null;
+      }
+    };
   }, [menuVisible]);
 
   // Update the document click handler
