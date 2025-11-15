@@ -7,11 +7,23 @@ export interface ContextSubMenuProps {
   toClose: () => void;
   lowMenu?: boolean;
   visible: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export const ContextSubMenu = ({ entries, toClose, visible }: ContextSubMenuProps): JSX.Element => {
+export const ContextSubMenu = ({
+  entries,
+  toClose,
+  visible,
+  onMouseEnter,
+  onMouseLeave,
+}: ContextSubMenuProps): JSX.Element => {
   return (
-    <span className={styles.caretHolder}>
+    <span
+      className={styles.caretHolder}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"

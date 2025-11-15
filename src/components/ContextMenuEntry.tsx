@@ -16,12 +16,6 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
       className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
         .filter((c) => c !== "")
         .join(" ")}
-      onMouseEnter={() => {
-        setSubMenuVisible(true);
-      }}
-      onMouseLeave={() => {
-        setSubMenuVisible(false);
-      }}
     >
       {typeof entry.label === "string" ? (
         <span
@@ -57,6 +51,8 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
           toClose={toClose}
           entries={entry.group}
           visible={subMenuVisible}
+          onMouseEnter={() => setSubMenuVisible(true)}
+          onMouseLeave={() => setSubMenuVisible(false)}
         />
       )}
     </div>
