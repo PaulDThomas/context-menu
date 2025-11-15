@@ -150,4 +150,41 @@ describe("Low menu", () => {
     const menu = container.querySelector(".lowMenu");
     expect(menu).not.toBeInTheDocument();
   });
+
+  test("LowSubMenu toClose function is called when submenu item is clicked", async () => {
+    const setColour = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={menuItems(setColour)}
+          showLowMenu
+        >
+          <div data-testid="inside-div">Inside</div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+    });
+
+    // Open the Blue submenu
+    const lowMenuBlue = screen.queryByLabelText("Blue") as HTMLDivElement;
+    expect(lowMenuBlue).toBeVisible();
+    fireEvent.mouseEnter(lowMenuBlue);
+    const lowMenuBlueSubmenu = screen.queryByLabelText("Sub menu for Blue") as HTMLSpanElement;
+    expect(lowMenuBlueSubmenu).toBeVisible();
+    fireEvent.mouseEnter(lowMenuBlueSubmenu);
+
+    // Verify submenu is visible
+    const cyan = screen.queryByLabelText("Cyan") as HTMLDivElement;
+    expect(cyan.closest(".contextMenu")).toHaveClass("visible");
+
+    // Click on a submenu item to trigger toClose
+    await act(async () => await user.click(cyan));
+
+    // Submenu should close
+    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
+    expect(setColour).toHaveBeenCalledWith("cyan");
+  });
 });
