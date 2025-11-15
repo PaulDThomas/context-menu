@@ -380,7 +380,7 @@ describe("Context window", () => {
     const title = screen.getByTitle("Resize Test") as HTMLElement;
     fireEvent.mouseDown(title);
 
-    // dispatch resize - should call our mocked chkPosition and move the window
+    // Trigger resize event - should call our mocked chkPosition and move the window
     act(() => {
       window.dispatchEvent(new Event("resize"));
     });
