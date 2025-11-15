@@ -91,3 +91,23 @@ import { ContextWindowStack, ContextWindow }
 </ContextWindowStack>
 
 ```
+
+## Development
+
+This project uses [semantic-release](https://github.com/semantic-release/semantic-release) for automated version management and package publishing.
+
+### Automated Releases
+
+Releases are automatically created when changes are pushed to the `main` or `master` branch. The release process:
+
+1. Analyzes commit messages to determine the next version number
+2. Generates release notes from commits
+3. Updates the package version
+4. Publishes to npm
+5. Creates a GitHub release
+
+To trigger a release, use [Conventional Commits](https://www.conventionalcommits.org/) in your commit messages:
+
+- `fix:` - patches a bug (PATCH version bump)
+- `feat:` - introduces a new feature (MINOR version bump)
+- `BREAKING CHANGE:` - introduces a breaking change (MAJOR version bump)
