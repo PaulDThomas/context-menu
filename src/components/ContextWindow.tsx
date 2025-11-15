@@ -96,9 +96,9 @@ export const ContextWindow = ({
 
   // Helper function to push this window to the top
   const pushToTop = useCallback(() => {
-    const maxZIndex = getMaxZIndex();
+    const maxZIndex = Math.max(getMaxZIndex(), minZIndex - 1);
     setZIndex(maxZIndex + 1);
-  }, []);
+  }, [minZIndex]);
 
   // Update visibility
   useEffect(() => {
@@ -129,7 +129,7 @@ export const ContextWindow = ({
     } else if (!visible && windowInDOM) {
       setWindowInDOM(false);
     }
-  }, [checkPosition, onOpen, visible, windowInDOM, windowVisible, pushToTop]);
+  }, [checkPosition, onOpen, visible, windowInDOM, windowVisible, pushToTop, minZIndex]);
 
   return (
     <div
