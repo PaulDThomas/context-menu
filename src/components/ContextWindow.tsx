@@ -19,9 +19,9 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 // Helper function to get the highest zIndex from all context windows in the DOM
-const getMaxZIndex = (): number => {
+const getMaxZIndex = (componentMinZIndex: number): number => {
   const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
-  let maxZIndex = MIN_Z_INDEX - 1;
+  let maxZIndex = componentMinZIndex - 1;
   windows.forEach((win) => {
     const zIndexStr = (win as HTMLElement).style.zIndex;
     if (zIndexStr) {
@@ -96,7 +96,7 @@ export const ContextWindow = ({
 
   // Helper function to push this window to the top
   const pushToTop = useCallback(() => {
-    const maxZIndex = Math.max(getMaxZIndex(), minZIndex - 1);
+    const maxZIndex = getMaxZIndex(minZIndex);
     setZIndex(maxZIndex + 1);
   }, [minZIndex]);
 
@@ -129,7 +129,7 @@ export const ContextWindow = ({
     } else if (!visible && windowInDOM) {
       setWindowInDOM(false);
     }
-  }, [checkPosition, onOpen, visible, windowInDOM, windowVisible, pushToTop, minZIndex]);
+  }, [checkPosition, onOpen, pushToTop, visible, windowInDOM, windowVisible]);
 
   return (
     <div
