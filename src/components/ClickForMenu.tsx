@@ -40,11 +40,6 @@ export const ClickForMenu = ({
   const removeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (!menuVisible) {
-      // Clear any existing timeout
-      if (removeTimeoutRef.current) {
-        clearTimeout(removeTimeoutRef.current);
-        removeTimeoutRef.current = null;
-      }
       // Create a new controller for this hide operation
       removeController.current.abort();
       removeController.current = new AbortController();
