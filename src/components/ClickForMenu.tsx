@@ -7,7 +7,7 @@ import { MenuItem } from "./interface";
 interface ClickForMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
   menuItems?: MenuItem[];
-  chidren?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const ClickForMenu = ({
