@@ -275,6 +275,7 @@ describe("Context window", () => {
     });
     const closeButton = screen.getByLabelText("Close");
     const svg = closeButton.querySelector("svg") as SVGSVGElement;
+    expect(svg).toBeInTheDocument();
     fireEvent.mouseDown(svg);
     fireEvent.mouseMove(svg, { movementX: 10, movementY: 10 });
     fireEvent.mouseUp(svg);
