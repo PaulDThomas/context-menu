@@ -265,4 +265,107 @@ describe("Context menu", () => {
     });
     expect(onMouseLeave).toHaveBeenCalled();
   });
+
+  test("ContextMenu adjusts position when menu would overflow bottom of viewport", async () => {
+    const originalInnerHeight = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", {
+      writable: true,
+      configurable: true,
+      value: 100,
+    });
+
+    const a = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            { label: "Item 1", action: a },
+            { label: "Item 2", action: a },
+            { label: "Item 3", action: a },
+            { label: "Item 4", action: a },
+            { label: "Item 5", action: a },
+          ]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      // Simulate context menu at bottom of viewport
+      const event = new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 10,
+        clientY: 90,
+      });
+      Object.defineProperty(event, "pageX", { value: 10 });
+      Object.defineProperty(event, "pageY", { value: 90 });
+      fireEvent.mouseEnter(testDiv);
+      testDiv.dispatchEvent(event);
+      jest.runAllTimers();
+    });
+
+    // Menu should be repositioned
+    const menuItem = screen.queryByText("Item 1");
+    expect(menuItem).toBeInTheDocument();
+
+    // Cleanup
+    Object.defineProperty(window, "innerHeight", {
+      writable: true,
+      configurable: true,
+      value: originalInnerHeight,
+    });
+  });
+
+  test("ContextMenu adjusts position when menu would overflow right of viewport", async () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: 100,
+    });
+
+    const a = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            { label: "Long menu item label", action: a },
+            { label: "Another long item", action: a },
+          ]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      // Simulate context menu at right edge of viewport
+      const event = new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 90,
+        clientY: 10,
+      });
+      Object.defineProperty(event, "pageX", { value: 90 });
+      Object.defineProperty(event, "pageY", { value: 10 });
+      fireEvent.mouseEnter(testDiv);
+      testDiv.dispatchEvent(event);
+      jest.runAllTimers();
+    });
+
+    // Menu should be repositioned
+    const menuItem = screen.queryByText("Long menu item label");
+    expect(menuItem).toBeInTheDocument();
+
+    // Cleanup
+    Object.defineProperty(window, "innerWidth", {
+      writable: true,
+      configurable: true,
+      value: originalInnerWidth,
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
+import { LowMenu } from "./LowMenu";
 
 describe("Low menu", () => {
   beforeEach(() => {
@@ -132,5 +133,21 @@ describe("Low menu", () => {
       jest.runAllTimers();
     });
     expect(onMouseLeave).toHaveBeenCalled();
+  });
+
+  test("LowMenu does not render when position is off screen", async () => {
+    const { container } = render(
+      <LowMenu
+        entries={[{ label: "Test", action: jest.fn() }]}
+        visible={true}
+        xPos={10000}
+        yPos={10000}
+        maxWidth={200}
+      />,
+    );
+
+    // Component should render empty fragment when off screen
+    const menu = container.querySelector(".lowMenu");
+    expect(menu).not.toBeInTheDocument();
   });
 });
