@@ -78,4 +78,62 @@ describe("Low menu", () => {
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
+
+  test("Low menu with JSX element label", async () => {
+    const action = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: <span data-testid="custom-label">Custom JSX</span>,
+              action,
+            },
+          ]}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+    const customLabel = screen.getByTestId("custom-label");
+    expect(customLabel).toBeVisible();
+  });
+
+  test("Low menu submenu with action click", async () => {
+    const setColour = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={menuItems(setColour)}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+
+    // Open submenu and click on an item with action
+    const lowMenuBlue = screen.queryByLabelText("Blue") as HTMLDivElement;
+    fireEvent.mouseEnter(lowMenuBlue);
+    const lowMenuBlueSubmenu = screen.queryByLabelText("Sub menu for Blue") as HTMLSpanElement;
+    fireEvent.mouseEnter(lowMenuBlueSubmenu);
+
+    const lightBlue = screen.getByLabelText("Light blue") as HTMLSpanElement;
+    await act(async () => {
+      fireEvent.mouseDown(lightBlue);
+      jest.runAllTimers();
+    });
+    expect(setColour).toHaveBeenCalledWith("lightblue");
+  });
 });

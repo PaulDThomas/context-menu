@@ -143,4 +143,126 @@ describe("Context menu", () => {
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(1);
   });
+
+  test("Menu with JSX element label", async () => {
+    const action = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: <span data-testid="custom-label">Custom JSX Label</span>,
+              action,
+            },
+          ]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
+    const customLabel = screen.getByTestId("custom-label");
+    expect(customLabel).toBeVisible();
+  });
+
+  test("Menu with onMouseEnter and onMouseLeave handlers", async () => {
+    const onMouseEnter = jest.fn();
+    const onMouseLeave = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Test" }]}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseEnter).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.mouseLeave(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseLeave).toHaveBeenCalled();
+  });
+
+  test("Menu in a menu with divider at start", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[{ label: "Outer" }]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: <hr /> }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    // Should not add an extra divider when inner menu starts with a divider
+    const hrs = document.querySelectorAll("hr");
+    expect(hrs.length).toBe(1);
+  });
+
+  test("Menu in a menu with divider at end of outer", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[{ label: "Outer" }, { label: <hr /> }]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: "Inner" }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    // Should not add an extra divider when outer menu ends with a divider
+    const hrs = document.querySelectorAll("hr");
+    expect(hrs.length).toBe(1);
+  });
+
+  test("Menu in a menu with empty outer menu", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler menuItems={[]}>
+          <div data-testid="inside-div">
+            Inside
+            <ContextMenuHandler menuItems={[{ label: "Inner" }]}>
+              <div data-testid="inside-div2">More Inside</div>
+            </ContextMenuHandler>
+          </div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv2 = screen.getByTestId("inside-div2");
+    await act(async () => {
+      fireEvent.contextMenu(testDiv2);
+      jest.runAllTimers();
+    });
+    expect(screen.queryByText("Inner")).toBeInTheDocument();
+    // Should not add a divider when outer menu is empty
+    const hrs = document.querySelectorAll("hr");
+    expect(hrs.length).toBe(0);
+  });
 });

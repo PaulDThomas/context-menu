@@ -137,4 +137,172 @@ describe("Context window", () => {
     );
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
   });
+
+  test("Window with onOpen callback", async () => {
+    const onOpen = jest.fn();
+    const WindowWithOnOpen = (): JSX.Element => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <ContextWindowStack>
+          <button onClick={() => setVisible(true)}>Open</button>
+          <ContextWindow
+            id={"testwindow"}
+            visible={visible}
+            title={"Test window"}
+            onOpen={onOpen}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<WindowWithOnOpen />);
+    });
+    const button = screen.getByText("Open");
+    await act(async () => await user.click(button));
+    expect(onOpen).toHaveBeenCalled();
+  });
+
+  test("Window click to bring to top and onClickCapture", async () => {
+    const onClickCapture = jest.fn();
+    await act(async () => {
+      render(
+        <ContextWindowStack>
+          <ContextWindow
+            id={"testwindow"}
+            visible={true}
+            title={"Test window"}
+            onClickCapture={onClickCapture}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>,
+      );
+    });
+    const user = userEvent.setup();
+    const content = screen.getByText("Content");
+    await act(async () => await user.click(content));
+    expect(onClickCapture).toHaveBeenCalled();
+  });
+
+  test("Window close button with empty title", async () => {
+    const onClose = jest.fn();
+    await act(async () => {
+      render(
+        <ContextWindowStack>
+          <ContextWindow
+            id={"testwindow"}
+            visible={true}
+            title={""}
+            onClose={onClose}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>,
+      );
+    });
+    const closeButton = screen.getByLabelText("Close");
+    expect(closeButton).toHaveAttribute("title", "Close window");
+  });
+
+  test("Window resize event during move", async () => {
+    await act(async () => {
+      render(
+        <ContextWindowStack>
+          <ContextWindow
+            id={"testwindow"}
+            visible={true}
+            title={"Test window"}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>,
+      );
+    });
+    const title = screen.getByText("Test window");
+    fireEvent.mouseDown(title);
+    fireEvent.mouseMove(title, { movementX: 10, movementY: 10 });
+    // Trigger window resize event during move
+    global.window.dispatchEvent(new Event("resize"));
+    fireEvent.mouseUp(title);
+  });
+
+  test("Window mousedown on SVG element", async () => {
+    await act(async () => {
+      render(
+        <ContextWindowStack>
+          <ContextWindow
+            id={"testwindow"}
+            visible={true}
+            title={"Test window"}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>,
+      );
+    });
+    const closeButton = screen.getByLabelText("Close");
+    const svg = closeButton.querySelector("svg") as SVGElement;
+    fireEvent.mouseDown(svg);
+    fireEvent.mouseUp(svg);
+  });
+
+  test("Window mouseup on SVG element after moving", async () => {
+    await act(async () => {
+      render(
+        <ContextWindowStack>
+          <ContextWindow
+            id={"testwindow"}
+            visible={true}
+            title={"Test window"}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </ContextWindowStack>,
+      );
+    });
+    const title = screen.getByText("Test window");
+    const closeButton = screen.getByLabelText("Close");
+    const svg = closeButton.querySelector("svg") as SVGElement;
+
+    fireEvent.mouseDown(title);
+    fireEvent.mouseMove(title, { movementX: 10, movementY: 10 });
+    fireEvent.mouseUp(svg);
+  });
+
+  test("Window opens above when not enough space below", async () => {
+    const WindowNearBottom = (): JSX.Element => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <ContextWindowStack>
+          <div
+            style={{ position: "absolute", top: "700px" }}
+            data-testid="anchor"
+          >
+            <button onClick={() => setVisible(true)}>Open</button>
+            <ContextWindow
+              id={"testwindow"}
+              visible={visible}
+              title={"Test window"}
+              style={{ minHeight: "200px" }}
+            >
+              <div style={{ height: "200px" }}>Content</div>
+            </ContextWindow>
+          </div>
+        </ContextWindowStack>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<WindowNearBottom />);
+    });
+    const button = screen.getByText("Open");
+    await act(async () => await user.click(button));
+    const windowTitle = screen.getByText("Test window");
+    expect(windowTitle).toBeVisible();
+  });
 });
