@@ -223,11 +223,13 @@ describe("Context window", () => {
       );
     });
     const title = screen.getByText("Test window");
+    expect(title).toBeInTheDocument();
     fireEvent.mouseDown(title);
     fireEvent.mouseMove(title, { movementX: 10, movementY: 10 });
     // Trigger window resize event during move
     global.window.dispatchEvent(new Event("resize"));
     fireEvent.mouseUp(title);
+    expect(title).toBeVisible();
   });
 
   test("Window mousedown on SVG element", async () => {
@@ -246,6 +248,7 @@ describe("Context window", () => {
     });
     const closeButton = screen.getByLabelText("Close");
     const svg = closeButton.querySelector("svg") as SVGElement;
+    expect(svg).toBeInTheDocument();
     fireEvent.mouseDown(svg);
     fireEvent.mouseUp(svg);
   });
@@ -268,6 +271,7 @@ describe("Context window", () => {
     const closeButton = screen.getByLabelText("Close");
     const svg = closeButton.querySelector("svg") as SVGElement;
 
+    expect(svg).toBeInTheDocument();
     fireEvent.mouseDown(title);
     fireEvent.mouseMove(title, { movementX: 10, movementY: 10 });
     fireEvent.mouseUp(svg);
@@ -300,9 +304,28 @@ describe("Context window", () => {
     await act(async () => {
       render(<WindowNearBottom />);
     });
+
+    // Mock getBoundingClientRect to simulate window near bottom
+    const anchor = screen.getByTestId("anchor");
+    const originalGetBoundingClientRect = anchor.getBoundingClientRect;
+    anchor.getBoundingClientRect = jest.fn().mockReturnValue({
+      left: 0,
+      top: 700,
+      bottom: 720,
+      right: 100,
+      width: 100,
+      height: 20,
+      x: 0,
+      y: 700,
+      toJSON: () => ({}),
+    });
+
     const button = screen.getByText("Open");
     await act(async () => await user.click(button));
     const windowTitle = screen.getByText("Test window");
     expect(windowTitle).toBeVisible();
+
+    // Restore original function
+    anchor.getBoundingClientRect = originalGetBoundingClientRect;
   });
 });
