@@ -1,9 +1,32 @@
+# ## Development
+
+# This project uses [semantic-release](https://github.com/semantic-release/semantic-release) for automated version management and package publishing.
+
+# ### Automated Releases
+
+# Releases are automatically created when changes are pushed to the `main` or `master` branch using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) with OpenID Connect (OIDC). This eliminates the need for long-lived npm tokens and automatically generates provenance attestations for supply chain security.
+
+# The release process:
+
+# 1. Analyzes commit messages to determine the next version number
+# 2. Generates release notes from commits
+# 3. Updates the package version
+# 4. Publishes to npm with cryptographic provenance
+# 5. Creates a GitHub release
+
+# #### Commit Message Format
+
+# To trigger a release, use [Conventional Commits](https://www.conventionalcommits.org/) in your commit messages:
+
+# - `fix:` - patches a bug (PATCH version bump)
+# - `feat:` - introduces a new feature (MINOR version bump)
+# - `BREAKING CHANGE:` - introduces a breaking change (MAJOR version bump)
+
 name: Release
 
 on:
   push:
     branches:
-      - main
       - master
 
 permissions:
