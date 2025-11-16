@@ -10,18 +10,11 @@ interface ContextMenuEntryProps {
 
 export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
   const [target, setTarget] = useState<Range | null>(null);
-  const [subMenuVisible, setSubMenuVisible] = useState<boolean>(false);
   return (
     <div
       className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
         .filter((c) => c !== "")
         .join(" ")}
-      onMouseEnter={() => {
-        setSubMenuVisible(true);
-      }}
-      onMouseLeave={() => {
-        setSubMenuVisible(false);
-      }}
     >
       {typeof entry.label === "string" ? (
         <span
@@ -56,7 +49,6 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
         <ContextSubMenu
           toClose={toClose}
           entries={entry.group}
-          visible={subMenuVisible}
         />
       )}
     </div>

@@ -70,17 +70,28 @@ describe("Context menu", () => {
     // Mouse over & leave
     const blueItem = screen.getByText("Blue") as HTMLSpanElement;
     const blueCaret = (blueItem.parentElement as HTMLDivElement).querySelector("svg") as SVGElement;
-    const blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector(
-      "div.contextMenu",
-    ) as HTMLDivElement;
-    expect(blueSubMenu).toHaveClass("hidden");
+
+    // Initially, submenu should not be visible
+    let blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector("div.contextMenu");
+    expect(blueSubMenu).toBeNull();
+
     await act(async () => {
-      fireEvent.mouseOver(blueCaret);
+      fireEvent.mouseEnter(blueCaret);
       jest.runAllTimers();
     });
-    expect(blueSubMenu).toHaveClass("visible");
-    fireEvent.mouseLeave(blueCaret);
-    expect(blueSubMenu).toHaveClass("hidden");
+
+    // After mouse enter, submenu should be in the DOM
+    blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector("div.contextMenu");
+    expect(blueSubMenu).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.mouseLeave(blueCaret);
+      jest.runAllTimers();
+    });
+
+    // After mouse leave, submenu should be removed from DOM
+    blueSubMenu = (blueItem.parentElement as HTMLDivElement).querySelector("div.contextMenu");
+    expect(blueSubMenu).toBeNull();
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
