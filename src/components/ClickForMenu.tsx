@@ -36,12 +36,14 @@ export const ClickForMenu = ({
     }
   }, []);
 
-  const removeController = useRef<AbortController>(new AbortController());
+  const removeController = useRef<AbortController | null>(null);
   const removeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (!menuVisible) {
-      // Create a new controller for this hide operation
-      removeController.current.abort();
+    if (!menuVisible && removeTimeoutRef.current === null) {
+      // Only create a new controller when scheduling a new timeout
+      if (removeController.current) {
+        removeController.current.abort();
+      }
       removeController.current = new AbortController();
       const controller = removeController.current;
       // Set up the timeout with a reference to the current controller
@@ -64,7 +66,9 @@ export const ClickForMenu = ({
     if (menuInDom) document.addEventListener("mousedown", handleClick);
     return () => {
       document.removeEventListener("mousedown", handleClick);
-      removeController.current.abort();
+      if (removeController.current) {
+        removeController.current.abort();
+      }
     };
   }, [handleClick, menuInDom]);
 
@@ -79,7 +83,9 @@ export const ClickForMenu = ({
             e.preventDefault();
             e.stopPropagation();
             setTimeout(() => {
-              removeController.current.abort();
+              if (removeController.current) {
+                removeController.current.abort();
+              }
               setMenuVisible(true);
               setMenuXPos(e.pageX);
               setMenuYPos(e.pageY);
