@@ -1,54 +1,57 @@
-import { createContext, useState } from "react";
-
-export interface ContextWindowZIndex {
-  windowId: number;
-  zIndex: number;
-}
-
-export interface ContextWindowStackContextProps {
-  currentWindows: ContextWindowZIndex[];
-  pushToTop: (ret: number) => void;
-}
-
-export const ContextWindowStackContext = createContext<ContextWindowStackContextProps | null>(null);
+import { ReactNode, useEffect } from "react";
 
 interface ContextWindowStackProps {
   id?: string;
   minZIndex?: number;
-  children?: JSX.Element[] | JSX.Element;
+  children?: JSX.Element[] | JSX.Element | ReactNode;
 }
 
-const pushToTop = (
-  windowId: number,
-  minZIndex: number,
-  windowList: ContextWindowZIndex[],
-  setWindowList: (ret: ContextWindowZIndex[]) => void,
-) => {
-  const otherWindows = windowList
-    .filter((w) => w.windowId !== windowId)
-    .map((w, i) => ({ windowId: w.windowId, zIndex: minZIndex + i }));
-  setWindowList([...otherWindows, { windowId, zIndex: minZIndex + otherWindows.length }]);
-};
+declare global {
+  interface GlobalThis {
+    __ContextWindowStackRendered?: boolean;
+  }
+}
 
-export const ContextWindowStack = ({
-  minZIndex = 1000,
-  children,
-}: ContextWindowStackProps): JSX.Element => {
-  const [currentWindows, setCurrentWindows] = useState<ContextWindowZIndex[]>([]);
+const SESSION_KEY = "context-menu.ContextWindowStack.rendered";
 
-  return (
-    <ContextWindowStackContext.Provider
-      value={{
-        currentWindows: currentWindows.map((w) => ({
-          windowId: w.windowId,
-          zIndex: minZIndex + w.zIndex,
-        })),
-        pushToTop: (ret: number) => pushToTop(ret, minZIndex, currentWindows, setCurrentWindows),
-      }}
-    >
-      {children}
-    </ContextWindowStackContext.Provider>
-  );
+/**
+ * @deprecated ContextWindowStack is no longer required. ContextWindow now manages z-index automatically.
+ * This component is kept for backwards compatibility and will be removed in a future version.
+ * It will render its children only once per browser session and then return `null` on subsequent mounts.
+ *
+ * Note: The `id` and `minZIndex` props are ignored and have no effect. They remain in the interface for backward compatibility only.
+ */
+
+export const ContextWindowStack = ({ children }: ContextWindowStackProps): JSX.Element => {
+  useEffect(() => {
+    const doWarn = () =>
+      console.warn(
+        "ContextWindowStack is deprecated and no longer required. ContextWindow now manages z-index automatically. Please remove the ContextWindowStack wrapper from your code.",
+      );
+
+    try {
+      // Prefer sessionStorage so the warning lasts for the browser session.
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        const already = window.sessionStorage.getItem(SESSION_KEY);
+        if (!already) {
+          window.sessionStorage.setItem(SESSION_KEY, "1");
+          doWarn();
+        }
+        return;
+      }
+    } catch {
+      // sessionStorage may be unavailable (privacy mode). Fall through to global fallback.
+    }
+
+    // Fallback: use a global flag for environments where sessionStorage isn't available.
+    const g = globalThis as unknown as { __ContextWindowStackRendered?: boolean };
+    if (!g.__ContextWindowStackRendered) {
+      g.__ContextWindowStackRendered = true;
+      doWarn();
+    }
+  }, []);
+
+  return <>{children}</>;
 };
 
 ContextWindowStack.displayName = "ContextWindowStack";

@@ -1,8 +1,10 @@
-import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
-import { ContextWindowStackContext } from "./ContextWindowStack";
+
+export const MIN_Z_INDEX = 3000;
+const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
 
 interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -13,7 +15,24 @@ interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   titleElement?: ReactNode;
   style?: React.CSSProperties;
   children: React.ReactNode;
+  minZIndex?: number;
 }
+
+// Helper function to get the highest zIndex from all context windows in the DOM
+const getMaxZIndex = (componentMinZIndex: number): number => {
+  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
+  let maxZIndex = componentMinZIndex - 1;
+  windows.forEach((win) => {
+    const zIndexStr = (win as HTMLElement).style.zIndex;
+    if (zIndexStr) {
+      const zIndex = parseInt(zIndexStr, 10);
+      if (!isNaN(zIndex) && zIndex > maxZIndex) {
+        maxZIndex = zIndex;
+      }
+    }
+  });
+  return maxZIndex;
+};
 
 export const ContextWindow = ({
   id,
@@ -23,17 +42,15 @@ export const ContextWindow = ({
   children,
   onOpen,
   onClose,
+  minZIndex = MIN_Z_INDEX,
   ...rest
 }: ContextWindowProps): JSX.Element => {
-  const windowStack = useContext(ContextWindowStackContext);
-  const windowId = useRef<number | null>(null);
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
   const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
   const [windowVisible, setWindowVisible] = useState<boolean>(false);
-  const zIndex = useMemo(() => {
-    return windowStack?.currentWindows.find((w) => w.windowId === windowId.current)?.zIndex ?? 1;
-  }, [windowStack?.currentWindows]);
+  const [zIndex, setZIndex] = useState<number>(minZIndex);
+  const resizeListenerRef = useRef<(() => void) | null>(null);
 
   // Position
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -63,95 +80,109 @@ export const ContextWindow = ({
     [move],
   );
 
+  // Store stable references to mouseMove and mouseUp for cleanup
+  const mouseMoveRef = useRef(mouseMove);
+  const mouseUpRef = useRef<(e: MouseEvent) => void>(() => {});
+
   const mouseUp = useCallback(
     (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setMoving(false);
       checkPosition();
-      document.removeEventListener("mousemove", mouseMove);
-      document.removeEventListener("mouseup", mouseUp);
-      window.removeEventListener("resize", checkPosition);
+      document.removeEventListener("mousemove", mouseMoveRef.current);
+      document.removeEventListener("mouseup", mouseUpRef.current);
+      if (resizeListenerRef.current) {
+        window.removeEventListener("resize", resizeListenerRef.current);
+        resizeListenerRef.current = null;
+      }
       if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
         e.target.style.userSelect = "auto";
     },
-    [checkPosition, mouseMove],
+    [checkPosition],
   );
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    mouseMoveRef.current = mouseMove;
+    mouseUpRef.current = mouseUp;
+  }, [mouseMove, mouseUp]);
+
+  // Helper function to push this window to the top
+  const pushToTop = useCallback(() => {
+    const maxZIndex = getMaxZIndex(minZIndex);
+    setZIndex(maxZIndex + 1);
+  }, [minZIndex]);
 
   // Update visibility
   useEffect(() => {
-    if (windowStack) {
-      // Visible set, but not in DOM
-      if (visible && !windowInDOM) {
-        setWindowInDOM(true);
-      } else if (visible && windowInDOM && !windowVisible) {
-        if (!windowId.current) {
-          const maxWindowId = Math.max(0, ...windowStack.currentWindows.map((w) => w.windowId));
-          windowId.current = maxWindowId + 1;
-        }
-        windowStack.pushToTop(windowId.current);
-        setWindowVisible(visible);
-        onOpen?.();
-        // Get starting position
-        if (divRef.current && windowRef.current) {
-          const parentPos = divRef.current.getBoundingClientRect();
-          const pos = windowRef.current.getBoundingClientRect();
-          const windowHeight = pos.bottom - pos.top;
-          windowRef.current.style.left = `${parentPos.left}px`;
-          windowRef.current.style.top = `${
-            parentPos.bottom + windowHeight < window.innerHeight
-              ? parentPos.bottom
-              : Math.max(0, parentPos.top - windowHeight)
-          }px`;
-          windowRef.current.style.transform = "";
-          windowPos.current = { x: 0, y: 0 };
-        }
-        checkPosition();
-      } else if (windowId.current && !visible && windowVisible) {
-        setWindowVisible(false);
-      } else if (windowId.current && !visible && windowInDOM) {
-        setWindowInDOM(false);
+    // Visible set, but not in DOM
+    if (visible && !windowInDOM) {
+      setWindowInDOM(true);
+    } else if (visible && windowInDOM && !windowVisible) {
+      pushToTop();
+      setWindowVisible(visible);
+      onOpen?.();
+      // Get starting position
+      if (divRef.current && windowRef.current) {
+        const parentPos = divRef.current.getBoundingClientRect();
+        const pos = windowRef.current.getBoundingClientRect();
+        const windowHeight = pos.bottom - pos.top;
+        windowRef.current.style.left = `${parentPos.left}px`;
+        windowRef.current.style.top = `${
+          parentPos.bottom + windowHeight < window.innerHeight
+            ? parentPos.bottom
+            : Math.max(0, parentPos.top - windowHeight)
+        }px`;
+        windowRef.current.style.transform = "";
+        windowPos.current = { x: 0, y: 0 };
       }
+      checkPosition();
+    } else if (!visible && windowVisible) {
+      setWindowVisible(false);
+    } else if (!visible && windowInDOM) {
+      setWindowInDOM(false);
     }
-  }, [checkPosition, onOpen, visible, windowInDOM, windowStack, windowVisible]);
+  }, [checkPosition, onOpen, pushToTop, visible, windowInDOM, windowVisible]);
+
+  // Cleanup effect to remove event listeners on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up event listeners if component unmounts while dragging
+      document.removeEventListener("mousemove", mouseMoveRef.current);
+      document.removeEventListener("mouseup", mouseUpRef.current);
+      if (resizeListenerRef.current) {
+        window.removeEventListener("resize", resizeListenerRef.current);
+        resizeListenerRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div
       className={styles.contextWindowAnchor}
       ref={divRef}
     >
-      {!windowStack && (
-        <div {...rest}>
-          {process.env.NODE_ENV !== "production" && (
-            <div
-              style={{ backgroundColor: "red", color: "white", padding: "8px", fontSize: "48px" }}
-            >
-              WARNING: No ContextWindowStack found
-            </div>
-          )}
-          {children}
-        </div>
-      )}
-      {windowStack &&
-        windowInDOM &&
+      {windowInDOM &&
         createPortal(
           <div
             {...rest}
             ref={windowRef}
             id={id}
+            {...{ [CONTEXT_WINDOW_DATA_ATTR]: "true" }}
             className={[styles.contextWindow, rest.className].filter((c) => c).join(" ")}
             style={{
               ...rest.style,
               opacity: moving ? 0.8 : windowVisible ? 1 : 0,
               visibility: windowVisible ? "visible" : "hidden",
-              zIndex: zIndex ?? 1,
+              zIndex: zIndex,
               minHeight: rest.style?.minHeight ?? "150px",
               minWidth: rest.style?.minWidth ?? "200px",
               maxHeight: rest.style?.maxHeight ?? "1000px",
               maxWidth: rest.style?.maxWidth ?? "1000px",
             }}
             onClickCapture={(e) => {
-              if (windowId.current) windowStack.pushToTop(windowId.current);
+              pushToTop();
               rest.onClickCapture?.(e);
             }}
           >
@@ -163,10 +194,12 @@ export const ContextWindow = ({
                 if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
                   e.target.style.userSelect = "none";
                 setMoving(true);
-                if (windowId.current) windowStack.pushToTop(windowId.current);
-                document.addEventListener("mouseup", mouseUp);
-                document.addEventListener("mousemove", mouseMove);
-                window.addEventListener("resize", () => checkPosition());
+                pushToTop();
+                document.addEventListener("mouseup", mouseUpRef.current);
+                document.addEventListener("mousemove", mouseMoveRef.current);
+                const resizeListener = () => checkPosition();
+                resizeListenerRef.current = resizeListener;
+                window.addEventListener("resize", resizeListener);
               }}
             >
               <div

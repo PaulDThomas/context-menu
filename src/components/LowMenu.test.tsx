@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
+import { LowMenu } from "./LowMenu";
 
 describe("Low menu", () => {
   beforeEach(() => {
@@ -77,5 +78,113 @@ describe("Low menu", () => {
       jest.runAllTimers();
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
+  });
+
+  test("LowMenu button with JSX.Element label", async () => {
+    const a = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            {
+              label: <span data-testid="custom-low-label">Custom Low Label</span>,
+              action: a,
+            },
+          ]}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+    });
+    const customLabel = screen.getByTestId("custom-low-label");
+    expect(customLabel).toBeVisible();
+    await act(async () => await user.click(customLabel.parentElement!));
+    expect(a).toHaveBeenCalled();
+  });
+
+  test("LowMenu with onMouseEnter and onMouseLeave callbacks", async () => {
+    const onMouseEnter = jest.fn();
+    const onMouseLeave = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Test" }]}
+          showLowMenu
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseEnter).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.mouseLeave(testDiv);
+      jest.runAllTimers();
+    });
+    expect(onMouseLeave).toHaveBeenCalled();
+  });
+
+  test("LowMenu does not render when position is off screen", async () => {
+    const { container } = render(
+      <LowMenu
+        entries={[{ label: "Test", action: jest.fn() }]}
+        visible={true}
+        xPos={10000}
+        yPos={10000}
+        maxWidth={200}
+      />,
+    );
+
+    // Component should render empty fragment when off screen
+    const menu = container.querySelector(".lowMenu");
+    expect(menu).not.toBeInTheDocument();
+  });
+
+  test("LowSubMenu toClose function is called when submenu item is clicked", async () => {
+    const setColour = jest.fn();
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={menuItems(setColour)}
+          showLowMenu
+        >
+          <div data-testid="inside-div">Inside</div>
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+    });
+
+    // Open the Blue submenu
+    const lowMenuBlue = screen.queryByLabelText("Blue") as HTMLDivElement;
+    expect(lowMenuBlue).toBeVisible();
+    fireEvent.mouseEnter(lowMenuBlue);
+    const lowMenuBlueSubmenu = screen.queryByLabelText("Sub menu for Blue") as HTMLSpanElement;
+    expect(lowMenuBlueSubmenu).toBeVisible();
+    fireEvent.mouseEnter(lowMenuBlueSubmenu);
+
+    // Verify submenu is visible
+    const cyan = screen.queryByLabelText("Cyan") as HTMLDivElement;
+    expect(cyan.closest(".contextMenu")).toHaveClass("visible");
+
+    // Click on a submenu item to trigger toClose
+    await act(async () => await user.click(cyan));
+
+    // Submenu should close
+    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
+    expect(setColour).toHaveBeenCalledWith("cyan");
   });
 });

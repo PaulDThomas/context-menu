@@ -1,7 +1,6 @@
 import { Fragment, useState } from "react";
 import { ContextWindow } from "../../src/components/ContextWindow";
-import { ContextWindowStack } from "../../src/components/ContextWindowStack";
-import { AutoHeight, ContextMenuHandler } from "../../src/main";
+import { AutoHeight, ClickForMenu, ContextMenuHandler } from "../../src/main";
 import { ColourDiv } from "./ColourDiv";
 
 export const App = () => {
@@ -63,48 +62,70 @@ export const App = () => {
                     },
                   ]}
                 >
-                  <ColourDiv text="Div 3.1" />
+                  <ColourDiv text="Div 3.1">
+                    <ClickForMenu
+                      id={`c4m`}
+                      menuItems={[
+                        {
+                          label: "Click For Menu action 1",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 2",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 3",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                        {
+                          label: "Click For Menu action 4",
+                          action: () => console.log("Action from ClickForMenu"),
+                        },
+                      ]}
+                    >
+                      Click For Menu
+                    </ClickForMenu>
+                  </ColourDiv>
                 </ContextMenuHandler>
               </ColourDiv>
             </ContextMenuHandler>
           </div>
 
           <div className="col">
-            <ContextWindowStack>
-              {Array.from({ length: 5 }, (_, k) => k).map((i) => (
-                <Fragment key={i}>
-                  <div
-                    style={{ height: "30px", padding: "1rem" }}
-                    onClick={() => {
-                      setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
+            {Array.from({ length: 5 }, (_, k) => k).map((i) => (
+              <Fragment key={i}>
+                <div
+                  style={{ height: "30px", padding: "1rem" }}
+                  onClick={() => {
+                    setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
+                  }}
+                >
+                  <input
+                    id={`window-check-${i}`}
+                    type="checkbox"
+                    checked={showWindow[i]}
+                    onChange={(e) => {
+                      setShowWindow(
+                        showWindow.map((b, ix) => (ix === i ? e.currentTarget.checked : b)),
+                      );
                     }}
-                  >
-                    <input
-                      id={`window-check-${i}`}
-                      type="checkbox"
-                      checked={showWindow[i]}
-                      onChange={(e) => {
-                        setShowWindow(
-                          showWindow.map((b, ix) => (ix === i ? e.currentTarget.checked : b)),
-                        );
-                      }}
-                    />
-                    <label htmlFor={`window-check-${i}`}>Show window {i}</label>
-                  </div>
-                  <ContextWindow
-                    id={`w-${i}`}
-                    visible={showWindow[i]}
-                    title={"Window with a very very very long title, that wants to be squashed"}
-                    onClose={() => {
-                      setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
-                    }}
-                    style={{ width: `${(i + 1) * 200}px` }}
-                  >
-                    <div>Hi! {i}</div>
-                  </ContextWindow>
-                </Fragment>
-              ))}
-            </ContextWindowStack>
+                  />
+                  <label htmlFor={`window-check-${i}`}>Show window {i}</label>
+                </div>
+                <ContextWindow
+                  id={`w-${i}`}
+                  visible={showWindow[i]}
+                  title={"Window with a very very very long title, that wants to be squashed"}
+                  onClose={() => {
+                    setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
+                  }}
+                  style={{ width: `${(i + 1) * 200}px` }}
+                >
+                  <div>Hi! {i}</div>
+                </ContextWindow>
+              </Fragment>
+            ))}
             <pre>Visible windows: {JSON.stringify(showWindow)}</pre>
             <div>
               <ContextMenuHandler
