@@ -39,8 +39,7 @@ export const ContextWindowStack = ({ children }: ContextWindowStackProps): JSX.E
         }
         return;
       }
-    } catch (e) {
-      void e;
+    } catch {
       // sessionStorage may be unavailable (privacy mode). Fall through to global fallback.
     }
 
