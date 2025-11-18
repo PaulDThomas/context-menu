@@ -51,7 +51,7 @@ describe("AutoHeight Component", () => {
       </AutoHeight>,
     );
     const wrapper = screen.getByTestId("wrapper");
-    expect(wrapper).toHaveStyle("background-color: red");
+    expect(wrapper).toHaveStyle("background-color: rgb(255, 0, 0)");
   });
 
   test("handles hide prop correctly", async () => {
