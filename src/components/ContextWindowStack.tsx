@@ -6,18 +6,50 @@ interface ContextWindowStackProps {
   children?: JSX.Element[] | JSX.Element | ReactNode;
 }
 
+declare global {
+  interface GlobalThis {
+    __ContextWindowStackRendered?: boolean;
+  }
+}
+
+const SESSION_KEY = "context-menu.ContextWindowStack.rendered";
+
 /**
  * @deprecated ContextWindowStack is no longer required. ContextWindow now manages z-index automatically.
  * This component is kept for backwards compatibility and will be removed in a future version.
- * You can safely remove the ContextWindowStack wrapper from your code.
+ * It will render its children only once per browser session and then return `null` on subsequent mounts.
  *
- * Note: The `id` and `minZIndex` props are now ignored and have no effect. They remain in the interface for backward compatibility only.
+ * Note: The `id` and `minZIndex` props are ignored and have no effect. They remain in the interface for backward compatibility only.
  */
+
 export const ContextWindowStack = ({ children }: ContextWindowStackProps): JSX.Element => {
   useEffect(() => {
-    console.warn(
-      "ContextWindowStack is deprecated and no longer required. ContextWindow now manages z-index automatically. Please remove the ContextWindowStack wrapper from your code.",
-    );
+    const doWarn = () =>
+      console.warn(
+        "ContextWindowStack is deprecated and no longer required. ContextWindow now manages z-index automatically. Please remove the ContextWindowStack wrapper from your code.",
+      );
+
+    try {
+      // Prefer sessionStorage so the warning lasts for the browser session.
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        const already = window.sessionStorage.getItem(SESSION_KEY);
+        if (!already) {
+          window.sessionStorage.setItem(SESSION_KEY, "1");
+          doWarn();
+        }
+        return;
+      }
+    } catch (e) {
+      void e;
+      // sessionStorage may be unavailable (privacy mode). Fall through to global fallback.
+    }
+
+    // Fallback: use a global flag for environments where sessionStorage isn't available.
+    const g = globalThis as unknown as { __ContextWindowStackRendered?: boolean };
+    if (!g.__ContextWindowStackRendered) {
+      g.__ContextWindowStackRendered = true;
+      doWarn();
+    }
   }, []);
 
   return <>{children}</>;
