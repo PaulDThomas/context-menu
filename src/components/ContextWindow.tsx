@@ -80,14 +80,18 @@ export const ContextWindow = ({
     [move],
   );
 
+  // Store stable references to mouseMove and mouseUp for cleanup
+  const mouseMoveRef = useRef(mouseMove);
+  const mouseUpRef = useRef<(e: MouseEvent) => void>(() => {});
+
   const mouseUp = useCallback(
     (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setMoving(false);
       checkPosition();
-      document.removeEventListener("mousemove", mouseMove);
-      document.removeEventListener("mouseup", mouseUp);
+      document.removeEventListener("mousemove", mouseMoveRef.current);
+      document.removeEventListener("mouseup", mouseUpRef.current);
       if (resizeListenerRef.current) {
         window.removeEventListener("resize", resizeListenerRef.current);
         resizeListenerRef.current = null;
@@ -95,8 +99,14 @@ export const ContextWindow = ({
       if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
         e.target.style.userSelect = "auto";
     },
-    [checkPosition, mouseMove],
+    [checkPosition],
   );
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    mouseMoveRef.current = mouseMove;
+    mouseUpRef.current = mouseUp;
+  }, [mouseMove, mouseUp]);
 
   // Helper function to push this window to the top
   const pushToTop = useCallback(() => {
@@ -139,14 +149,14 @@ export const ContextWindow = ({
   useEffect(() => {
     return () => {
       // Clean up event listeners if component unmounts while dragging
-      document.removeEventListener("mousemove", mouseMove);
-      document.removeEventListener("mouseup", mouseUp);
+      document.removeEventListener("mousemove", mouseMoveRef.current);
+      document.removeEventListener("mouseup", mouseUpRef.current);
       if (resizeListenerRef.current) {
         window.removeEventListener("resize", resizeListenerRef.current);
         resizeListenerRef.current = null;
       }
     };
-  }, [mouseMove, mouseUp]);
+  }, []);
 
   return (
     <div
@@ -185,8 +195,8 @@ export const ContextWindow = ({
                   e.target.style.userSelect = "none";
                 setMoving(true);
                 pushToTop();
-                document.addEventListener("mouseup", mouseUp);
-                document.addEventListener("mousemove", mouseMove);
+                document.addEventListener("mouseup", mouseUpRef.current);
+                document.addEventListener("mousemove", mouseMoveRef.current);
                 const resizeListener = () => checkPosition();
                 resizeListenerRef.current = resizeListener;
                 window.addEventListener("resize", resizeListener);
