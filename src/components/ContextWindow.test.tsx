@@ -58,7 +58,7 @@ describe("Context window", () => {
   });
 
   test("Move the mouse, turn it on and off", async () => {
-    const WindowWithInput = (): JSX.Element => {
+    const WindowWithInput = (): React.ReactElement => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
         <>
@@ -119,7 +119,7 @@ describe("Context window", () => {
 
   test("Multiple windows with z-index management", async () => {
     const user = userEvent.setup();
-    const MultiWindowTest = (): JSX.Element => {
+    const MultiWindowTest = (): React.ReactElement => {
       const [visible1, setVisible1] = useState<boolean>(false);
       const [visible2, setVisible2] = useState<boolean>(false);
       return (
