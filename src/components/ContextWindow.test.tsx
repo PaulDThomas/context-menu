@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import * as chk from "../functions/chkPosition";
@@ -152,24 +152,30 @@ describe("Context window", () => {
 
     // Open first window
     const openBtn1 = screen.getByText("Open Window 1");
-    await act(async () => await user.click(openBtn1));
+    await user.click(openBtn1);
+    await waitFor(() => {
+      expect(document.getElementById("window1")).toBeInTheDocument();
+    });
     const window1 = document.getElementById("window1") as HTMLElement;
-    expect(window1).toBeInTheDocument();
     const zIndex1 = parseInt(window1.style.zIndex, 10);
     expect(zIndex1).toBeGreaterThanOrEqual(MIN_Z_INDEX);
 
     // Open second window - should have higher z-index
     const openBtn2 = screen.getByText("Open Window 2");
-    await act(async () => await user.click(openBtn2));
+    await user.click(openBtn2);
+    await waitFor(() => {
+      expect(document.getElementById("window2")).toBeInTheDocument();
+    });
     const window2 = document.getElementById("window2") as HTMLElement;
-    expect(window2).toBeInTheDocument();
     const zIndex2 = parseInt(window2.style.zIndex, 10);
     expect(zIndex2).toBeGreaterThan(zIndex1);
 
     // Click on first window - should bring it to top
-    await act(async () => await user.click(window1));
-    const zIndex1Updated = parseInt(window1.style.zIndex, 10);
-    expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+    await user.click(window1);
+    await waitFor(() => {
+      const zIndex1Updated = parseInt(window1.style.zIndex, 10);
+      expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+    });
   });
 
   test("Accepts minZIndex prop and applies it correctly", async () => {
