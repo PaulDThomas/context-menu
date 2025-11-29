@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,20 +12,20 @@ import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
 import { LowMenu } from "./LowMenu";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 export interface ContentMenuHandlerContextProps {
-  menuItems: MenuItem[];
+  menuItems: IMenuItem[];
 }
 export const ContentMenuHandlerContext = createContext<ContentMenuHandlerContextProps | null>(null);
 
 export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  menuItems: MenuItem[];
+  menuItems: IMenuItem[];
   showLowMenu?: boolean;
 }
 
-function isDivider(label: string | JSX.Element): boolean {
+function isDivider(label: string | React.ReactElement): boolean {
   return typeof label !== "string" && label.type === "hr";
 }
 
@@ -33,7 +34,7 @@ export const ContextMenuHandler = ({
   menuItems,
   showLowMenu = false,
   ...rest
-}: ContextMenuHandlerProps): JSX.Element => {
+}: ContextMenuHandlerProps): React.ReactElement => {
   // Check for higher content menu
   const higherContext = useContext(ContentMenuHandlerContext);
   const thisMenuItems = useMemo(
@@ -70,8 +71,42 @@ export const ContextMenuHandler = ({
   const [mouseOverHandlerDiv, setMouseOverHandlerDiv] = useState<boolean>(false);
   const [mouseOverMenu, setMouseOverMenu] = useState<boolean>(false);
 
-  // Get holder position
-  const divHandlerPos = divHandlderRef.current?.getBoundingClientRect() ?? null;
+  // Holder position - measured in an effect to avoid reading refs during render
+  const [divHandlerPos, setDivHandlerPos] = useState<DOMRect | null>(null);
+
+  useLayoutEffect(() => {
+    function updatePos() {
+      if (divHandlderRef.current) {
+        setDivHandlerPos(divHandlderRef.current.getBoundingClientRect());
+      }
+    }
+
+    // When the handler is hovered or the menu is mounted, ensure we have a fresh position
+    if (mouseOverHandlerDiv || menuInDom) {
+      updatePos();
+    }
+
+    // Attach listeners while the menu/low-menu may be visible so the position stays correct
+    if (mouseOverHandlerDiv || menuInDom) {
+      window.addEventListener("resize", updatePos);
+      // listen on capture to catch scrolls from ancestor elements as well
+      window.addEventListener("scroll", updatePos, true);
+
+      let ro: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== "undefined" && divHandlderRef.current) {
+        ro = new ResizeObserver(() => updatePos());
+        ro.observe(divHandlderRef.current);
+      }
+
+      return () => {
+        window.removeEventListener("resize", updatePos);
+        window.removeEventListener("scroll", updatePos, true);
+        if (ro) ro.disconnect();
+      };
+    }
+
+    return;
+  }, [mouseOverHandlerDiv, menuInDom]);
 
   // Handle click off the menu
   const handleClick = useCallback((e: globalThis.MouseEvent) => {

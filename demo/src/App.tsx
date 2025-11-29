@@ -95,12 +95,7 @@ export const App = () => {
           <div className="col">
             {Array.from({ length: 5 }, (_, k) => k).map((i) => (
               <Fragment key={i}>
-                <div
-                  style={{ height: "30px", padding: "1rem" }}
-                  onClick={() => {
-                    setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
-                  }}
-                >
+                <div style={{ height: "30px", padding: "1rem" }}>
                   <input
                     id={`window-check-${i}`}
                     type="checkbox"
@@ -111,7 +106,15 @@ export const App = () => {
                       );
                     }}
                   />
-                  <label htmlFor={`window-check-${i}`}>Show window {i}</label>
+                  <label
+                    htmlFor={`window-check-${i}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
+                    }}
+                  >
+                    Show window {i}
+                  </label>
                 </div>
                 <ContextWindow
                   id={`w-${i}`}

@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 interface ClickForMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
-  menuItems?: MenuItem[];
+  menuItems?: IMenuItem[];
   children?: React.ReactNode;
 }
 
@@ -15,7 +15,7 @@ export const ClickForMenu = ({
   menuItems,
   children,
   ...rest
-}: ClickForMenuProps): JSX.Element => {
+}: ClickForMenuProps): React.ReactElement => {
   // Menu state
   const [menuInDom, setMenuInDom] = useState<boolean>(false);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);

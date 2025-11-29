@@ -1,6 +1,6 @@
-import { MenuItem } from "components/interface";
+import { IMenuItem } from "components/interface";
 
-export const menuItems = (setColour: (colour: string) => void): MenuItem[] => {
+export const menuItems = (setColour: (colour: string) => void): IMenuItem[] => {
   return [
     {
       label: "All the reds, click this for Red",

@@ -1,16 +1,22 @@
 import styles from "./LowMenu.module.css";
 import { LowMenuButton } from "./LowMenuButton";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 interface LowMenuProps {
-  entries: MenuItem[];
+  entries: IMenuItem[];
   visible: boolean;
   xPos: number;
   yPos: number;
   maxWidth: number;
 }
 
-export const LowMenu = ({ entries, visible, xPos, yPos, maxWidth }: LowMenuProps): JSX.Element => {
+export const LowMenu = ({
+  entries,
+  visible,
+  xPos,
+  yPos,
+  maxWidth,
+}: LowMenuProps): React.ReactElement => {
   // Only show the low menu if it is on the screen
   if (xPos >= window.innerWidth || yPos >= window.innerHeight) return <></>;
   // Show the menu
