@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -70,8 +71,14 @@ export const ContextMenuHandler = ({
   const [mouseOverHandlerDiv, setMouseOverHandlerDiv] = useState<boolean>(false);
   const [mouseOverMenu, setMouseOverMenu] = useState<boolean>(false);
 
-  // Get holder position
-  const divHandlerPos = divHandlderRef.current?.getBoundingClientRect() ?? null;
+  // Holder position - measured in an effect to avoid reading refs during render
+  const [divHandlerPos, setDivHandlerPos] = useState<DOMRect | null>(null);
+
+  useLayoutEffect(() => {
+    if (divHandlderRef.current) {
+      setDivHandlerPos(divHandlderRef.current.getBoundingClientRect());
+    }
+  }, [divHandlderRef, menuInDom, mouseOverHandlerDiv]);
 
   // Handle click off the menu
   const handleClick = useCallback((e: globalThis.MouseEvent) => {
