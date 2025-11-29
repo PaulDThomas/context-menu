@@ -111,7 +111,15 @@ export const App = () => {
                       );
                     }}
                   />
-                  <label htmlFor={`window-check-${i}`}>Show window {i}</label>
+                  <label
+                    htmlFor={`window-check-${i}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowWindow(showWindow.map((b, ix) => (ix === i ? !b : b)));
+                    }}
+                  >
+                    Show window {i}
+                  </label>
                 </div>
                 <ContextWindow
                   id={`w-${i}`}
