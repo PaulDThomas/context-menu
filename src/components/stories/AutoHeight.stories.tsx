@@ -123,13 +123,29 @@ export const ContentSwitching: Story = {
 };
 
 export const CustomDuration: Story = {
-  args: {
-    children: (
-      <div style={{ padding: "12px", backgroundColor: "lightgrey" }}>
-        This has a slower transition (1000ms)
-      </div>
-    ),
-    duration: 1000,
-    style: { width: "300px" },
+  render: () => {
+    const AutoHeightWithCustomDuration = () => {
+      const [hide, setHide] = useState(false);
+      return (
+        <div style={{ display: "flex", flexDirection: "row", gap: "12px", alignItems: "center" }}>
+          <button
+            onClick={() => setHide(!hide)}
+            style={{ marginBottom: "10px" }}
+          >
+            {hide ? "Show content" : "Hide content"}
+          </button>
+          <div style={{ width: "300px" }}>
+            <AutoHeight
+              hide={hide}
+              duration={1000}
+              style={{ backgroundColor: "lightgrey" }}
+            >
+              <div style={{ padding: "12px" }}>This has a slower transition (1000ms)</div>
+            </AutoHeight>
+          </div>
+        </div>
+      );
+    };
+    return <AutoHeightWithCustomDuration />;
   },
 };
