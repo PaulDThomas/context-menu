@@ -33,11 +33,10 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
     });
     const h = screen.getByText("Hello") as HTMLSpanElement;
     expect(h).toBeVisible();
-    await act(async () => await user.click(h));
+    await user.click(h);
     expect(a).toHaveBeenCalled();
   });
 
@@ -56,7 +55,6 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
     });
     expect(screen.queryByText("Blue")).toBeInTheDocument();
 
@@ -95,7 +93,7 @@ describe("Context menu", () => {
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
-    await act(async () => await user.click(notDiv));
+    await user.click(notDiv);
     await act(async () => {
       jest.runAllTimers();
     });
@@ -108,10 +106,7 @@ describe("Context menu", () => {
       jest.runAllTimers();
     });
     const greenItem = screen.getByText("Green");
-    await act(async () => {
-      await user.click(greenItem);
-      jest.runAllTimers();
-    });
+    await user.click(greenItem);
     // Wait for the menu to be removed
     await act(async () => {
       jest.runAllTimers();
