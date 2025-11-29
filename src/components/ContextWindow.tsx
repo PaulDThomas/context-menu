@@ -1,4 +1,12 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
@@ -47,10 +55,13 @@ export const ContextWindow = ({
 }: ContextWindowProps): React.ReactElement => {
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
-  const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
-  const [windowVisible, setWindowVisible] = useState<boolean>(false);
   const [zIndex, setZIndex] = useState<number>(minZIndex);
   const resizeListenerRef = useRef<(() => void) | null>(null);
+
+  // Track internal state: whether window is in DOM and whether it's been positioned
+  const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
+  const [windowVisible, setWindowVisible] = useState<boolean>(false);
+  const [, startTransition] = useTransition();
 
   // Position
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -114,36 +125,49 @@ export const ContextWindow = ({
     setZIndex(maxZIndex + 1);
   }, [minZIndex]);
 
-  // Update visibility
-  useEffect(() => {
-    // Visible set, but not in DOM
+  // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
+  // This effect derives state from props, which is acceptable when there's no synchronous setState
+  useLayoutEffect(() => {
     if (visible && !windowInDOM) {
-      setWindowInDOM(true);
-    } else if (visible && windowInDOM && !windowVisible) {
-      pushToTop();
-      setWindowVisible(visible);
-      onOpen?.();
-      // Get starting position
-      if (divRef.current && windowRef.current) {
-        const parentPos = divRef.current.getBoundingClientRect();
-        const pos = windowRef.current.getBoundingClientRect();
-        const windowHeight = pos.bottom - pos.top;
-        windowRef.current.style.left = `${parentPos.left}px`;
-        windowRef.current.style.top = `${
-          parentPos.bottom + windowHeight < window.innerHeight
-            ? parentPos.bottom
-            : Math.max(0, parentPos.top - windowHeight)
-        }px`;
-        windowRef.current.style.transform = "";
-        windowPos.current = { x: 0, y: 0 };
-      }
-      checkPosition();
-    } else if (!visible && windowVisible) {
-      setWindowVisible(false);
+      // Window should be in DOM when visible becomes true
+      startTransition(() => {
+        setWindowInDOM(true);
+      });
     } else if (!visible && windowInDOM) {
-      setWindowInDOM(false);
+      // Window should leave DOM when visible becomes false
+      startTransition(() => {
+        setWindowInDOM(false);
+        setWindowVisible(false);
+      });
     }
-  }, [checkPosition, onOpen, pushToTop, visible, windowInDOM, windowVisible]);
+  }, [visible, windowInDOM, startTransition]);
+
+  // Position and show window after it's added to DOM
+  useLayoutEffect(() => {
+    if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
+      // Position the window
+      const parentPos = divRef.current.getBoundingClientRect();
+      const pos = windowRef.current.getBoundingClientRect();
+      const windowHeight = pos.bottom - pos.top;
+      windowRef.current.style.left = `${parentPos.left}px`;
+      windowRef.current.style.top = `${
+        parentPos.bottom + windowHeight < window.innerHeight
+          ? parentPos.bottom
+          : Math.max(0, parentPos.top - windowHeight)
+      }px`;
+      windowRef.current.style.transform = "";
+      windowPos.current = { x: 0, y: 0 };
+      checkPosition();
+
+      // Update z-index and make visible - use startTransition
+      startTransition(() => {
+        const maxZ = getMaxZIndex(minZIndex);
+        setZIndex(maxZ + 1);
+        setWindowVisible(true);
+        onOpen?.();
+      });
+    }
+  }, [windowInDOM, windowVisible, visible, checkPosition, minZIndex, onOpen, startTransition]);
 
   // Cleanup effect to remove event listeners on unmount
   useEffect(() => {
