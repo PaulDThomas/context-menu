@@ -153,10 +153,10 @@ export const ContextWindow = ({
 
       // Update z-index and make visible - use startTransition
       const maxZ = getMaxZIndex(minZIndex);
+      onOpen?.();
       startTransition(() => {
         setZIndex(maxZ + 1);
         setWindowVisible(true);
-        onOpen?.();
       });
     }
   }, [windowInDOM, windowVisible, visible, checkPosition, minZIndex, onOpen, startTransition]);
