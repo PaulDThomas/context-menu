@@ -104,8 +104,6 @@ export const ContextMenuHandler = ({
         if (ro) ro.disconnect();
       };
     }
-
-    return;
   }, [mouseOverHandlerDiv, menuInDom]);
 
   // Handle click off the menu
