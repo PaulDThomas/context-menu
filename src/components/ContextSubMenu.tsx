@@ -9,7 +9,7 @@ export interface ContextSubMenuProps {
   lowMenu?: boolean;
 }
 
-export const ContextSubMenu = ({ entries, toClose }: ContextSubMenuProps): JSX.Element => {
+export const ContextSubMenu = ({ entries, toClose }: ContextSubMenuProps): React.ReactElement => {
   const [visible, setVisible] = useState<boolean>(false);
   return (
     <span

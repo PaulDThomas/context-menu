@@ -12,7 +12,7 @@ export function AutoHeight({
   hide,
   duration = 300,
   ...rest
-}: AutoHeightProps): JSX.Element {
+}: AutoHeightProps): React.ReactElement {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);

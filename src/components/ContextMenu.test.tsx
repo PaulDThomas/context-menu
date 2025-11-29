@@ -155,7 +155,7 @@ describe("Context menu", () => {
     expect(screen.queryAllByText("Inner").length).toBe(1);
   });
 
-  test("Menu item with JSX.Element label", async () => {
+  test("Menu item with React.ReactElement label", async () => {
     await act(async () =>
       render(
         <ContextMenuHandler

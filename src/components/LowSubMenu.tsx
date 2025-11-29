@@ -8,7 +8,7 @@ export interface LowSubMenuProps {
   lowMenu?: boolean;
 }
 
-export const LowSubMenu = ({ entry }: LowSubMenuProps): JSX.Element => {
+export const LowSubMenu = ({ entry }: LowSubMenuProps): React.ReactElement => {
   const [visible, setVisible] = useState<boolean>(false);
   if (!entry.group || entry.group.length === 0) return <></>;
   return (

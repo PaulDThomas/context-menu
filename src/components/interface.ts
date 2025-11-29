@@ -1,5 +1,5 @@
 export interface MenuItem {
-  label: string | JSX.Element;
+  label: string | React.ReactElement;
   disabled?: boolean;
   action?: (target?: Range | null, reactEvent?: React.MouseEvent) => Promise<void> | void;
   group?: MenuItem[];

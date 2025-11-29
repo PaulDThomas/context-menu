@@ -44,7 +44,7 @@ export const ContextWindow = ({
   onClose,
   minZIndex = MIN_Z_INDEX,
   ...rest
-}: ContextWindowProps): JSX.Element => {
+}: ContextWindowProps): React.ReactElement => {
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
   const [windowInDOM, setWindowInDOM] = useState<boolean>(false);

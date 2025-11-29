@@ -24,7 +24,7 @@ export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivEle
   showLowMenu?: boolean;
 }
 
-function isDivider(label: string | JSX.Element): boolean {
+function isDivider(label: string | React.ReactElement): boolean {
   return typeof label !== "string" && label.type === "hr";
 }
 
@@ -33,7 +33,7 @@ export const ContextMenuHandler = ({
   menuItems,
   showLowMenu = false,
   ...rest
-}: ContextMenuHandlerProps): JSX.Element => {
+}: ContextMenuHandlerProps): React.ReactElement => {
   // Check for higher content menu
   const higherContext = useContext(ContentMenuHandlerContext);
   const thisMenuItems = useMemo(

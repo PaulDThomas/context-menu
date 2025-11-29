@@ -3,7 +3,7 @@ import { ReactNode, useEffect } from "react";
 interface ContextWindowStackProps {
   id?: string;
   minZIndex?: number;
-  children?: JSX.Element[] | JSX.Element | ReactNode;
+  children?: React.ReactElement[] | React.ReactElement | ReactNode;
 }
 
 declare global {
@@ -22,7 +22,7 @@ const SESSION_KEY = "context-menu.ContextWindowStack.rendered";
  * Note: The `id` and `minZIndex` props are ignored and have no effect. They remain in the interface for backward compatibility only.
  */
 
-export const ContextWindowStack = ({ children }: ContextWindowStackProps): JSX.Element => {
+export const ContextWindowStack = ({ children }: ContextWindowStackProps): React.ReactElement => {
   useEffect(() => {
     const doWarn = () =>
       console.warn(

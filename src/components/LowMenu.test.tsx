@@ -80,7 +80,7 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
 
-  test("LowMenu button with JSX.Element label", async () => {
+  test("LowMenu button with React.ReactElement label", async () => {
     const a = jest.fn();
     await act(async () =>
       render(

@@ -17,7 +17,7 @@ export interface ContextMenuProps {
 }
 
 export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
-  ({ visible, entries, xPos, yPos, toClose }, ref): JSX.Element => {
+  ({ visible, entries, xPos, yPos, toClose }, ref): React.ReactElement => {
     // Check that menu can fit inside the window
     let menuHeight = entries.length * ESTIMATED_MENU_ITEM_HEIGHT + ESTIMATED_MENU_PADDING;
     let menuWidth = ESTIMATED_MENU_WIDTH;

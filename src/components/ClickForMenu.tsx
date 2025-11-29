@@ -15,7 +15,7 @@ export const ClickForMenu = ({
   menuItems,
   children,
   ...rest
-}: ClickForMenuProps): JSX.Element => {
+}: ClickForMenuProps): React.ReactElement => {
   // Menu state
   const [menuInDom, setMenuInDom] = useState<boolean>(false);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
