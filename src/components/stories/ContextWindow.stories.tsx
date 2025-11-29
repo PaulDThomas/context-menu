@@ -47,6 +47,12 @@ export const CustomSize: Story = {
 };
 
 export const MultipleWindows: Story = {
+  args: {
+    id: "",
+    visible: false,
+    title: "",
+    children: <></>,
+  },
   render: () => {
     const MultiWindowDemo = () => {
       const [showWindow, setShowWindow] = useState<boolean[]>([false, false, false]);
@@ -95,6 +101,12 @@ export const MultipleWindows: Story = {
 };
 
 export const ControlledVisibility: Story = {
+  args: {
+    id: "",
+    visible: false,
+    title: "",
+    children: <></>,
+  },
   render: () => {
     const ControlledDemo = () => {
       const [visible, setVisible] = useState(false);

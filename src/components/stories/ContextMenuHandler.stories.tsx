@@ -136,6 +136,10 @@ export const WithLowMenu: Story = {
 };
 
 export const NestedHandlers: Story = {
+  args: {
+    children: <></>,
+    menuItems: [],
+  },
   render: () => (
     <ContextMenuHandler
       menuItems={[{ label: "Outer item", action: fn() }]}

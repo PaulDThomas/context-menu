@@ -4,7 +4,7 @@ import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
 import { IMenuItem } from "./interface";
 
-interface ClickForMenuProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ClickForMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
   menuItems?: IMenuItem[];
   children?: React.ReactNode;

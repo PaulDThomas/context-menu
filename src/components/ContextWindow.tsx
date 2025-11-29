@@ -6,7 +6,7 @@ import styles from "./ContextWindow.module.css";
 export const MIN_Z_INDEX = 3000;
 const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
 
-interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
   visible: boolean;
   onOpen?: () => void;

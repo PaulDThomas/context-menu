@@ -26,6 +26,9 @@ export const Basic: Story = {
 };
 
 export const WithHideToggle: Story = {
+  args: {
+    children: <></>,
+  },
   render: () => {
     const AutoHeightWithHide = () => {
       const [hide, setHide] = useState(false);
@@ -51,6 +54,9 @@ export const WithHideToggle: Story = {
 };
 
 export const DynamicHeight: Story = {
+  args: {
+    children: <></>,
+  },
   render: () => {
     const AutoHeightDynamic = () => {
       const [height, setHeight] = useState<number | null>(null);
@@ -85,6 +91,9 @@ export const DynamicHeight: Story = {
 };
 
 export const ContentSwitching: Story = {
+  args: {
+    children: <></>,
+  },
   render: () => {
     const AutoHeightSwitch = () => {
       const [thing, setThing] = useState<string>("Thing1");
@@ -123,6 +132,9 @@ export const ContentSwitching: Story = {
 };
 
 export const CustomDuration: Story = {
+  args: {
+    children: <></>,
+  },
   render: () => {
     const AutoHeightWithCustomDuration = () => {
       const [hide, setHide] = useState(false);
