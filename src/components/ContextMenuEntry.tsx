@@ -1,10 +1,10 @@
 import { useState } from "react";
 import styles from "./ContextMenu.module.css";
 import { ContextSubMenu } from "./ContextSubMenu";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 interface ContextMenuEntryProps {
-  entry: MenuItem;
+  entry: IMenuItem;
   toClose: () => void;
 }
 

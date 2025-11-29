@@ -6,7 +6,6 @@
 
 # testing
 .parcel-cache
-/demo/dist
 /coverage
 
 # production
@@ -27,3 +26,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 deploy.ps1
+
+*storybook.log
+storybook-static

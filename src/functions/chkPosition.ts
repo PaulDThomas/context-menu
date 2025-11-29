@@ -6,7 +6,7 @@ import { RefObject } from "react";
  * @returns \{ translateX, translateY \} Amount to move on X and Y axis
  */
 export const chkPosition = (
-  divRef: RefObject<HTMLDivElement>,
+  divRef: RefObject<HTMLDivElement | null>,
 ): { translateX: number; translateY: number } => {
   if (!divRef.current) {
     return { translateX: 0, translateY: 0 };

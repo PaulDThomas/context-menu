@@ -6,6 +6,7 @@ const config: Config = {
   roots: ["<rootDir>", "<rootDir>/src"],
   modulePaths: ["node_modules", "<rootDir>/src"],
   testEnvironment: "jsdom",
+  testEnvironmentOptions: {},
   verbose: true,
 
   // Jest transformations -- this adds support for TypeScript
@@ -31,6 +32,8 @@ const config: Config = {
   // Module file extensions for importing
   moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
 
+  // Configure React 19 act() environment before tests run
+  setupFiles: ["<rootDir>/src/jest.setup.ts"],
   // Runs special logic, such as cleaning up components
   // when using React Testing Library and adds special
   // extended assertions to Jest
@@ -50,6 +53,7 @@ const config: Config = {
     "!**/interface.ts",
     "!**/main.ts",
     "!**/__dummy__/**",
+    "!**/*.stories.{ts,tsx}",
   ],
   moduleNameMapper: {
     "\\.(css|less|scss)$": "<rootDir>/__dummy__/styleMock.ts",

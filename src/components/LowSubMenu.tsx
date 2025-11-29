@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./LowMenu.module.css";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 export interface LowSubMenuProps {
-  entry: MenuItem;
+  entry: IMenuItem;
   lowMenu?: boolean;
 }
 
-export const LowSubMenu = ({ entry }: LowSubMenuProps): JSX.Element => {
+export const LowSubMenu = ({ entry }: LowSubMenuProps): React.ReactElement => {
   const [visible, setVisible] = useState<boolean>(false);
   if (!entry.group || entry.group.length === 0) return <></>;
   return (
