@@ -53,6 +53,7 @@ const config: Config = {
     "!**/interface.ts",
     "!**/main.ts",
     "!**/__dummy__/**",
+    "!**/*.stories.{ts,tsx}",
   ],
   moduleNameMapper: {
     "\\.(css|less|scss)$": "<rootDir>/__dummy__/styleMock.ts",

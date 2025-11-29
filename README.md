@@ -18,16 +18,16 @@ Key points:
 - TypeScript types included.
 - Lightweight and focused on accessibility and nested sub-menus.
 
-## Demo
+## Storybook
 
-Open the `demo` folder and run the dev server to see example usage and live playground.
+Run Storybook to see interactive component examples and documentation.
 
 ```powershell
 # install dependencies
 npm install
 
-# run the demo (Parcel)
-npm run start
+# run Storybook
+npm run storybook
 
 # run tests
 npm run test
@@ -114,17 +114,18 @@ import { ContextWindow } from "@asup/context-menu";
 </ContextWindow>;
 ```
 
-See the `demo` folder for a working example and more options.
+See the Storybook for interactive examples and more options.
 
 ## Development
 
 Useful scripts (from `package.json`):
 
 - `npm run prepare` — run Husky (prepares Git hooks).
-- `npm run start` — start the demo site (Parcel). This script clears the Parcel cache before launching the demo (`parcel demo/index.html`).
+- `npm run storybook` — start Storybook to view component examples.
+- `npm run build-storybook` — build a static Storybook site.
 - `npm run test` — run Jest and collect coverage (`jest --collectCoverage=true`).
 - `npm run test-watch` — run Jest in watch mode with coverage (`jest --watch --collectCoverage=true --maxWorkers=4`).
-- `npm run eslint` — run ESLint over `src` and `demo` (pattern: `src/**/*.{js,jsx,ts,tsx`}).
+- `npm run eslint` — run ESLint over `src` (pattern: `src/**/*.{js,jsx,ts,tsx}`).
 - `npm run build` — build the library bundle with Parcel. This script clears the Parcel cache before building (`parcel build src/main.ts`).
 
 ## Contributing
