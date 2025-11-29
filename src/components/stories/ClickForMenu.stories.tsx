@@ -8,6 +8,12 @@ const meta = {
   component: ClickForMenu,
   parameters: {
     layout: "centered",
+    docs: {
+      story: {
+        inline: false,
+        iframeHeight: 200,
+      },
+    },
   },
   tags: ["autodocs"],
 } satisfies Meta<typeof ClickForMenu>;
