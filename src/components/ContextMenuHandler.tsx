@@ -78,7 +78,7 @@ export const ContextMenuHandler = ({
     if (divHandlderRef.current) {
       setDivHandlerPos(divHandlderRef.current.getBoundingClientRect());
     }
-  }, [divHandlderRef, menuInDom, mouseOverHandlerDiv]);
+  }, []);
 
   // Handle click off the menu
   const handleClick = useCallback((e: globalThis.MouseEvent) => {

@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import styles from "./AutoHeight.module.css";
 
 interface AutoHeightProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -56,7 +48,7 @@ export function AutoHeight({
   // Trigger height change on children update
   const [, startTransition] = useTransition();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Mark this update as non-urgent to avoid cascading render warnings
     startTransition(() => {
       setTargetHeight();

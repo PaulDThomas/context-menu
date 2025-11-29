@@ -1,12 +1,4 @@
-import {
-  ReactNode,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
@@ -127,7 +119,7 @@ export const ContextWindow = ({
 
   // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
   // This effect derives state from props, which is acceptable when there's no synchronous setState
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (visible && !windowInDOM) {
       // Window should be in DOM when visible becomes true
       startTransition(() => {
@@ -143,7 +135,7 @@ export const ContextWindow = ({
   }, [visible, windowInDOM, startTransition]);
 
   // Position and show window after it's added to DOM
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
       // Position the window
       const parentPos = divRef.current.getBoundingClientRect();
@@ -160,8 +152,8 @@ export const ContextWindow = ({
       checkPosition();
 
       // Update z-index and make visible - use startTransition
+      const maxZ = getMaxZIndex(minZIndex);
       startTransition(() => {
-        const maxZ = getMaxZIndex(minZIndex);
         setZIndex(maxZ + 1);
         setWindowVisible(true);
         onOpen?.();

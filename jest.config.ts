@@ -6,9 +6,7 @@ const config: Config = {
   roots: ["<rootDir>", "<rootDir>/src"],
   modulePaths: ["node_modules", "<rootDir>/src"],
   testEnvironment: "jsdom",
-  testEnvironmentOptions: {
-    customExportConditions: [""],
-  },
+  testEnvironmentOptions: {},
   verbose: true,
 
   // Jest transformations -- this adds support for TypeScript
