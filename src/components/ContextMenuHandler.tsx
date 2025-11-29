@@ -12,16 +12,16 @@ import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
 import { LowMenu } from "./LowMenu";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 export interface ContentMenuHandlerContextProps {
-  menuItems: MenuItem[];
+  menuItems: IMenuItem[];
 }
 export const ContentMenuHandlerContext = createContext<ContentMenuHandlerContextProps | null>(null);
 
 export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  menuItems: MenuItem[];
+  menuItems: IMenuItem[];
   showLowMenu?: boolean;
 }
 

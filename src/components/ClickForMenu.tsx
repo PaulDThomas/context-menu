@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 interface ClickForMenuProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
-  menuItems?: MenuItem[];
+  menuItems?: IMenuItem[];
   children?: React.ReactNode;
 }
 

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./LowMenu.module.css";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 export interface LowSubMenuProps {
-  entry: MenuItem;
+  entry: IMenuItem;
   lowMenu?: boolean;
 }
 

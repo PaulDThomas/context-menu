@@ -1,7 +1,7 @@
 import React, { forwardRef, useLayoutEffect, useState } from "react";
 import styles from "./ContextMenu.module.css";
 import { ContextMenuEntry } from "./ContextMenuEntry";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 // Constants for menu size estimation when ref is not yet available
 const ESTIMATED_MENU_ITEM_HEIGHT = 34;
@@ -10,7 +10,7 @@ const ESTIMATED_MENU_WIDTH = 200;
 
 export interface ContextMenuProps {
   visible: boolean;
-  entries: MenuItem[];
+  entries: IMenuItem[];
   xPos: number;
   yPos: number;
   toClose: () => void;

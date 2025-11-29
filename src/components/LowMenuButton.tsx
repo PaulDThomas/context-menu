@@ -1,10 +1,10 @@
 import { useState } from "react";
 import styles from "./LowMenu.module.css";
 import { LowSubMenu } from "./LowSubMenu";
-import { MenuItem } from "./interface";
+import { IMenuItem } from "./interface";
 
 interface LowMenuButtonProps {
-  entry: MenuItem;
+  entry: IMenuItem;
 }
 export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
   const [target, setTarget] = useState<Range | null>(null);
