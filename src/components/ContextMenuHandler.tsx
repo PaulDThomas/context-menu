@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -37,29 +36,24 @@ export const ContextMenuHandler = ({
 }: ContextMenuHandlerProps): React.ReactElement => {
   // Check for higher content menu
   const higherContext = useContext(ContentMenuHandlerContext);
-  const thisMenuItems = useMemo(
-    () => [
-      ...(higherContext !== null
-        ? [
-            ...higherContext.menuItems,
-            ...[
-              higherContext.menuItems.length > 0 &&
-              !isDivider(higherContext.menuItems[higherContext.menuItems.length - 1].label) &&
-              menuItems.length > 0 &&
-              !isDivider(menuItems[0].label)
-                ? {
-                    label: (
-                      <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />
-                    ),
-                  }
-                : null,
-            ].filter((item) => item !== null),
-          ]
-        : []),
-      ...menuItems,
-    ],
-    [higherContext, menuItems],
-  );
+  const thisMenuItems: IMenuItem[] = [
+    ...(higherContext !== null
+      ? [
+          ...higherContext.menuItems,
+          ...[
+            higherContext.menuItems.length > 0 &&
+            !isDivider(higherContext.menuItems[higherContext.menuItems.length - 1].label) &&
+            menuItems.length > 0 &&
+            !isDivider(menuItems[0].label)
+              ? {
+                  label: <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />,
+                }
+              : null,
+          ].filter((item) => item !== null),
+        ]
+      : []),
+    ...menuItems,
+  ];
 
   // Menu resources
   const divHandlderRef = useRef<HTMLDivElement | null>(null);
@@ -107,7 +101,7 @@ export const ContextMenuHandler = ({
   }, [mouseOverHandlerDiv, menuInDom]);
 
   // Handle click off the menu
-  const handleClick = useCallback((e: globalThis.MouseEvent) => {
+  const handleClick = useCallback((e: MouseEvent) => {
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current?.contains(e.target)) ||

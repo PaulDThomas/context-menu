@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ContextMenu } from "./ContextMenu";
 import styles from "./ContextMenu.module.css";
@@ -26,7 +26,8 @@ export const ClickForMenu = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Handle click off the menu
-  const handleClick = useCallback((e: MouseEvent) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleClick = (e: MouseEvent) => {
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current.contains(e.target)) ||
@@ -34,7 +35,7 @@ export const ClickForMenu = ({
     ) {
       setMenuInDom(false);
     }
-  }, []);
+  };
 
   const removeController = useRef<AbortController | null>(null);
   const removeTimeoutRef = useRef<NodeJS.Timeout | null>(null);

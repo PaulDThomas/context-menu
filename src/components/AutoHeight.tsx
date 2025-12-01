@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import styles from "./AutoHeight.module.css";
 
 interface AutoHeightProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -16,18 +16,17 @@ export function AutoHeight({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
-  const targetChildren = useMemo<React.ReactNode>(
-    () => (hide || !children ? <div style={{ height: "1px" }} /> : children),
-    [children, hide],
-  );
+  const targetChildren: React.ReactNode =
+    hide || !children ? <div style={{ height: "1px" }} /> : children;
 
-  const setTargetHeight = useCallback(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setTargetHeight = () => {
     const inner = innerRef.current;
 
     // Initial draw to get the height of children and deployed children
     const deployedHeight = hide ? 1 : (inner?.offsetHeight ?? 0);
     setHeight(deployedHeight);
-  }, [hide]);
+  };
 
   // Add ResizeObserver to update height on content resize, debounced
   useEffect(() => {

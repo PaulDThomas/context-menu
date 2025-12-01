@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import styles from "./ContextWindow.module.css";
@@ -59,7 +59,7 @@ export const ContextWindow = ({
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [moving, setMoving] = useState<boolean>(false);
 
-  const move = useCallback((x: number, y: number) => {
+  const move = (x: number, y: number) => {
     if (windowRef.current && windowPos.current) {
       const window = windowRef.current;
       const pos = windowPos.current;
@@ -67,55 +67,50 @@ export const ContextWindow = ({
       pos.y += y;
       window.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
     }
-  }, []);
+  };
 
-  const checkPosition = useCallback(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const checkPosition = () => {
     const chkPos = chkPosition(windowRef);
     move(chkPos.translateX, chkPos.translateY);
-  }, [move]);
+  };
 
-  const mouseMove = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      move(e.movementX, e.movementY);
-    },
-    [move],
-  );
+  const mouseMove = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    move(e.movementX, e.movementY);
+  };
 
   // Store stable references to mouseMove and mouseUp for cleanup
   const mouseMoveRef = useRef(mouseMove);
   const mouseUpRef = useRef<(e: MouseEvent) => void>(() => {});
 
-  const mouseUp = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setMoving(false);
-      checkPosition();
-      document.removeEventListener("mousemove", mouseMoveRef.current);
-      document.removeEventListener("mouseup", mouseUpRef.current);
-      if (resizeListenerRef.current) {
-        window.removeEventListener("resize", resizeListenerRef.current);
-        resizeListenerRef.current = null;
-      }
-      if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
-        e.target.style.userSelect = "auto";
-    },
-    [checkPosition],
-  );
+  const mouseUp = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMoving(false);
+    checkPosition();
+    document.removeEventListener("mousemove", mouseMoveRef.current);
+    document.removeEventListener("mouseup", mouseUpRef.current);
+    if (resizeListenerRef.current) {
+      window.removeEventListener("resize", resizeListenerRef.current);
+      resizeListenerRef.current = null;
+    }
+    if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
+      e.target.style.userSelect = "auto";
+  };
 
   // Update refs when callbacks change
   useEffect(() => {
     mouseMoveRef.current = mouseMove;
     mouseUpRef.current = mouseUp;
-  }, [mouseMove, mouseUp]);
+  });
 
   // Helper function to push this window to the top
-  const pushToTop = useCallback(() => {
+  const pushToTop = () => {
     const maxZIndex = getMaxZIndex(minZIndex);
     setZIndex(maxZIndex + 1);
-  }, [minZIndex]);
+  };
 
   // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
   // This effect derives state from props, which is acceptable when there's no synchronous setState
