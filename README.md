@@ -84,7 +84,7 @@ import { AutoHeight } from "@asup/context-menu";
 
 ### ClickForMenu
 
-`ClickForMenu` attaches a click-based menu to any element (useful for toolbar buttons or inline actions).
+`ClickForMenu` attaches a click-based menu to any element (useful for toolbar buttons or inline actions). Give each instance a stable `id` so the trigger element can be referenced and cleaned up correctly.
 
 ```tsx
 import { ClickForMenu, IMenuItem } from "@asup/context-menu";
@@ -94,7 +94,10 @@ const clickItems: IMenuItem[] = [
   { label: "Delete", action: () => console.log("Delete") },
 ];
 
-<ClickForMenu menuItems={clickItems}>
+<ClickForMenu
+  id="actions-menu"
+  menuItems={clickItems}
+>
   <button type="button">Actions</button>
 </ClickForMenu>;
 ```
