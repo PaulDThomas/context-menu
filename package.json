@@ -1,6 +1,6 @@
 {
   "name": "@asup/context-menu",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "REACT Typescript Context menu component",
   "author": "Paul Thomas <@PaulDThomas>",
   "private": false,
@@ -46,6 +46,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@swc/helpers": "^0.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -54,6 +55,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^5.0.0",
     "@eslint/compat": "^2.0.0",
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.28.0",
@@ -61,6 +63,11 @@
     "@parcel/packager-ts": "^2.8.3",
     "@parcel/transformer-typescript-types": "^2.8.0",
     "@parcel/transformer-webmanifest": "^2.7.0",
+    "@storybook/addon-a11y": "^10.1.11",
+    "@storybook/addon-docs": "^10.1.11",
+    "@storybook/addon-onboarding": "^10.1.11",
+    "@storybook/addon-vitest": "^10.1.11",
+    "@storybook/react-vite": "^10.1.11",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.4.3",
@@ -70,6 +77,8 @@
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
+    "@vitest/browser-playwright": "^4.0.14",
+    "@vitest/coverage-v8": "^4.0.14",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-jest": "^29.1.0",
@@ -84,26 +93,18 @@
     "jest-watch-typeahead": "^3.0.1",
     "lint-staged": "^16.2.7",
     "parcel": "^2.7.0",
+    "playwright": "^1.57.0",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^4.1.0",
     "process": "^0.11.10",
+    "storybook": "^10.1.11",
     "ts-jest": "^29.4.5",
     "ts-jest-mock-import-meta": "^1.2.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "typescript-eslint": "^8.34.0",
     "typescript-plugin-css-modules": "^5.1.0",
-    "storybook": "^10.1.11",
-    "@storybook/react-vite": "^10.1.11",
-    "@chromatic-com/storybook": "^5.0.0",
-    "@storybook/addon-vitest": "^10.1.11",
-    "@storybook/addon-a11y": "^10.1.11",
-    "@storybook/addon-docs": "^10.1.11",
-    "@storybook/addon-onboarding": "^10.1.11",
-    "vitest": "^4.0.14",
-    "playwright": "^1.57.0",
-    "@vitest/browser-playwright": "^4.0.14",
-    "@vitest/coverage-v8": "^4.0.14"
+    "vitest": "^4.0.14"
   },
   "@parcel/transformer-css": {
     "cssModules": {
