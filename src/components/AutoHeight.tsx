@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import styles from "./AutoHeight.module.css";
 
 interface AutoHeightProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -7,52 +7,115 @@ interface AutoHeightProps extends React.HTMLAttributes<HTMLDivElement> {
   duration?: number; // transition duration in ms
 }
 
+type AnimationState = "closed" | "opening" | "open" | "closing";
+
 export function AutoHeight({
   children,
-  hide,
+  hide = false,
   duration = 300,
   ...rest
 }: AutoHeightProps): React.ReactElement {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
+  const [animationState, setAnimationState] = useState<AnimationState>(!hide ? "open" : "closed");
+
+  const rafRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+
   const targetChildren: React.ReactNode =
-    hide || !children ? <div style={{ height: "1px" }} /> : children;
+    animationState === "closed" || !children ? null : children;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const setTargetHeight = () => {
-    const inner = innerRef.current;
+  const setTargetHeight = useEffectEvent((newHeight: number) => {
+    setHeight(newHeight);
+  });
 
-    // Initial draw to get the height of children and deployed children
-    const deployedHeight = hide ? 1 : (inner?.offsetHeight ?? 0);
-    setHeight(deployedHeight);
-  };
+  const transitionToOpening = useEffectEvent((): void => {
+    // Cancel any pending close timeout
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
-  // Add ResizeObserver to update height on content resize, debounced
+    setAnimationState("opening");
+
+    const id = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      setTargetHeight(1);
+
+      const frameId = window.requestAnimationFrame(() => {
+        const inner = innerRef.current;
+        if (inner) {
+          setTargetHeight(inner.offsetHeight);
+          setAnimationState("open");
+        }
+      });
+      rafRef.current = frameId;
+    });
+    rafRef.current = id;
+  });
+
+  const transitionToClosing = useEffectEvent((): void => {
+    // Cancel any pending RAF
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    setAnimationState("closing");
+    setTargetHeight(1);
+
+    timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = null;
+      setAnimationState("closed");
+    }, duration);
+  });
+
+  useLayoutEffect(() => {
+    if (!hide) {
+      // Want to show: transition to open
+      if (animationState === "closed" || animationState === "closing") {
+        transitionToOpening();
+      }
+      // If already opening or open, stay in that state
+    } else {
+      // Want to hide: transition to closed
+      if (animationState === "open" || animationState === "opening") {
+        transitionToClosing();
+      }
+    }
+  }, [hide, animationState]);
+
+  // Setup ResizeObserver to track content size changes
   useEffect(() => {
     const transition = innerRef.current;
-    if (transition) {
-      const observer = new ResizeObserver(() => {
-        setTargetHeight();
-      });
 
-      observer.observe(transition);
-
-      return () => {
-        observer.disconnect();
-      };
-    }
-  }, [setTargetHeight]);
-
-  // Trigger height change on children update
-  const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    // Mark this update as non-urgent to avoid cascading render warnings
-    startTransition(() => {
-      setTargetHeight();
+    const observer = new ResizeObserver(() => {
+      if (animationState === "open") {
+        setTargetHeight(transition!.offsetHeight);
+      }
     });
-  }, [setTargetHeight, children, startTransition]);
+
+    observer.observe(transition!);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [animationState]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -61,6 +124,7 @@ export function AutoHeight({
       ref={wrapperRef}
       style={{
         ...rest.style,
+        display: animationState === "closed" ? "none" : undefined,
         height: height ? `${height}px` : "auto",
         transitionDuration: `${duration}ms`,
       }}

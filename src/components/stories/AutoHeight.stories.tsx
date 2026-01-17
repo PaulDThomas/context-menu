@@ -9,6 +9,20 @@ const meta = {
     layout: "centered",
   },
   tags: ["autodocs"],
+  argTypes: {
+    hide: {
+      control: "boolean",
+      description: "Whether to hide the content with animation",
+    },
+    duration: {
+      control: { type: "number", min: 0, max: 2000, step: 100 },
+      description: "Transition duration in milliseconds",
+    },
+    children: {
+      control: false,
+      description: "Content to display inside AutoHeight",
+    },
+  },
 } satisfies Meta<typeof AutoHeight>;
 
 export default meta;
@@ -16,6 +30,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Basic: Story = {
   args: {
+    hide: false,
+    duration: 300,
     children: (
       <div style={{ padding: "12px", backgroundColor: "lightgrey" }}>
         This content can change size; AutoHeight will help the layout adjust smoothly.
@@ -27,9 +43,10 @@ export const Basic: Story = {
 
 export const WithHideToggle: Story = {
   args: {
+    duration: 300,
     children: <></>,
   },
-  render: () => {
+  render: (args) => {
     const AutoHeightWithHide = () => {
       const [hide, setHide] = useState(false);
       return (
@@ -43,9 +60,22 @@ export const WithHideToggle: Story = {
           <div style={{ width: "300px" }}>
             <AutoHeight
               hide={hide}
+              duration={args.duration}
               style={{ backgroundColor: "lightgrey" }}
             >
-              <div style={{ padding: "12px" }}>This content will animate when hidden or shown</div>
+              <div
+                style={{
+                  height: "400px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "12px",
+                }}
+              >
+                <span style={{ textAlign: "center" }}>
+                  This content will animate when hidden or shown
+                </span>
+              </div>
             </AutoHeight>
           </div>
         </div>
@@ -57,9 +87,10 @@ export const WithHideToggle: Story = {
 
 export const DynamicHeight: Story = {
   args: {
+    duration: 300,
     children: <></>,
   },
-  render: () => {
+  render: (args) => {
     const AutoHeightDynamic = () => {
       const [height, setHeight] = useState<number | null>(null);
       return (
@@ -75,7 +106,10 @@ export const DynamicHeight: Story = {
             <option value="300">300px</option>
           </select>
           <div style={{ width: "300px" }}>
-            <AutoHeight style={{ backgroundColor: "lightgrey" }}>
+            <AutoHeight
+              duration={args.duration}
+              style={{ backgroundColor: "lightgrey" }}
+            >
               <div
                 style={{
                   padding: "12px",
@@ -96,9 +130,10 @@ export const DynamicHeight: Story = {
 
 export const ContentSwitching: Story = {
   args: {
+    duration: 500,
     children: <></>,
   },
-  render: () => {
+  render: (args) => {
     const AutoHeightSwitch = () => {
       const [thing, setThing] = useState<string>("Thing1");
       return (
@@ -115,7 +150,7 @@ export const ContentSwitching: Story = {
           <div style={{ width: "300px" }}>
             <AutoHeight
               hide={thing === "Thing2"}
-              duration={500}
+              duration={args.duration}
               style={{ backgroundColor: "lightgrey" }}
             >
               {thing === "Thing1" ? (
@@ -140,9 +175,10 @@ export const ContentSwitching: Story = {
 
 export const CustomDuration: Story = {
   args: {
+    duration: 1000,
     children: <></>,
   },
-  render: () => {
+  render: (args) => {
     const AutoHeightWithCustomDuration = () => {
       const [hide, setHide] = useState(false);
       return (
@@ -156,10 +192,12 @@ export const CustomDuration: Story = {
           <div style={{ width: "300px" }}>
             <AutoHeight
               hide={hide}
-              duration={1000}
+              duration={args.duration}
               style={{ backgroundColor: "lightgrey" }}
             >
-              <div style={{ padding: "12px" }}>This has a slower transition (1000ms)</div>
+              <div style={{ padding: "12px" }}>
+                This has a slower transition ({args.duration}ms)
+              </div>
             </AutoHeight>
           </div>
         </div>
