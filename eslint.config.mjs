@@ -7,6 +7,7 @@ import jest from "eslint-plugin-jest";
 import eslintPluginPrettierRecommented from "eslint-plugin-prettier/recommended";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import storybook from "eslint-plugin-storybook";
 import unusedImports from "eslint-plugin-unused-imports";
 import globals from "globals";
 import path from "node:path";
@@ -101,4 +102,5 @@ export default [
     },
   },
   eslintPluginPrettierRecommented,
+  ...storybook.configs["flat/recommended"],
 ];
