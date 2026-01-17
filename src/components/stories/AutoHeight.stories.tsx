@@ -33,19 +33,21 @@ export const WithHideToggle: Story = {
     const AutoHeightWithHide = () => {
       const [hide, setHide] = useState(false);
       return (
-        <div style={{ width: "300px" }}>
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "12px" }}>
           <button
             onClick={() => setHide(!hide)}
             style={{ marginBottom: "10px" }}
           >
             {hide ? "Show content" : "Hide content"}
           </button>
-          <AutoHeight
-            hide={hide}
-            style={{ backgroundColor: "lightgrey" }}
-          >
-            <div style={{ padding: "12px" }}>This content will animate when hidden or shown</div>
-          </AutoHeight>
+          <div style={{ width: "300px" }}>
+            <AutoHeight
+              hide={hide}
+              style={{ backgroundColor: "lightgrey" }}
+            >
+              <div style={{ padding: "12px" }}>This content will animate when hidden or shown</div>
+            </AutoHeight>
+          </div>
         </div>
       );
     };
@@ -61,9 +63,9 @@ export const DynamicHeight: Story = {
     const AutoHeightDynamic = () => {
       const [height, setHeight] = useState<number | null>(null);
       return (
-        <div style={{ width: "300px" }}>
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "12px" }}>
           <select
-            style={{ marginBottom: "10px" }}
+            style={{ marginBottom: "0" }}
             value={`${height}`}
             onChange={(e) => setHeight(e.target.value ? parseInt(e.target.value) : null)}
           >
@@ -72,17 +74,19 @@ export const DynamicHeight: Story = {
             <option value="200">200px</option>
             <option value="300">300px</option>
           </select>
-          <AutoHeight style={{ backgroundColor: "lightgrey" }}>
-            <div
-              style={{
-                padding: "12px",
-                height: height ? `${height}px` : "auto",
-                transition: "height 0.3s ease",
-              }}
-            >
-              Resize to {height ? `${height}px` : "auto"}
-            </div>
-          </AutoHeight>
+          <div style={{ width: "300px" }}>
+            <AutoHeight style={{ backgroundColor: "lightgrey" }}>
+              <div
+                style={{
+                  padding: "12px",
+                  height: height ? `${height}px` : "auto",
+                  transition: "height 0.3s ease",
+                }}
+              >
+                Resize to {height ? `${height}px` : "auto"}
+              </div>
+            </AutoHeight>
+          </div>
         </div>
       );
     };
@@ -98,9 +102,9 @@ export const ContentSwitching: Story = {
     const AutoHeightSwitch = () => {
       const [thing, setThing] = useState<string>("Thing1");
       return (
-        <div style={{ width: "300px" }}>
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "12px" }}>
           <select
-            style={{ marginBottom: "10px" }}
+            style={{ marginBottom: "0" }}
             value={thing}
             onChange={(e) => setThing(e.target.value)}
           >
@@ -108,22 +112,25 @@ export const ContentSwitching: Story = {
             <option>Thing2</option>
             <option>Nowt</option>
           </select>
-          <AutoHeight
-            hide={thing === "Thing2"}
-            style={{ backgroundColor: "lightgrey" }}
-          >
-            {thing === "Thing1" ? (
-              <div style={{ padding: "12px" }}>Thing 1 content - shorter</div>
-            ) : thing === "Thing2" ? (
-              <>Content is hidden when Thing2 is selected</>
-            ) : (
-              <div style={{ padding: "12px" }}>
-                <p>Nothing to see here</p>
-                <p>This is a longer paragraph to demonstrate height changes</p>
-                <p>The AutoHeight component will smoothly animate</p>
-              </div>
-            )}
-          </AutoHeight>
+          <div style={{ width: "300px" }}>
+            <AutoHeight
+              hide={thing === "Thing2"}
+              duration={500}
+              style={{ backgroundColor: "lightgrey" }}
+            >
+              {thing === "Thing1" ? (
+                <div style={{ padding: "12px" }}>Thing 1 content - shorter</div>
+              ) : thing === "Thing2" ? (
+                <>Content is hidden when Thing2 is selected</>
+              ) : (
+                <div style={{ padding: "12px" }}>
+                  <p>Nothing to see here</p>
+                  <p>This is a longer paragraph to demonstrate height changes</p>
+                  <p>The AutoHeight component will smoothly animate</p>
+                </div>
+              )}
+            </AutoHeight>
+          </div>
         </div>
       );
     };
