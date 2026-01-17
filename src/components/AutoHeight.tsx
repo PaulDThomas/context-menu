@@ -89,18 +89,19 @@ export function AutoHeight({
   // Setup ResizeObserver to track content size changes
   useEffect(() => {
     const transition = innerRef.current;
+    if (transition) {
+      const observer = new ResizeObserver(() => {
+        if (animationState === "open") {
+          setTargetHeight(transition!.offsetHeight);
+        }
+      });
 
-    const observer = new ResizeObserver(() => {
-      if (animationState === "open") {
-        setTargetHeight(transition!.offsetHeight);
-      }
-    });
+      observer.observe(transition!);
 
-    observer.observe(transition!);
-
-    return () => {
-      observer.disconnect();
-    };
+      return () => {
+        observer.disconnect();
+      };
+    }
   }, [animationState]);
 
   // Cleanup on unmount
