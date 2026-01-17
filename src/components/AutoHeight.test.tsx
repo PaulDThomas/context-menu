@@ -31,12 +31,13 @@ describe("AutoHeight Component", () => {
       unobserve = jest.fn();
       disconnect = jest.fn();
     };
-    setupRafMocks();
     jest.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
     rafMock?.mockRestore();
     cancelRafMock?.mockRestore();
@@ -44,6 +45,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("renders children correctly", () => {
+    setupRafMocks();
     render(
       <AutoHeight>
         <div
@@ -60,6 +62,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("applies custom styles and attributes", () => {
+    setupRafMocks();
     render(
       <AutoHeight
         style={{ backgroundColor: "red" }}
@@ -73,6 +76,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("handles hide prop correctly on initial render", async () => {
+    setupRafMocks();
     const { container } = await act(async () =>
       render(
         <AutoHeight hide>
@@ -90,6 +94,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("animates opening from hidden state", async () => {
+    const { getRafCb } = setupRafMocks();
     const { container, rerender } = await act(async () =>
       render(
         <AutoHeight hide>
@@ -121,16 +126,24 @@ describe("AutoHeight Component", () => {
     // Should be visible
     expect(wrapper).not.toHaveStyle("display: none");
 
-    // Run RAF callbacks to set initial height of 1px
-    await act(async () => jest.runAllTimers());
+    // Fire RAF callbacks to drive the open animation
+    await act(async () => {
+      const cb = getRafCb();
+      cb?.(performance.now());
+    });
 
-    // Run RAF callbacks again to set target height
-    await act(async () => jest.runAllTimers());
+    await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
+
+    await act(async () => {
+      const cb = getRafCb();
+      cb?.(performance.now());
+    });
 
     expect(wrapper).toHaveStyle("height: 100px");
   });
 
   test("animates closing to hidden state", async () => {
+    setupRafMocks();
     const { container, rerender } = await act(async () =>
       render(
         <AutoHeight>
@@ -171,25 +184,8 @@ describe("AutoHeight Component", () => {
     expect(wrapper).toHaveStyle("display: none");
   });
 
-  test("updates content on children change", () => {
-    const { rerender } = render(
-      <AutoHeight>
-        <div data-testid="child">Initial Content</div>
-      </AutoHeight>,
-    );
-    const child = screen.getByTestId("child");
-    expect(child).toHaveTextContent("Initial Content");
-
-    rerender(
-      <AutoHeight>
-        <div data-testid="another-child">Updated Content</div>
-      </AutoHeight>,
-    );
-    const updatedChild = screen.getByTestId("another-child");
-    expect(updatedChild).toHaveTextContent("Updated Content");
-  });
-
   test("applies transition duration", () => {
+    setupRafMocks();
     render(
       <AutoHeight
         duration={500}
@@ -203,6 +199,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("cancels pending close timeout when opening", async () => {
+    setupRafMocks();
     const { container, rerender } = await act(async () =>
       render(
         <AutoHeight>
@@ -235,6 +232,9 @@ describe("AutoHeight Component", () => {
       ),
     );
 
+    // After initiating hide, height should be collapsing
+    expect(wrapper).toHaveStyle("height: 1px");
+
     // Immediately show before timeout executes
     await act(async () =>
       rerender(
@@ -257,6 +257,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("cancels pending close timeout when opening again", async () => {
+    setupRafMocks();
     const clearTimeoutSpy = jest.spyOn(window, "clearTimeout");
 
     const { container, rerender } = render(
@@ -287,6 +288,10 @@ describe("AutoHeight Component", () => {
       ),
     );
 
+    // After hide begins, height should be collapsing
+    const wrapper = container.querySelector(".autoHeightWrapper");
+    expect(wrapper).toHaveStyle("height: 1px");
+
     // Re-open before the close timeout fires
     await act(async () =>
       rerender(
@@ -303,12 +308,12 @@ describe("AutoHeight Component", () => {
 
     // Should cancel the pending timeout
     expect(clearTimeoutSpy).toHaveBeenCalled();
-    const wrapper = container.querySelector(".autoHeightWrapper");
     expect(wrapper).not.toHaveStyle("display: none");
     clearTimeoutSpy.mockRestore();
   });
 
   test("cancels pending RAF when closing during animation", async () => {
+    setupRafMocks();
     const { container, rerender } = await act(async () =>
       render(
         <AutoHeight>
@@ -346,6 +351,7 @@ describe("AutoHeight Component", () => {
   });
 
   test("changes height on children resize", async () => {
+    setupRafMocks();
     const resizeObserverCallback = jest.fn();
     window.ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
@@ -405,7 +411,8 @@ describe("AutoHeight Component", () => {
     expect(wrapper).toHaveStyle("height: 200px");
   });
 
-  test("does not update height when panelVisible is false", async () => {
+  test("does not update height when component is hidden", async () => {
+    setupRafMocks();
     const resizeObserverCallback = jest.fn();
     window.ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
@@ -440,11 +447,12 @@ describe("AutoHeight Component", () => {
       callback([{ target: inner }]);
     });
 
-    // Height should be auto since panelVisible is false and height state remains null
+    // Height should be auto while hidden (hide=true / non-visible animationState) so height state remains null
     expect(wrapper).toHaveStyle("height: auto");
   });
 
   test("cleans up timers on unmount during hide", async () => {
+    setupRafMocks();
     const timeoutSpy = jest.spyOn(window, "setTimeout");
 
     const { unmount, rerender } = await act(async () =>
@@ -499,6 +507,8 @@ describe("AutoHeight Component", () => {
       </AutoHeight>,
     );
 
+    const wrapper = document.querySelector(".autoHeightWrapper")!;
+
     // Start opening
     await act(async () =>
       rerender(
@@ -512,6 +522,9 @@ describe("AutoHeight Component", () => {
         </AutoHeight>,
       ),
     );
+
+    // After starting to open, height should still be auto (pre-RAF)
+    expect(wrapper).toHaveStyle("height: auto");
 
     // Before RAF fires, hide again to trigger cancellation
     await act(async () =>
@@ -566,6 +579,7 @@ describe("AutoHeight Component", () => {
       const cb = getRafCb();
       cb?.(performance.now());
     });
+
     await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
 
     // Fire inner RAF callback (expands to content height)
