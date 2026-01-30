@@ -110,6 +110,7 @@ export const ClickForMenu = ({
               yPos={menuYPos}
               toClose={() => {
                 setMenuVisible(false);
+                setMenuInDom(false);
               }}
             />
           </div>,
