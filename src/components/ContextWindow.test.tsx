@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as chk from "../functions/chkPosition";
-import { ContextWindow, MIN_Z_INDEX } from "./ContextWindow";
+import { ContextWindow, ContextWindowHandle, MIN_Z_INDEX } from "./ContextWindow";
 
 describe("Context window", () => {
   test("Not there", async () => {
@@ -563,5 +563,82 @@ describe("Context window", () => {
     // Cleanup spies
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();
+  });
+
+  test("pushToTop ref method brings window to highest z-index", async () => {
+    let capturedRef1: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const CaptureRefs = ({
+      onRefsReady,
+    }: {
+      onRefsReady: (
+        ref1: React.RefObject<ContextWindowHandle | null>,
+        ref2: React.RefObject<ContextWindowHandle | null>,
+      ) => void;
+    }) => {
+      const ref1 = useRef<ContextWindowHandle | null>(null);
+      const ref2 = useRef<ContextWindowHandle | null>(null);
+      const [visible] = useState(true);
+
+      useEffect(() => {
+        onRefsReady(ref1, ref2);
+      }, [onRefsReady]);
+
+      return (
+        <>
+          <ContextWindow
+            ref={ref1}
+            id="ref-test-1"
+            visible={visible}
+            title="Window 1"
+          >
+            <span>Content 1</span>
+          </ContextWindow>
+          <ContextWindow
+            ref={ref2}
+            id="ref-test-2"
+            visible={visible}
+            title="Window 2"
+          >
+            <span>Content 2</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    await act(async () => {
+      render(
+        <CaptureRefs
+          onRefsReady={(ref1) => {
+            capturedRef1 = ref1;
+          }}
+        />,
+      );
+    });
+
+    // Wait for windows to be rendered
+    expect(screen.getByTitle("Window 1")).toBeInTheDocument();
+    expect(screen.getByTitle("Window 2")).toBeInTheDocument();
+
+    // Get initial z-indices
+    const windowElement1 = document.getElementById("ref-test-1") as HTMLElement;
+    const windowElement2 = document.getElementById("ref-test-2") as HTMLElement;
+
+    const zIndex1Before = parseInt(windowElement1.style.zIndex || "0", 10);
+    const zIndex2Before = parseInt(windowElement2.style.zIndex || "0", 10);
+
+    // Window 2 should be on top initially (rendered second)
+    expect(zIndex2Before).toBeGreaterThanOrEqual(zIndex1Before);
+
+    // Call pushToTop on window 1
+    await act(async () => {
+      capturedRef1?.current?.pushToTop();
+    });
+
+    const zIndex1After = parseInt(windowElement1.style.zIndex || "0", 10);
+    const zIndex2After = parseInt(windowElement2.style.zIndex || "0", 10);
+
+    // Window 1 should now be on top (higher z-index than window 2)
+    expect(zIndex1After).toBeGreaterThan(zIndex2After);
   });
 });
