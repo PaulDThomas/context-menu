@@ -1,6 +1,6 @@
 {
   "name": "@asup/context-menu",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "REACT Typescript Context menu component",
   "author": "Paul Thomas <@PaulDThomas>",
   "private": false,
