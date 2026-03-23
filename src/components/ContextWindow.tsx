@@ -193,8 +193,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         }px`;
         windowRef.current.style.transform = "";
         const checkedPosition = chkPosition(windowRef);
-        if (checkedPosition.translateX !== 0 || checkedPosition.translateY !== 0) {
-          windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
+        windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
+        if (windowPos && windowPos.current) {
+          windowPos.current = {
+            x: checkedPosition.translateX,
+            y: checkedPosition.translateY,
+          };
         }
 
         // Update z-index and make visible - use startTransition

@@ -100,8 +100,25 @@ describe("useMouseMove", () => {
     expect((title as HTMLElement).style.userSelect).toBe("none");
 
     fireEvent.mouseUp(title);
-    expect((title as HTMLElement).style.userSelect).toBe("auto");
+    expect((title as HTMLElement).style.userSelect).toBe("");
     expect(onMouseUp).toHaveBeenCalledTimes(1);
+  });
+
+  test("restores userSelect on the original mousedown element when mouseup occurs elsewhere", () => {
+    render(<TestHarness />);
+
+    const title = screen.getByTestId("title") as HTMLElement;
+    const otherTarget = screen.getByTestId("window") as HTMLElement;
+
+    title.style.userSelect = "text";
+
+    fireEvent.mouseDown(title);
+    expect(title.style.userSelect).toBe("none");
+
+    fireEvent.mouseUp(otherTarget);
+
+    expect(title.style.userSelect).toBe("text");
+    expect(otherTarget.style.userSelect).toBe("");
   });
 
   test("handles svg and non-element targets for userSelect", () => {
@@ -112,7 +129,7 @@ describe("useMouseMove", () => {
     expect(svgTarget.style.userSelect).toBe("none");
 
     fireEvent.mouseUp(svgTarget);
-    expect(svgTarget.style.userSelect).toBe("auto");
+    expect(svgTarget.style.userSelect).toBe("");
   });
 
   test("cleans listeners on unmount", () => {
@@ -133,6 +150,20 @@ describe("useMouseMove", () => {
 
     removeDocumentSpy.mockRestore();
     removeWindowSpy.mockRestore();
+  });
+
+  test("restores userSelect on unmount when mouseup never fires", () => {
+    const { unmount } = render(<TestHarness />);
+    const title = screen.getByTestId("title") as HTMLElement;
+
+    title.style.userSelect = "text";
+
+    fireEvent.mouseDown(title);
+    expect(title.style.userSelect).toBe("none");
+
+    unmount();
+
+    expect(title.style.userSelect).toBe("text");
   });
 
   test("arms interaction-end listeners once and removes them after mouseup", () => {

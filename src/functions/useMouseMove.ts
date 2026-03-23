@@ -28,6 +28,8 @@ export const useMouseMove = ({
 }: UseMouseMoveProps): UseMouseMoveResult => {
   const mouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
   const mouseUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const mouseDownElementRef = useRef<HTMLElement | SVGElement | null>(null);
+  const mouseDownUserSelectRef = useRef<string | null>(null);
   const interactionEndRef = useRef<((e: MouseEvent | PointerEvent) => void) | null>(null);
   const interactionEndCallbackRef = useRef(onInteractionEndCallback);
   const viewportResizeCallbackRef = useRef(onViewportResizeCallback);
@@ -46,6 +48,15 @@ export const useMouseMove = ({
     }
     if (mouseUpRef.current) {
       document.removeEventListener("mouseup", mouseUpRef.current);
+    }
+  }, []);
+
+  const restoreMouseDownUserSelect = useCallback(() => {
+    if (mouseDownElementRef.current) {
+      /* v8 ignore next */
+      mouseDownElementRef.current.style.userSelect = mouseDownUserSelectRef.current ?? "";
+      mouseDownElementRef.current = null;
+      mouseDownUserSelectRef.current = null;
     }
   }, []);
 
@@ -71,28 +82,25 @@ export const useMouseMove = ({
       e.preventDefault();
       e.stopPropagation();
       removeMouseListeners();
-      const target = e.target;
-      if (target instanceof HTMLElement || target instanceof SVGElement) {
-        target.style.userSelect = "auto";
-      }
+      restoreMouseDownUserSelect();
       onMouseUpCallback?.(e);
     },
-    [onMouseUpCallback, removeMouseListeners],
+    [onMouseUpCallback, removeMouseListeners, restoreMouseDownUserSelect],
   );
 
   const onMouseDown = useCallback(
     (e: ReactMouseEvent<HTMLElement | SVGElement>) => {
-      const target = e.target;
-      if (target instanceof HTMLElement || target instanceof SVGElement) {
-        target.style.userSelect = "none";
-      }
+      restoreMouseDownUserSelect();
+      mouseDownElementRef.current = e.currentTarget;
+      mouseDownUserSelectRef.current = e.currentTarget.style.userSelect;
+      e.currentTarget.style.userSelect = "none";
       mouseMoveRef.current = onMouseMove;
       mouseUpRef.current = onMouseUp;
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
       onMouseDownCallback?.(e);
     },
-    [onMouseDownCallback, onMouseMove, onMouseUp],
+    [onMouseDownCallback, onMouseMove, onMouseUp, restoreMouseDownUserSelect],
   );
 
   const armInteractionEnd = useCallback(() => {
@@ -117,7 +125,7 @@ export const useMouseMove = ({
   }, [interactionEndEnabled, removeInteractionEndListeners]);
 
   useEffect(() => {
-    if (!viewportResizeEnabled || !viewportResizeCallbackRef.current) {
+    if (!viewportResizeEnabled || !viewportResizeCallbackRef.current || !onViewportResizeCallback) {
       return;
     }
 
@@ -130,14 +138,15 @@ export const useMouseMove = ({
     return () => {
       window.removeEventListener("resize", onViewportResize);
     };
-  }, [viewportResizeEnabled]);
+  }, [onViewportResizeCallback, viewportResizeEnabled]);
 
   useEffect(() => {
     return () => {
       removeMouseListeners();
       removeInteractionEndListeners();
+      restoreMouseDownUserSelect();
     };
-  }, [removeInteractionEndListeners, removeMouseListeners]);
+  }, [removeInteractionEndListeners, removeMouseListeners, restoreMouseDownUserSelect]);
 
   return {
     onMouseDown,
