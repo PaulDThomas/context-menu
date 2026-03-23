@@ -540,17 +540,33 @@ describe("Context window", () => {
     Object.defineProperty(window, "innerWidth", { value: 120, configurable: true });
     Object.defineProperty(window, "innerHeight", { value: 120, configurable: true });
 
-    const rectSpy = jest.spyOn(win, "getBoundingClientRect").mockReturnValue({
-      left: 100,
-      top: 90,
-      right: 220,
-      bottom: 210,
-      width: 120,
-      height: 120,
-      x: 100,
-      y: 90,
-      toJSON: () => ({}),
-    } as DOMRect);
+    const rectSpy = jest
+      .spyOn(win, "getBoundingClientRect")
+      .mockReturnValueOnce({
+        left: 100,
+        top: 90,
+        right: 220,
+        bottom: 210,
+        width: 120,
+        height: 120,
+        x: 100,
+        y: 90,
+        toJSON: () => ({}),
+      } as DOMRect)
+      .mockReturnValueOnce({
+        left: 16,
+        top: 16,
+        right: 96,
+        bottom: 96,
+        width: 80,
+        height: 80,
+        x: 16,
+        y: 16,
+        toJSON: () => ({}),
+      } as DOMRect);
+
+    Object.defineProperty(win, "clientWidth", { value: 112, configurable: true });
+    Object.defineProperty(win, "clientHeight", { value: 112, configurable: true });
 
     act(() => {
       window.dispatchEvent(new UIEvent("resize"));
@@ -558,6 +574,72 @@ describe("Context window", () => {
 
     expect(win.style.transform).not.toBe("translate(0px, 0px)");
     expect(win.style.transform).toMatch(/translate\(-\d+px, -\d+px\)/);
+    expect(win.style.width).toBe("");
+    expect(win.style.height).toBe("");
+
+    rectSpy.mockRestore();
+    Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true });
+    Object.defineProperty(window, "innerHeight", {
+      value: originalInnerHeight,
+      configurable: true,
+    });
+  });
+
+  test("Window resize reduces window dimensions when it is larger than the viewport", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"window-resize-fit"}
+          visible={true}
+          title={"Window Resize Fit"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const win = document.getElementById("window-resize-fit") as HTMLElement;
+    expect(win).toBeInTheDocument();
+
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    Object.defineProperty(window, "innerWidth", { value: 120, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 110, configurable: true });
+    Object.defineProperty(win, "clientWidth", { value: 180, configurable: true });
+    Object.defineProperty(win, "clientHeight", { value: 150, configurable: true });
+
+    const rectSpy = jest
+      .spyOn(win, "getBoundingClientRect")
+      .mockReturnValueOnce({
+        left: 16,
+        top: 16,
+        right: 216,
+        bottom: 186,
+        width: 200,
+        height: 170,
+        x: 16,
+        y: 16,
+        toJSON: () => ({}),
+      } as DOMRect)
+      .mockReturnValueOnce({
+        left: 16,
+        top: 16,
+        right: 216,
+        bottom: 186,
+        width: 200,
+        height: 170,
+        x: 16,
+        y: 16,
+        toJSON: () => ({}),
+      } as DOMRect);
+
+    act(() => {
+      window.dispatchEvent(new UIEvent("resize"));
+    });
+
+    expect(win.style.width).toBe("68px");
+    expect(win.style.height).toBe("58px");
 
     rectSpy.mockRestore();
     Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true });
@@ -614,6 +696,39 @@ describe("Context window", () => {
     expect(removeEventSpy).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
 
     removeEventSpy.mockRestore();
+  });
+
+  test("Mouseup after window is hidden does not fail", async () => {
+    const { rerender } = render(
+      <ContextWindow
+        id={"hidden-during-drag"}
+        visible={true}
+        title={"Hidden During Drag"}
+      >
+        <span>Body</span>
+      </ContextWindow>,
+    );
+
+    await act(async () => {});
+
+    const title = screen.getByTitle("Hidden During Drag").closest("div") as HTMLElement;
+    fireEvent.mouseDown(title);
+
+    await act(async () => {
+      rerender(
+        <ContextWindow
+          id={"hidden-during-drag"}
+          visible={false}
+          title={"Hidden During Drag"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    expect(() => {
+      fireEvent.mouseUp(document);
+    }).not.toThrow();
   });
 
   test("pushToTop ref method brings window to highest z-index", async () => {

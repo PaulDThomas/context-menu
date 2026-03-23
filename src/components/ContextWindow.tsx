@@ -84,10 +84,32 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, []);
 
+    const fitToViewport = useCallback(() => {
+      if (!windowRef.current) {
+        return;
+      }
+
+      const viewportPadding = 32;
+      const availableWidth = Math.max(0, window.innerWidth - viewportPadding);
+      const availableHeight = Math.max(0, window.innerHeight - viewportPadding);
+      const rect = windowRef.current.getBoundingClientRect();
+      const horizontalChrome = rect.width - windowRef.current.clientWidth;
+      const verticalChrome = rect.height - windowRef.current.clientHeight;
+
+      if (rect.width > availableWidth) {
+        windowRef.current.style.width = `${Math.max(0, availableWidth - horizontalChrome)}px`;
+      }
+
+      if (rect.height > availableHeight) {
+        windowRef.current.style.height = `${Math.max(0, availableHeight - verticalChrome)}px`;
+      }
+    }, []);
+
     const checkPosition = useCallback(() => {
       const chkPos = chkPosition(windowRef);
       move(chkPos.translateX, chkPos.translateY);
-    }, [move]);
+      fitToViewport();
+    }, [fitToViewport, move]);
 
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
