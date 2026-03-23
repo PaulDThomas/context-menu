@@ -45,9 +45,11 @@ export const useMouseMove = ({
   const removeMouseListeners = useCallback(() => {
     if (mouseMoveRef.current) {
       document.removeEventListener("mousemove", mouseMoveRef.current);
+      document.removeEventListener("pointermove", mouseMoveRef.current as EventListener);
     }
     if (mouseUpRef.current) {
       document.removeEventListener("mouseup", mouseUpRef.current);
+      document.removeEventListener("pointerup", mouseUpRef.current as EventListener);
     }
   }, []);
 
@@ -97,7 +99,9 @@ export const useMouseMove = ({
       mouseMoveRef.current = onMouseMove;
       mouseUpRef.current = onMouseUp;
       document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("pointermove", onMouseMove as EventListener);
       document.addEventListener("mouseup", onMouseUp);
+      document.addEventListener("pointerup", onMouseUp as EventListener);
       onMouseDownCallback?.(e);
     },
     [onMouseDownCallback, onMouseMove, onMouseUp, restoreMouseDownUserSelect],

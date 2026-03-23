@@ -49,12 +49,18 @@ const TestHarness = ({
       <div
         data-testid="title"
         onMouseDown={api.onMouseDown}
+        onPointerDown={(e) =>
+          api.onMouseDown(e as unknown as React.MouseEvent<HTMLElement | SVGElement>)
+        }
       >
         Title
       </div>
       <svg
         data-testid="svg-target"
         onMouseDown={api.onMouseDown}
+        onPointerDown={(e) =>
+          api.onMouseDown(e as unknown as React.MouseEvent<HTMLElement | SVGElement>)
+        }
       />
     </>
   );
@@ -73,15 +79,15 @@ describe("useMouseMove", () => {
     expect((title as HTMLElement).style.userSelect).toBe("none");
   });
 
-  test("invokes onMouseMove callback when document mousemove fires", () => {
+  test("invokes onMouseMove callback when document pointermove fires", () => {
     const onMouseMove = jest.fn();
 
     render(<TestHarness onMouseMove={onMouseMove} />);
 
     const title = screen.getByTestId("title");
-    fireEvent.mouseDown(title);
+    fireEvent.pointerDown(title);
 
-    const moveEvent = new MouseEvent("mousemove");
+    const moveEvent = new Event("pointermove") as unknown as MouseEvent;
     Object.defineProperty(moveEvent, "movementX", { value: 4 });
     Object.defineProperty(moveEvent, "movementY", { value: -2 });
     document.dispatchEvent(moveEvent);
@@ -90,21 +96,21 @@ describe("useMouseMove", () => {
     expect(onMouseMove).toHaveBeenCalledWith(moveEvent);
   });
 
-  test("invokes onMouseUp and restores userSelect on document mouseup", () => {
+  test("invokes onMouseUp and restores userSelect on document pointerup", () => {
     const onMouseUp = jest.fn();
 
     render(<TestHarness onMouseUp={onMouseUp} />);
 
     const title = screen.getByTestId("title");
-    fireEvent.mouseDown(title);
+    fireEvent.pointerDown(title);
     expect((title as HTMLElement).style.userSelect).toBe("none");
 
-    fireEvent.mouseUp(title);
+    fireEvent.pointerUp(title);
     expect((title as HTMLElement).style.userSelect).toBe("");
     expect(onMouseUp).toHaveBeenCalledTimes(1);
   });
 
-  test("restores userSelect on the original mousedown element when mouseup occurs elsewhere", () => {
+  test("restores userSelect on the original mousedown element when pointerup occurs elsewhere", () => {
     render(<TestHarness />);
 
     const title = screen.getByTestId("title") as HTMLElement;
@@ -112,10 +118,10 @@ describe("useMouseMove", () => {
 
     title.style.userSelect = "text";
 
-    fireEvent.mouseDown(title);
+    fireEvent.pointerDown(title);
     expect(title.style.userSelect).toBe("none");
 
-    fireEvent.mouseUp(otherTarget);
+    fireEvent.pointerUp(otherTarget);
 
     expect(title.style.userSelect).toBe("text");
     expect(otherTarget.style.userSelect).toBe("");
@@ -125,10 +131,10 @@ describe("useMouseMove", () => {
     render(<TestHarness />);
 
     const svgTarget = screen.getByTestId("svg-target") as unknown as SVGElement;
-    fireEvent.mouseDown(svgTarget);
+    fireEvent.pointerDown(svgTarget);
     expect(svgTarget.style.userSelect).toBe("none");
 
-    fireEvent.mouseUp(svgTarget);
+    fireEvent.pointerUp(svgTarget);
     expect(svgTarget.style.userSelect).toBe("");
   });
 
@@ -143,9 +149,17 @@ describe("useMouseMove", () => {
 
     const documentMoves = removeDocumentSpy.mock.calls.filter((call) => call[0] === "mousemove");
     const documentUps = removeDocumentSpy.mock.calls.filter((call) => call[0] === "mouseup");
+    const documentPointerMoves = removeDocumentSpy.mock.calls.filter(
+      (call) => call[0] === "pointermove",
+    );
+    const documentPointerUps = removeDocumentSpy.mock.calls.filter(
+      (call) => call[0] === "pointerup",
+    );
 
     expect(documentMoves.length).toBeGreaterThanOrEqual(1);
     expect(documentUps.length).toBeGreaterThanOrEqual(1);
+    expect(documentPointerMoves.length).toBeGreaterThanOrEqual(1);
+    expect(documentPointerUps.length).toBeGreaterThanOrEqual(1);
     expect(removeWindowSpy).toHaveBeenCalledWith("resize", expect.any(Function));
 
     removeDocumentSpy.mockRestore();
