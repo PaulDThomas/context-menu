@@ -88,7 +88,7 @@ export const ContextMenuHandler = ({
 
       let ro: ResizeObserver | null = null;
       if (typeof ResizeObserver !== "undefined" && divHandlderRef.current) {
-        ro = new ResizeObserver(() => updatePos());
+        ro = new ResizeObserver(updatePos);
         ro.observe(divHandlderRef.current);
       }
 
