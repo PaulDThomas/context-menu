@@ -517,6 +517,56 @@ describe("Context window", () => {
     removeEventSpy.mockRestore();
   });
 
+  test("Window resize triggers position check", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"window-resize-check"}
+          visible={true}
+          title={"Window Resize Check"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const win = document.getElementById("window-resize-check") as HTMLElement;
+    expect(win).toBeInTheDocument();
+
+    win.style.transform = "translate(0px, 0px)";
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    Object.defineProperty(window, "innerWidth", { value: 120, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 120, configurable: true });
+
+    const rectSpy = jest.spyOn(win, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+      top: 90,
+      right: 220,
+      bottom: 210,
+      width: 120,
+      height: 120,
+      x: 100,
+      y: 90,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    act(() => {
+      window.dispatchEvent(new UIEvent("resize"));
+    });
+
+    expect(win.style.transform).not.toBe("translate(0px, 0px)");
+    expect(win.style.transform).toMatch(/translate\(-\d+px, -\d+px\)/);
+
+    rectSpy.mockRestore();
+    Object.defineProperty(window, "innerWidth", { value: originalInnerWidth, configurable: true });
+    Object.defineProperty(window, "innerHeight", {
+      value: originalInnerHeight,
+      configurable: true,
+    });
+  });
+
   test("ResizeObserver cleanup removes pending mouseup listener when window is hidden", async () => {
     let observerCallback: ResizeObserverCallback | null = null;
     global.ResizeObserver = class {

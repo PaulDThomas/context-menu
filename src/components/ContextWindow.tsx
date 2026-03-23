@@ -75,9 +75,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Position
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [moving, setMoving] = useState<boolean>(false);
-    const checkPositionRef = useRef<() => void>(() => {});
-    const resizeEndHandlerAttachedRef = useRef<boolean>(false);
-    const resizeEndHandlerRef = useRef<(() => void) | null>(null);
 
     const move = useCallback((x: number, y: number) => {
       if (windowRef.current) {
@@ -91,10 +88,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       const chkPos = chkPosition(windowRef);
       move(chkPos.translateX, chkPos.translateY);
     }, [move]);
-
-    useEffect(() => {
-      checkPositionRef.current = checkPosition;
-    }, [checkPosition]);
 
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
@@ -114,7 +107,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       return { x: 0, y: 0 };
     };
 
-    const { onMouseDown } = useMouseMove({
+    const { onMouseDown, armInteractionEnd } = useMouseMove({
       onMouseDown: () => {
         windowPos.current = parseTranslate(windowRef.current?.style.transform);
         setMoving(true);
@@ -127,6 +120,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         checkPosition();
         setMoving(false);
       },
+      onInteractionEnd: () => {
+        checkPosition();
+      },
+      interactionEndEnabled: windowVisible,
+      onViewportResize: () => {
+        checkPosition();
+      },
+      viewportResizeEnabled: windowVisible,
     });
 
     // Expose pushToTop method via ref
@@ -190,35 +191,16 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         return;
       }
 
-      const onResizeEnd = () => {
-        checkPositionRef.current();
-        resizeEndHandlerAttachedRef.current = false;
-        document.removeEventListener("mouseup", onResizeEnd, true);
-        document.removeEventListener("pointerup", onResizeEnd, true);
-        resizeEndHandlerRef.current = null;
-      };
-
       const observer = new ResizeObserver(() => {
-        if (!resizeEndHandlerAttachedRef.current) {
-          resizeEndHandlerAttachedRef.current = true;
-          resizeEndHandlerRef.current = onResizeEnd;
-          document.addEventListener("mouseup", onResizeEnd, true);
-          document.addEventListener("pointerup", onResizeEnd, true);
-        }
+        armInteractionEnd();
       });
 
       observer.observe(windowRef.current);
 
       return () => {
         observer.disconnect();
-        if (resizeEndHandlerRef.current) {
-          document.removeEventListener("mouseup", resizeEndHandlerRef.current, true);
-          document.removeEventListener("pointerup", resizeEndHandlerRef.current, true);
-          resizeEndHandlerRef.current = null;
-        }
-        resizeEndHandlerAttachedRef.current = false;
       };
-    }, [windowVisible]);
+    }, [armInteractionEnd, windowVisible]);
 
     return (
       <div
