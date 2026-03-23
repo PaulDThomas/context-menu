@@ -1,10 +1,16 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
-import * as chk from "../functions/chkPosition";
 import { ContextWindow, ContextWindowHandle, MIN_Z_INDEX } from "./ContextWindow";
 
 describe("Context window", () => {
+  beforeEach(() => {
+    global.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  });
   test("Not there", async () => {
     await act(async () => {
       render(
@@ -57,7 +63,7 @@ describe("Context window", () => {
     expect(title).not.toBeInTheDocument();
   });
 
-  test("Move the mouse, turn it on and off", async () => {
+  test("Window visibility can be toggled", async () => {
     const WindowWithInput = (): React.ReactElement => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
@@ -93,12 +99,6 @@ describe("Context window", () => {
     expect(chk).toBeChecked();
     const title = screen.queryByText("Test window") as HTMLSpanElement;
     expect(title).toBeVisible();
-    fireEvent.mouseDown(title);
-    fireEvent.mouseMove(title, { movementX: 5000, movementY: -5000 });
-    fireEvent.mouseUp(title);
-    fireEvent.mouseDown(title);
-    fireEvent.mouseMove(title, { movementX: -5000, movementY: 5000 });
-    fireEvent.mouseUp(title);
     await act(async () => await user.click(chk));
     expect(title).not.toBeVisible();
   });
@@ -272,79 +272,6 @@ describe("Context window", () => {
     bad.remove();
   });
 
-  test("Mouse down on title sets userSelect none and mouseup restores it", async () => {
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"mouseuser"}
-          visible={true}
-          title={"Mouse Test"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    const title = screen.getByTitle("Mouse Test") as HTMLElement;
-    expect(title).toBeInTheDocument();
-
-    // mouseDown should set userSelect to none on the target
-    fireEvent.mouseDown(title);
-    expect(title.style.userSelect).toBe("none");
-
-    // Fire mouseup event on the title which should restore userSelect to auto
-    fireEvent.mouseUp(title);
-    expect(title.style.userSelect).toBe("auto");
-  });
-
-  test("Mouseup on SVG target restores userSelect on SVG element", async () => {
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"svgtarget"}
-          visible={true}
-          title={"SVG Test"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    const title = screen.getByTitle("SVG Test") as HTMLElement;
-    expect(title).toBeInTheDocument();
-
-    // Start moving (adds document mouseup listener)
-    fireEvent.mouseDown(title);
-
-    // Find the SVG element (close icon) and fire mouseup on it
-    const svg = document.querySelector("#svgtarget svg") as SVGElement;
-    expect(svg).toBeInTheDocument();
-    // ensure style exists
-    (svg as unknown as HTMLElement).style.userSelect = "none";
-    fireEvent.mouseUp(svg as Element);
-    // style should be reset to auto by handler
-    expect((svg as unknown as HTMLElement).style.userSelect).toBe("auto");
-  });
-
-  test("Mouse down on SVG target sets userSelect none (SVG branch)", async () => {
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"svgmousedown"}
-          visible={true}
-          title={"SVG Down"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    const svg = document.querySelector("#svgmousedown svg") as SVGElement;
-    expect(svg).toBeInTheDocument();
-    fireEvent.mouseDown(svg as Element);
-    expect((svg as unknown as HTMLElement).style.userSelect).toBe("none");
-  });
-
   test("Calls onOpen when window becomes visible", async () => {
     const onOpen = jest.fn();
     await act(async () => {
@@ -362,39 +289,56 @@ describe("Context window", () => {
     expect(onOpen).toHaveBeenCalled();
   });
 
-  test("Resize triggers checkPosition and moves the window (mocked chkPosition)", async () => {
-    const spy = jest
-      .spyOn(chk, "chkPosition")
-      .mockImplementation(() => ({ translateX: 12, translateY: 34 }));
-
+  test("Dragging updates moving UI state", async () => {
     await act(async () => {
       render(
         <ContextWindow
-          id={"resizetest"}
+          id={"dragwindow"}
           visible={true}
-          title={"Resize Test"}
+          title={"Drag Window"}
+          style={{ transition: "opacity 0s linear" }}
         >
           <span>Body</span>
         </ContextWindow>,
       );
     });
 
-    const win = document.getElementById("resizetest") as HTMLElement;
-    expect(win).toBeInTheDocument();
+    const title = screen.getByTitle("Drag Window") as HTMLElement;
+    const win = document.getElementById("dragwindow") as HTMLElement;
 
-    // trigger mousedown to attach resize listener via onMouseDown
-    const title = screen.getByTitle("Resize Test") as HTMLElement;
     fireEvent.mouseDown(title);
+    expect(win.style.opacity).toBe("0.8");
 
-    // Trigger resize event - should call our mocked chkPosition and move the window
-    act(() => {
-      window.dispatchEvent(new Event("resize"));
+    fireEvent.mouseMove(document, { movementX: 4, movementY: 2 });
+    fireEvent.mouseUp(title);
+    expect(win.style.opacity).toBe("1");
+  });
+
+  test("Dragging handles non-element event targets", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"dragwindow-text"}
+          visible={true}
+          title={"Drag Window Text"}
+          style={{ transition: "opacity 0s linear" }}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
     });
 
-    // transform should have been applied (at least once)
-    expect(win.style.transform).toMatch(/^translate\(\d+px, \d+px\)$/);
+    const title = screen.getByTitle("Drag Window Text") as HTMLElement;
+    const win = document.getElementById("dragwindow-text") as HTMLElement;
+    const textNode = title.firstChild as Text;
 
-    spy.mockRestore();
+    act(() => {
+      textNode.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(win.style.opacity).toBe("0.8");
+
+    fireEvent.mouseUp(document);
+    expect(win.style.opacity).toBe("1");
   });
 
   test("Positions window below when space is available and uses default min sizes", async () => {
@@ -517,52 +461,109 @@ describe("Context window", () => {
     HTMLElement.prototype.getBoundingClientRect = orig;
   });
 
-  test("Cleans up event listeners when component unmounts during drag", async () => {
-    // Spy on window.addEventListener and window.removeEventListener
-    const addEventListenerSpy = jest.spyOn(window, "addEventListener");
-    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+  test("ResizeObserver callback attaches mouseup listener and calls checkPosition on release", async () => {
+    let observerCallback: ResizeObserverCallback | null = null;
+    global.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        observerCallback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
 
-    const { unmount } = await act(async () => {
-      return render(
+    await act(async () => {
+      render(
         <ContextWindow
-          id={"unmounttest"}
+          id={"resize-obs-mouseup"}
           visible={true}
-          title={"Unmount Test"}
+          title={"Resize Obs Mouseup"}
         >
           <span>Body</span>
         </ContextWindow>,
       );
     });
 
-    const title = screen.getByTitle("Unmount Test") as HTMLElement;
-    expect(title).toBeInTheDocument();
+    const win = document.getElementById("resize-obs-mouseup") as HTMLElement;
+    expect(win).toBeInTheDocument();
+    expect(observerCallback).not.toBeNull();
 
-    // Start dragging - this should add resize listener
-    fireEvent.mouseDown(title);
+    const addEventSpy = jest.spyOn(document, "addEventListener");
 
-    // Verify resize listener was added
-    const resizeListenerCallsBefore = addEventListenerSpy.mock.calls.filter(
-      (call) => call[0] === "resize",
-    ).length;
-    expect(resizeListenerCallsBefore).toBe(1);
-
-    // Reset the spy to track cleanup calls
-    removeEventListenerSpy.mockClear();
-
-    // Unmount the component while dragging (without firing mouseUp)
+    // Simulate CSS resize handle changing element size
     act(() => {
-      unmount();
+      observerCallback!([], {} as ResizeObserver);
     });
 
-    // Verify that resize listener was removed during cleanup
-    const resizeRemoveCalls = removeEventListenerSpy.mock.calls.filter(
-      (call) => call[0] === "resize",
-    );
-    expect(resizeRemoveCalls.length).toBeGreaterThanOrEqual(1);
+    expect(addEventSpy).toHaveBeenCalledWith("mouseup", expect.any(Function), true);
+    expect(addEventSpy).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
 
-    // Cleanup spies
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
+    // Second callback invocation should not attach duplicate listeners
+    act(() => {
+      observerCallback!([], {} as ResizeObserver);
+    });
+    expect(addEventSpy).toHaveBeenCalledTimes(2);
+
+    // Fire mouseup to trigger onResizeEnd → calls checkPosition and removes listeners
+    const removeEventSpy = jest.spyOn(document, "removeEventListener");
+    act(() => {
+      document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+    });
+
+    expect(removeEventSpy).toHaveBeenCalledWith("mouseup", expect.any(Function), true);
+    expect(removeEventSpy).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
+
+    addEventSpy.mockRestore();
+    removeEventSpy.mockRestore();
+  });
+
+  test("ResizeObserver cleanup removes pending mouseup listener when window is hidden", async () => {
+    let observerCallback: ResizeObserverCallback | null = null;
+    global.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        observerCallback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+
+    const { rerender } = render(
+      <ContextWindow
+        id={"resize-cleanup-test"}
+        visible={true}
+        title={"Resize Cleanup Test"}
+      >
+        <span>Body</span>
+      </ContextWindow>,
+    );
+    await act(async () => {});
+
+    expect(observerCallback).not.toBeNull();
+
+    // Trigger resize callback so the pending mouseup handler is attached
+    act(() => {
+      observerCallback!([], {} as ResizeObserver);
+    });
+
+    // Hide the window before mouseup fires — cleanup must remove the pending listener
+    const removeEventSpy = jest.spyOn(document, "removeEventListener");
+    await act(async () => {
+      rerender(
+        <ContextWindow
+          id={"resize-cleanup-test"}
+          visible={false}
+          title={"Resize Cleanup Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    expect(removeEventSpy).toHaveBeenCalledWith("mouseup", expect.any(Function), true);
+    expect(removeEventSpy).toHaveBeenCalledWith("pointerup", expect.any(Function), true);
+
+    removeEventSpy.mockRestore();
   });
 
   test("pushToTop ref method brings window to highest z-index", async () => {

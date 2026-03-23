@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
+import { useMouseMove } from "../functions/useMouseMove";
 import styles from "./ContextWindow.module.css";
 
 export const MIN_Z_INDEX = 3000;
@@ -65,7 +66,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const divRef = useRef<HTMLDivElement | null>(null);
     const windowRef = useRef<HTMLDivElement | null>(null);
     const [zIndex, setZIndex] = useState<number>(minZIndex);
-    const resizeListenerRef = useRef<(() => void) | null>(null);
 
     // Track internal state: whether window is in DOM and whether it's been positioned
     const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
@@ -75,14 +75,15 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Position
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [moving, setMoving] = useState<boolean>(false);
+    const checkPositionRef = useRef<() => void>(() => {});
+    const resizeEndHandlerAttachedRef = useRef<boolean>(false);
+    const resizeEndHandlerRef = useRef<(() => void) | null>(null);
 
     const move = useCallback((x: number, y: number) => {
-      if (windowRef.current && windowPos.current) {
-        const window = windowRef.current;
-        const pos = windowPos.current;
-        pos.x += x;
-        pos.y += y;
-        window.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+      if (windowRef.current) {
+        windowPos.current.x += x;
+        windowPos.current.y += y;
+        windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
       }
     }, []);
 
@@ -91,50 +92,42 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       move(chkPos.translateX, chkPos.translateY);
     }, [move]);
 
-    const mouseMove = useCallback(
-      (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        move(e.movementX, e.movementY);
-      },
-      [move],
-    );
-
-    const mouseMoveRef = useRef(mouseMove);
-    const mouseUpRef = useRef<(e: MouseEvent) => void>(() => {});
-
-    const mouseUp = useCallback(
-      (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setMoving(false);
-        checkPosition();
-        if (mouseMoveRef.current) {
-          document.removeEventListener("mousemove", mouseMoveRef.current);
-        }
-        if (mouseUpRef.current) {
-          document.removeEventListener("mouseup", mouseUpRef.current);
-        }
-        if (resizeListenerRef.current) {
-          window.removeEventListener("resize", resizeListenerRef.current);
-          resizeListenerRef.current = null;
-        }
-        if (e.target && (e.target instanceof HTMLElement || e.target instanceof SVGElement))
-          e.target.style.userSelect = "auto";
-      },
-      [checkPosition],
-    );
-
     useEffect(() => {
-      mouseMoveRef.current = mouseMove;
-      mouseUpRef.current = mouseUp;
-    }, [mouseMove, mouseUp]);
+      checkPositionRef.current = checkPosition;
+    }, [checkPosition]);
 
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
       const maxZIndex = getMaxZIndex(minZIndex);
       setZIndex(maxZIndex + 1);
     }, [minZIndex]);
+
+    const parseTranslate = (transform?: string): { x: number; y: number } => {
+      const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
+      if (match) {
+        return {
+          x: Number.parseFloat(match[1]),
+          y: Number.parseFloat(match[2]),
+        };
+      }
+      /* v8 ignore next */
+      return { x: 0, y: 0 };
+    };
+
+    const { onMouseDown } = useMouseMove({
+      onMouseDown: () => {
+        windowPos.current = parseTranslate(windowRef.current?.style.transform);
+        setMoving(true);
+        pushToTop();
+      },
+      onMouseMove: (e: MouseEvent) => {
+        move(e.movementX, e.movementY);
+      },
+      onMouseUp: () => {
+        checkPosition();
+        setMoving(false);
+      },
+    });
 
     // Expose pushToTop method via ref
     useImperativeHandle(
@@ -176,8 +169,10 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
             : Math.max(0, parentPos.top - windowHeight)
         }px`;
         windowRef.current.style.transform = "";
-        windowPos.current = { x: 0, y: 0 };
-        checkPosition();
+        const checkedPosition = chkPosition(windowRef);
+        if (checkedPosition.translateX !== 0 || checkedPosition.translateY !== 0) {
+          windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
+        }
 
         // Update z-index and make visible - use startTransition
         const maxZ = getMaxZIndex(minZIndex);
@@ -187,24 +182,43 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           setWindowVisible(true);
         });
       }
-    }, [windowInDOM, windowVisible, visible, checkPosition, minZIndex, onOpen, startTransition]);
+    }, [windowInDOM, windowVisible, visible, minZIndex, onOpen, startTransition]);
 
-    // Cleanup effect to remove event listeners on unmount
+    // When CSS resize handle is used, defer checkPosition until resize interaction ends.
     useEffect(() => {
-      return () => {
-        // Clean up event listeners if component unmounts while dragging
-        if (mouseMoveRef.current) {
-          document.removeEventListener("mousemove", mouseMoveRef.current);
-        }
-        if (mouseUpRef.current) {
-          document.removeEventListener("mouseup", mouseUpRef.current);
-        }
-        if (resizeListenerRef.current) {
-          window.removeEventListener("resize", resizeListenerRef.current);
-          resizeListenerRef.current = null;
-        }
+      if (!windowVisible || !windowRef.current || typeof ResizeObserver === "undefined") {
+        return;
+      }
+
+      const onResizeEnd = () => {
+        checkPositionRef.current();
+        resizeEndHandlerAttachedRef.current = false;
+        document.removeEventListener("mouseup", onResizeEnd, true);
+        document.removeEventListener("pointerup", onResizeEnd, true);
+        resizeEndHandlerRef.current = null;
       };
-    }, []);
+
+      const observer = new ResizeObserver(() => {
+        if (!resizeEndHandlerAttachedRef.current) {
+          resizeEndHandlerAttachedRef.current = true;
+          resizeEndHandlerRef.current = onResizeEnd;
+          document.addEventListener("mouseup", onResizeEnd, true);
+          document.addEventListener("pointerup", onResizeEnd, true);
+        }
+      });
+
+      observer.observe(windowRef.current);
+
+      return () => {
+        observer.disconnect();
+        if (resizeEndHandlerRef.current) {
+          document.removeEventListener("mouseup", resizeEndHandlerRef.current, true);
+          document.removeEventListener("pointerup", resizeEndHandlerRef.current, true);
+          resizeEndHandlerRef.current = null;
+        }
+        resizeEndHandlerAttachedRef.current = false;
+      };
+    }, [windowVisible]);
 
     return (
       <div
@@ -238,20 +252,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 className={[styles.contextWindowTitle, moving ? styles.moving : ""]
                   .filter((c) => c !== "")
                   .join(" ")}
-                onMouseDown={(e: React.MouseEvent) => {
-                  if (
-                    e.target &&
-                    (e.target instanceof HTMLElement || e.target instanceof SVGElement)
-                  )
-                    e.target.style.userSelect = "none";
-                  setMoving(true);
-                  pushToTop();
-                  document.addEventListener("mouseup", mouseUp);
-                  document.addEventListener("mousemove", mouseMove);
-                  const resizeListener = () => checkPosition();
-                  resizeListenerRef.current = resizeListener;
-                  window.addEventListener("resize", resizeListener);
-                }}
+                onMouseDown={onMouseDown}
               >
                 <div
                   className={styles.contextWindowTitleText}
