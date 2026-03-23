@@ -117,6 +117,63 @@ import { ContextWindow } from "@asup/context-menu";
 </ContextWindow>;
 ```
 
+### useMouseMove (Hook)
+
+`useMouseMove` is exported for draggable interactions. The API uses `onMouseDown` / `onMouseMove` / `onMouseUp` names, and the hook now wires both mouse and pointer document listeners during an active drag.
+
+Key behavior:
+
+- Registers both `mousemove` + `pointermove` while active.
+- Registers both `mouseup` + `pointerup` while active.
+- Restores `userSelect` on the same element that started the drag, even if the release happens on a different target.
+- Restores `userSelect` during unmount cleanup if the interaction ends unexpectedly.
+
+```tsx
+import { useRef, useState } from "react";
+import { useMouseMove } from "@asup/context-menu";
+
+export function DraggablePanel(): React.ReactElement {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [x, setX] = useState(0);
+  const [y, setY] = useState(0);
+
+  const { onMouseDown } = useMouseMove({
+    onMouseMove: (e) => {
+      setX((prev) => prev + e.movementX);
+      setY((prev) => prev + e.movementY);
+    },
+    onMouseUp: () => {
+      // Optional: snap/validate final position.
+    },
+  });
+
+  return (
+    <div
+      ref={panelRef}
+      style={{
+        transform: `translate(${x}px, ${y}px)`,
+        width: 220,
+        padding: 12,
+        border: "1px solid #999",
+        borderRadius: 8,
+        background: "white",
+      }}
+    >
+      <div
+        onMouseDown={onMouseDown}
+        onPointerDown={(e) =>
+          onMouseDown(e as unknown as React.MouseEvent<HTMLElement | SVGElement>)
+        }
+        style={{ cursor: "move", fontWeight: 600 }}
+      >
+        Drag Handle
+      </div>
+      <div style={{ marginTop: 8 }}>Panel body</div>
+    </div>
+  );
+}
+```
+
 See the Storybook for interactive examples and more options.
 
 ## Development
