@@ -96,6 +96,28 @@ describe("useMouseMove", () => {
     expect(onMouseMove).toHaveBeenCalledWith(moveEvent);
   });
 
+  test("does not double-handle movement when pointer and mouse move both fire", () => {
+    const onMouseMove = jest.fn();
+
+    render(<TestHarness onMouseMove={onMouseMove} />);
+
+    const title = screen.getByTestId("title");
+    fireEvent.pointerDown(title);
+
+    const pointerMoveEvent = new Event("pointermove") as unknown as MouseEvent;
+    Object.defineProperty(pointerMoveEvent, "movementX", { value: 2 });
+    Object.defineProperty(pointerMoveEvent, "movementY", { value: 1 });
+    document.dispatchEvent(pointerMoveEvent);
+
+    const mouseMoveEvent = new Event("mousemove") as unknown as MouseEvent;
+    Object.defineProperty(mouseMoveEvent, "movementX", { value: 2 });
+    Object.defineProperty(mouseMoveEvent, "movementY", { value: 1 });
+    document.dispatchEvent(mouseMoveEvent);
+
+    expect(onMouseMove).toHaveBeenCalledTimes(1);
+    expect(onMouseMove).toHaveBeenCalledWith(pointerMoveEvent);
+  });
+
   test("invokes onMouseUp and restores userSelect on document pointerup", () => {
     const onMouseUp = jest.fn();
 

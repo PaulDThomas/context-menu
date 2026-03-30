@@ -28,6 +28,7 @@ export const useMouseMove = ({
 }: UseMouseMoveProps): UseMouseMoveResult => {
   const mouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
   const mouseUpRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const activeInputRef = useRef<"mouse" | "pointer" | null>(null);
   const mouseDownElementRef = useRef<HTMLElement | SVGElement | null>(null);
   const mouseDownUserSelectRef = useRef<string | null>(null);
   const interactionEndRef = useRef<((e: MouseEvent | PointerEvent) => void) | null>(null);
@@ -51,6 +52,7 @@ export const useMouseMove = ({
       document.removeEventListener("mouseup", mouseUpRef.current);
       document.removeEventListener("pointerup", mouseUpRef.current as EventListener);
     }
+    activeInputRef.current = null;
   }, []);
 
   const restoreMouseDownUserSelect = useCallback(() => {
@@ -98,10 +100,18 @@ export const useMouseMove = ({
       e.currentTarget.style.userSelect = "none";
       mouseMoveRef.current = onMouseMove;
       mouseUpRef.current = onMouseUp;
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("pointermove", onMouseMove as EventListener);
-      document.addEventListener("mouseup", onMouseUp);
-      document.addEventListener("pointerup", onMouseUp as EventListener);
+
+      // React can emit both pointer and mouse streams for one interaction.
+      // Subscribe to only one stream to avoid applying movement deltas twice.
+      if (e.type === "pointerdown") {
+        activeInputRef.current = "pointer";
+        document.addEventListener("pointermove", onMouseMove as EventListener);
+        document.addEventListener("pointerup", onMouseUp as EventListener);
+      } else {
+        activeInputRef.current = "mouse";
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+      }
       onMouseDownCallback?.(e);
     },
     [onMouseDownCallback, onMouseMove, onMouseUp, restoreMouseDownUserSelect],
