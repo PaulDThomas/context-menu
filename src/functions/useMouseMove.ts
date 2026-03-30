@@ -106,12 +106,15 @@ export const useMouseMove = ({
       if (e.type === "pointerdown") {
         activeInputRef.current = "pointer";
         document.addEventListener("pointermove", onMouseMove as EventListener);
-        document.addEventListener("pointerup", onMouseUp as EventListener);
       } else {
         activeInputRef.current = "mouse";
         document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", onMouseUp);
       }
+
+      // Release events can arrive on either stream depending on the browser
+      // and the element the interaction finishes over.
+      document.addEventListener("mouseup", onMouseUp);
+      document.addEventListener("pointerup", onMouseUp as EventListener);
       onMouseDownCallback?.(e);
     },
     [onMouseDownCallback, onMouseMove, onMouseUp, restoreMouseDownUserSelect],

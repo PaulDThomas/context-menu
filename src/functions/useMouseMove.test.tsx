@@ -132,6 +132,40 @@ describe("useMouseMove", () => {
     expect(onMouseUp).toHaveBeenCalledTimes(1);
   });
 
+  test("invokes onMouseUp when a mouse drag ends with pointerup on another target", () => {
+    const onMouseUp = jest.fn();
+
+    render(<TestHarness onMouseUp={onMouseUp} />);
+
+    const title = screen.getByTestId("title") as HTMLElement;
+    const otherTarget = screen.getByTestId("window") as HTMLElement;
+
+    fireEvent.mouseDown(title);
+    expect(title.style.userSelect).toBe("none");
+
+    fireEvent.pointerUp(otherTarget);
+
+    expect(title.style.userSelect).toBe("");
+    expect(onMouseUp).toHaveBeenCalledTimes(1);
+  });
+
+  test("invokes onMouseUp when a pointer drag ends with mouseup on another target", () => {
+    const onMouseUp = jest.fn();
+
+    render(<TestHarness onMouseUp={onMouseUp} />);
+
+    const title = screen.getByTestId("title") as HTMLElement;
+    const otherTarget = screen.getByTestId("window") as HTMLElement;
+
+    fireEvent.pointerDown(title);
+    expect(title.style.userSelect).toBe("none");
+
+    fireEvent.mouseUp(otherTarget);
+
+    expect(title.style.userSelect).toBe("");
+    expect(onMouseUp).toHaveBeenCalledTimes(1);
+  });
+
   test("restores userSelect on the original mousedown element when pointerup occurs elsewhere", () => {
     render(<TestHarness />);
 
