@@ -2,8 +2,10 @@
   "compilerOptions": {
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "baseUrl": "src/",
     "outDir": "dist/",
+    "paths": {
+      "*": ["./src/*"]
+    },
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -14,14 +16,21 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "isolatedModules": false, // Needed for tests
     "noEmit": true,
     "declaration": true,
     "jsx": "react-jsx",
     "noImplicitAny": true,
-    "plugins": [],
-    "types": ["node", "jest"]
+    "rootDir": ".",
+    "plugins": [
+      {
+        "name": "typescript-plugin-css-modules",
+        "options": {
+          "classnameTransform": "asIs"
+        }
+      }
+    ]
   },
-  "include": ["global.d.ts", "src", "demo", "__dummy__"],
-  "exclude": ["node_modules", "dist", "demo/dist"]
+  "include": ["global.d.ts", "src", "__mocks__"],
+  "exclude": ["node_modules", "dist", "build"]
 }
