@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
 import { ContextWindow, ContextWindowHandle, MIN_Z_INDEX } from "./ContextWindow";
@@ -117,6 +117,45 @@ describe("Context window", () => {
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
   });
 
+  test("Reopening the same window does not unnecessarily increment z-index", async () => {
+    const ToggleWindow = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(true);
+      return (
+        <>
+          <button onClick={() => setVisible((v) => !v)}>Toggle Window</button>
+          <ContextWindow
+            id={"toggle-window"}
+            visible={visible}
+            title={"Toggle Window"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<ToggleWindow />);
+    });
+
+    expect(document.getElementById("toggle-window")).toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: "Toggle Window" });
+    const windowBefore = document.getElementById("toggle-window") as HTMLElement;
+    const initialZ = parseInt(windowBefore.style.zIndex, 10);
+
+    await user.click(toggle);
+    expect(document.getElementById("toggle-window")).not.toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(document.getElementById("toggle-window")).toBeInTheDocument();
+
+    const windowAfter = document.getElementById("toggle-window") as HTMLElement;
+    const reopenedZ = parseInt(windowAfter.style.zIndex, 10);
+    expect(reopenedZ).toBe(initialZ);
+  });
+
   test("Multiple windows with z-index management", async () => {
     const user = userEvent.setup();
     const MultiWindowTest = (): React.ReactElement => {
@@ -153,9 +192,7 @@ describe("Context window", () => {
     // Open first window
     const openBtn1 = screen.getByText("Open Window 1");
     await user.click(openBtn1);
-    await waitFor(() => {
-      expect(document.getElementById("window1")).toBeInTheDocument();
-    });
+    expect(document.getElementById("window1")).toBeInTheDocument();
     const window1 = document.getElementById("window1") as HTMLElement;
     const zIndex1 = parseInt(window1.style.zIndex, 10);
     expect(zIndex1).toBeGreaterThanOrEqual(MIN_Z_INDEX);
@@ -163,19 +200,177 @@ describe("Context window", () => {
     // Open second window - should have higher z-index
     const openBtn2 = screen.getByText("Open Window 2");
     await user.click(openBtn2);
-    await waitFor(() => {
-      expect(document.getElementById("window2")).toBeInTheDocument();
-    });
+    expect(document.getElementById("window2")).toBeInTheDocument();
     const window2 = document.getElementById("window2") as HTMLElement;
     const zIndex2 = parseInt(window2.style.zIndex, 10);
     expect(zIndex2).toBeGreaterThan(zIndex1);
 
     // Click on first window - should bring it to top
     await user.click(window1);
-    await waitFor(() => {
-      const zIndex1Updated = parseInt(window1.style.zIndex, 10);
-      expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+    const zIndex1Updated = parseInt(window1.style.zIndex, 10);
+    expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+  });
+
+  test("maxZIndex resets all windows to min before recalculating top z-index", async () => {
+    let ref1: React.RefObject<ContextWindowHandle | null> | null = null;
+    let ref2: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const MultiWindowWithMax = ({
+      onRefsReady,
+    }: {
+      onRefsReady: (
+        firstRef: React.RefObject<ContextWindowHandle | null>,
+        secondRef: React.RefObject<ContextWindowHandle | null>,
+      ) => void;
+    }): React.ReactElement => {
+      const firstRef = useRef<ContextWindowHandle | null>(null);
+      const secondRef = useRef<ContextWindowHandle | null>(null);
+
+      useEffect(() => {
+        onRefsReady(firstRef, secondRef);
+      }, [onRefsReady]);
+
+      return (
+        <>
+          <ContextWindow
+            ref={firstRef}
+            id={"max-window-1"}
+            visible={true}
+            title={"Max Window 1"}
+            minZIndex={MIN_Z_INDEX}
+            maxZIndex={MIN_Z_INDEX + 2}
+          >
+            <span>Content 1</span>
+          </ContextWindow>
+          <ContextWindow
+            ref={secondRef}
+            id={"max-window-2"}
+            visible={true}
+            title={"Max Window 2"}
+            minZIndex={MIN_Z_INDEX}
+            maxZIndex={MIN_Z_INDEX + 2}
+          >
+            <span>Content 2</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    await act(async () => {
+      render(
+        <MultiWindowWithMax
+          onRefsReady={(firstRef, secondRef) => {
+            ref1 = firstRef;
+            ref2 = secondRef;
+          }}
+        />,
+      );
     });
+
+    const window1 = document.getElementById("max-window-1") as HTMLElement;
+    const window2 = document.getElementById("max-window-2") as HTMLElement;
+
+    expect(window1).toBeInTheDocument();
+    expect(window2).toBeInTheDocument();
+
+    await act(async () => {
+      ref1?.current?.pushToTop();
+    });
+    expect(parseInt(window1.style.zIndex, 10)).toBe(MIN_Z_INDEX + 2);
+
+    // Hitting the cap should reset both windows to min, then raise the requested window to min + 1.
+    await act(async () => {
+      ref2?.current?.pushToTop();
+    });
+
+    expect(parseInt(window1.style.zIndex, 10)).toBe(MIN_Z_INDEX);
+    expect(parseInt(window2.style.zIndex, 10)).toBe(MIN_Z_INDEX + 1);
+  });
+
+  test("Reset without source id removes body reset source attribute", async () => {
+    // Seed the source attribute so this path must remove it.
+    document.body.setAttribute("data-context-window-reset-source", "seeded-source");
+
+    const existing = document.createElement("div");
+    existing.setAttribute("data-context-window", "true");
+    existing.setAttribute("data-context-window-min-z-index", `${MIN_Z_INDEX}`);
+    existing.style.zIndex = `${MIN_Z_INDEX + 5}`;
+    document.body.appendChild(existing);
+
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={""}
+          visible={true}
+          title={"No Source Id"}
+          minZIndex={MIN_Z_INDEX}
+          maxZIndex={MIN_Z_INDEX}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    expect(document.body.getAttribute("data-context-window-reset-source")).toBeNull();
+    existing.remove();
+  });
+
+  test("Initial open applies reset path and updates z-index when cap is already hit", async () => {
+    const existing = document.createElement("div");
+    existing.setAttribute("data-context-window", "true");
+    existing.setAttribute("data-context-window-min-z-index", `${MIN_Z_INDEX}`);
+    existing.style.zIndex = `${MIN_Z_INDEX + 4}`;
+    document.body.appendChild(existing);
+
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"open-reset-branch"}
+          visible={true}
+          title={"Open Reset Branch"}
+          minZIndex={MIN_Z_INDEX}
+          maxZIndex={MIN_Z_INDEX + 1}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const opened = document.getElementById("open-reset-branch") as HTMLElement;
+    expect(opened).toBeInTheDocument();
+    expect(opened.style.zIndex).toBe(`${MIN_Z_INDEX + 1}`);
+    expect(existing.style.zIndex).toBe(`${MIN_Z_INDEX}`);
+
+    existing.remove();
+  });
+
+  test("Reset uses fallback min z-index and repairs invalid reset counter", async () => {
+    document.body.setAttribute("data-context-window-reset-counter", "not-a-number");
+
+    // Missing data-context-window-min-z-index forces fallback branch.
+    const existing = document.createElement("div");
+    existing.setAttribute("data-context-window", "true");
+    existing.style.zIndex = `${MIN_Z_INDEX + 8}`;
+    document.body.appendChild(existing);
+
+    await act(async () => {
+      render(
+        <ContextWindow
+          id={"counter-fallback"}
+          visible={true}
+          title={"Counter Fallback"}
+          minZIndex={MIN_Z_INDEX}
+          maxZIndex={MIN_Z_INDEX + 1}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    expect(existing.style.zIndex).toBe(`${MIN_Z_INDEX}`);
+    expect(document.body.getAttribute("data-context-window-reset-counter")).toBe("1");
+
+    existing.remove();
   });
 
   test("Accepts minZIndex prop and applies it correctly", async () => {
@@ -261,7 +456,7 @@ describe("Context window", () => {
     expect(win).toBeInTheDocument();
 
     // click should call provided handler
-    await act(async () => await user.click(win));
+    await user.click(win);
     expect(onClickCapture).toHaveBeenCalled();
 
     // zIndex should be at least the default MIN_Z_INDEX (3000)
