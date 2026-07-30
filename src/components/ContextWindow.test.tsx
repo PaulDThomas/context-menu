@@ -11,6 +11,11 @@ describe("Context window", () => {
       disconnect() {}
     };
   });
+  afterEach(() => {
+    document.body.removeAttribute("data-context-window-reset-counter");
+    document.body.removeAttribute("data-context-window-reset-source");
+  });
+
   test("Not there", async () => {
     await act(async () => {
       render(
