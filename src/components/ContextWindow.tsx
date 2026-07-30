@@ -14,7 +14,12 @@ import { useMouseMove } from "../functions/useMouseMove";
 import styles from "./ContextWindow.module.css";
 
 export const MIN_Z_INDEX = 3000;
+export const MAX_Z_INDEX = 3010;
 const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
+const CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR = "data-context-window-min-z-index";
+const CONTEXT_WINDOW_RESET_EVENT = "context-window-reset-z-index";
+const CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR = "data-context-window-reset-counter";
+const CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR = "data-context-window-reset-source";
 
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -26,6 +31,7 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
   style?: React.CSSProperties;
   children: React.ReactNode;
   minZIndex?: number;
+  maxZIndex?: number;
 }
 
 export interface ContextWindowHandle {
@@ -33,10 +39,13 @@ export interface ContextWindowHandle {
 }
 
 // Helper function to get the highest zIndex from all context windows in the DOM
-const getMaxZIndex = (componentMinZIndex: number): number => {
+const getMaxZIndex = (componentMinZIndex: number, currentWindow?: HTMLElement | null): number => {
   const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
   let maxZIndex = componentMinZIndex - 1;
   windows.forEach((win) => {
+    if (currentWindow && win === currentWindow) {
+      return;
+    }
     const zIndexStr = (win as HTMLElement).style.zIndex;
     if (zIndexStr) {
       const zIndex = parseInt(zIndexStr, 10);
@@ -46,6 +55,39 @@ const getMaxZIndex = (componentMinZIndex: number): number => {
     }
   });
   return maxZIndex;
+};
+
+const getWindowMinZIndex = (windowElement: HTMLElement, fallbackMinZIndex: number): number => {
+  const minZIndexAttr = windowElement.getAttribute(CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR);
+  const parsedMinZIndex = minZIndexAttr ? parseInt(minZIndexAttr, 10) : NaN;
+  return Number.isNaN(parsedMinZIndex) ? fallbackMinZIndex : parsedMinZIndex;
+};
+
+const markBodyResetState = (sourceWindowId?: string): void => {
+  const currentCounter = parseInt(
+    document.body.getAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR) ?? "0",
+    10,
+  );
+  const nextCounter = Number.isNaN(currentCounter) ? 1 : currentCounter + 1;
+  document.body.setAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR, `${nextCounter}`);
+
+  if (sourceWindowId) {
+    document.body.setAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR, sourceWindowId);
+    return;
+  }
+
+  document.body.removeAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
+};
+
+const resetAllWindowZIndexes = (fallbackMinZIndex: number, sourceWindowId?: string): void => {
+  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
+  windows.forEach((win) => {
+    const element = win as HTMLElement;
+    element.style.zIndex = `${getWindowMinZIndex(element, fallbackMinZIndex)}`;
+  });
+
+  markBodyResetState(sourceWindowId);
+  document.dispatchEvent(new Event(CONTEXT_WINDOW_RESET_EVENT));
 };
 
 export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>(
@@ -59,6 +101,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       onOpen,
       onClose,
       minZIndex = MIN_Z_INDEX,
+      maxZIndex = MAX_Z_INDEX,
       ...rest
     },
     ref,
@@ -111,11 +154,30 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       fitToViewport();
     }, [fitToViewport, move]);
 
+    const getRecalculatedMaxZIndex = useCallback(() => {
+      let maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
+      let resetApplied = false;
+
+      if (typeof maxZIndex === "number" && maxZIndexInUse >= maxZIndex) {
+        resetAllWindowZIndexes(minZIndex, id);
+        maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
+        resetApplied = true;
+      }
+
+      return { maxZIndexInUse, resetApplied };
+    }, [id, maxZIndex, minZIndex]);
+
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
-      const maxZIndex = getMaxZIndex(minZIndex);
-      setZIndex(maxZIndex + 1);
-    }, [minZIndex]);
+      const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
+      const nextZIndex = maxZIndexInUse + 1;
+      if (resetApplied && windowRef.current) {
+        windowRef.current.style.zIndex = `${nextZIndex}`;
+      }
+      setZIndex((currentZIndex) => {
+        return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
+      });
+    }, [getRecalculatedMaxZIndex]);
 
     const parseTranslate = (transform?: string): { x: number; y: number } => {
       const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
@@ -178,6 +240,21 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, [visible, windowInDOM, startTransition]);
 
+    useEffect(() => {
+      const handleResetZIndex = (): void => {
+        const sourceWindowId = document.body.getAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
+        if (sourceWindowId === id) {
+          return;
+        }
+        setZIndex(minZIndex);
+      };
+
+      document.addEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
+      return () => {
+        document.removeEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
+      };
+    }, [id, minZIndex]);
+
     // Position and show window after it's added to DOM
     useEffect(() => {
       if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
@@ -202,14 +279,20 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         }
 
         // Update z-index and make visible - use startTransition
-        const maxZ = getMaxZIndex(minZIndex);
+        const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
         onOpen?.();
         startTransition(() => {
-          setZIndex(maxZ + 1);
+          const nextZIndex = maxZIndexInUse + 1;
+          if (resetApplied && windowRef.current) {
+            windowRef.current.style.zIndex = `${nextZIndex}`;
+          }
+          setZIndex((currentZIndex) => {
+            return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
+          });
           setWindowVisible(true);
         });
       }
-    }, [windowInDOM, windowVisible, visible, minZIndex, onOpen, startTransition]);
+    }, [getRecalculatedMaxZIndex, onOpen, startTransition, visible, windowInDOM, windowVisible]);
 
     // When CSS resize handle is used, defer checkPosition until resize interaction ends.
     useEffect(() => {
@@ -240,6 +323,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
               ref={windowRef}
               id={id}
               {...{ [CONTEXT_WINDOW_DATA_ATTR]: "true" }}
+              {...{ [CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR]: `${minZIndex}` }}
               className={[styles.contextWindow, rest.className].filter((c) => c).join(" ")}
               style={{
                 ...rest.style,

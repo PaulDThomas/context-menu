@@ -38,7 +38,7 @@ export const ClickForMenu = ({
   };
 
   const removeController = useRef<AbortController | null>(null);
-  const removeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const removeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!menuVisible && removeTimeoutRef.current === null) {
       // Only create a new controller when scheduling a new timeout
