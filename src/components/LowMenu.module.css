@@ -59,3 +59,10 @@
   z-index: 1;
   position: relative;
 }
+
+.lowMenuItemCheck {
+  margin-left: 4px;
+  min-width: 1em;
+  display: inline-block;
+  text-align: center;
+}

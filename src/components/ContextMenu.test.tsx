@@ -325,6 +325,58 @@ describe("Context menu", () => {
     });
   });
 
+  test("Menu item with selected=true shows check mark", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            { label: "Selected Item", selected: true },
+            { label: "Unselected Item", selected: false },
+            { label: "No Selected Prop" },
+          ]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
+    // Find check spans: selected=true should show ✓, others should show &nbsp;
+    const selectedItem = screen.getByText("Selected Item");
+    const checkSpan = selectedItem.parentElement?.querySelector("[aria-hidden='true']");
+    expect(checkSpan).toBeInTheDocument();
+    expect(checkSpan?.textContent).toBe("\u2713");
+
+    const unselectedItem = screen.getByText("Unselected Item");
+    const uncheckSpan = unselectedItem.parentElement?.querySelector("[aria-hidden='true']");
+    expect(uncheckSpan?.textContent).toBe("\u00a0");
+  });
+
+  test("Menu item with selected=true and custom selectedIcon shows custom icon", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Custom Icon Item", selected: true, selectedIcon: "★" }]}
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    await act(async () => {
+      fireEvent.mouseEnter(testDiv);
+      fireEvent.contextMenu(testDiv);
+      jest.runAllTimers();
+    });
+    const item = screen.getByText("Custom Icon Item");
+    const checkSpan = item.parentElement?.querySelector("[aria-hidden='true']");
+    expect(checkSpan?.textContent).toBe("★");
+  });
+
   test("ContextMenu adjusts position when menu would overflow right of viewport", async () => {
     const originalInnerWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", {
