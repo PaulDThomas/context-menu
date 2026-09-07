@@ -30,6 +30,14 @@ export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
       }}
     >
       <span>{entry.label}</span>
+      {entry.selected && (
+        <span
+          className={styles.lowMenuItemCheck}
+          aria-hidden="true"
+        >
+          {entry.selectedIcon ?? "\u2713"}
+        </span>
+      )}
       {entry.group && <LowSubMenu entry={entry} />}
     </div>
   );

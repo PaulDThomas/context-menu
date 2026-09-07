@@ -1,6 +1,8 @@
 export interface IMenuItem {
   label: string | React.ReactElement;
   disabled?: boolean;
+  selected?: boolean;
+  selectedIcon?: React.ReactNode;
   action?: (target?: Range | null, reactEvent?: React.MouseEvent) => Promise<void> | void;
   group?: IMenuItem[];
 }

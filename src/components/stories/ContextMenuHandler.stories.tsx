@@ -155,3 +155,37 @@ export const NestedHandlers: Story = {
     </ContextMenuHandler>
   ),
 };
+
+const selectedMenuItems: IMenuItem[] = [
+  { label: "Option A", action: fn(), selected: true },
+  { label: "Option B", action: fn(), selected: false },
+  { label: "Option C (custom icon)", action: fn(), selected: true, selectedIcon: "★" },
+  { label: "Option D (disabled)", disabled: true, selected: true },
+];
+
+export const WithSelected: Story = {
+  args: {
+    menuItems: selectedMenuItems,
+    children: (
+      <div
+        style={{
+          padding: "40px",
+          backgroundColor: "lightyellow",
+          textAlign: "center",
+          cursor: "context-menu",
+        }}
+      >
+        Right click to see menu with selected items
+      </div>
+    ),
+  },
+};
+
+export const WithSelectedLowMenu: Story = {
+  args: {
+    menuItems: selectedMenuItems,
+    showLowMenu: true,
+    style: { width: "100%", backgroundColor: "lightyellow" },
+    children: <div style={{ padding: "10px" }}>Hover to see the low menu with selected items</div>,
+  },
+};

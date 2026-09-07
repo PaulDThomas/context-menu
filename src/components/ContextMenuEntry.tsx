@@ -31,6 +31,12 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
           : undefined
       }
     >
+      <span
+        className={styles.contextMenuItemCheck}
+        aria-hidden="true"
+      >
+        {entry.selected ? (entry.selectedIcon ?? "\u2713") : "\u00a0"}
+      </span>
       {typeof entry.label === "string" ? (
         <span
           aria-label={entry.label}

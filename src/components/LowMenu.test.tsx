@@ -187,4 +187,48 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
     expect(setColour).toHaveBeenCalledWith("cyan");
   });
+
+  test("LowMenu button shows check mark when selected=true", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[
+            { label: "Selected", selected: true },
+            { label: "Unselected", selected: false },
+            { label: "No Prop" },
+          ]}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    const testDiv = screen.getByTestId("inside-div");
+    fireEvent.mouseEnter(testDiv);
+
+    const selectedBtn = screen.getByLabelText("Selected");
+    const checkSpan = selectedBtn.querySelector("[aria-hidden='true']");
+    expect(checkSpan).toBeInTheDocument();
+    expect(checkSpan?.textContent).toBe("\u2713");
+
+    const unselectedBtn = screen.getByLabelText("Unselected");
+    expect(unselectedBtn.querySelector("[aria-hidden='true']")).not.toBeInTheDocument();
+  });
+
+  test("LowMenu button shows custom selectedIcon when provided", async () => {
+    await act(async () =>
+      render(
+        <ContextMenuHandler
+          menuItems={[{ label: "Custom", selected: true, selectedIcon: "★" }]}
+          showLowMenu
+        >
+          <div data-testid="inside-div" />
+        </ContextMenuHandler>,
+      ),
+    );
+    fireEvent.mouseEnter(screen.getByTestId("inside-div"));
+    const btn = screen.getByLabelText("Custom");
+    const checkSpan = btn.querySelector("[aria-hidden='true']");
+    expect(checkSpan?.textContent).toBe("★");
+  });
 });
