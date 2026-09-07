@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import React from "react";
 import { fn } from "storybook/test";
 import { ContextMenuHandler } from "../ContextMenuHandler";
 import { IMenuItem } from "../interface";
@@ -179,6 +180,52 @@ export const WithSelected: Story = {
       </div>
     ),
   },
+  render: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [selected, setSelected] = React.useState<Record<string, boolean>>({
+      A: true,
+      B: false,
+      C: true,
+      D: true,
+    });
+    const items: IMenuItem[] = [
+      {
+        label: "Option A",
+        selected: selected.A,
+        action: () => setSelected((s) => ({ ...s, A: !s.A })),
+      },
+      {
+        label: "Option B",
+        selected: selected.B,
+        action: () => setSelected((s) => ({ ...s, B: !s.B })),
+      },
+      {
+        label: "Option C (custom icon)",
+        selected: selected.C,
+        selectedIcon: "★",
+        action: () => setSelected((s) => ({ ...s, C: !s.C })),
+      },
+      {
+        label: "Option D (disabled)",
+        disabled: true,
+        selected: selected.D,
+      },
+    ];
+    return (
+      <ContextMenuHandler menuItems={items}>
+        <div
+          style={{
+            padding: "40px",
+            backgroundColor: "lightyellow",
+            textAlign: "center",
+            cursor: "context-menu",
+          }}
+        >
+          Right click to see menu with selected items (click an item to toggle its selection)
+        </div>
+      </ContextMenuHandler>
+    );
+  },
 };
 
 export const WithSelectedLowMenu: Story = {
@@ -187,5 +234,48 @@ export const WithSelectedLowMenu: Story = {
     showLowMenu: true,
     style: { width: "100%", backgroundColor: "lightyellow" },
     children: <div style={{ padding: "10px" }}>Hover to see the low menu with selected items</div>,
+  },
+  render: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [selected, setSelected] = React.useState<Record<string, boolean>>({
+      A: true,
+      B: false,
+      C: true,
+      D: true,
+    });
+    const items: IMenuItem[] = [
+      {
+        label: "Option A",
+        selected: selected.A,
+        action: () => setSelected((s) => ({ ...s, A: !s.A })),
+      },
+      {
+        label: "Option B",
+        selected: selected.B,
+        action: () => setSelected((s) => ({ ...s, B: !s.B })),
+      },
+      {
+        label: "Option C (custom icon)",
+        selected: selected.C,
+        selectedIcon: "★",
+        action: () => setSelected((s) => ({ ...s, C: !s.C })),
+      },
+      {
+        label: "Option D (disabled)",
+        disabled: true,
+        selected: selected.D,
+      },
+    ];
+    return (
+      <ContextMenuHandler
+        menuItems={items}
+        showLowMenu
+        style={{ width: "100%", backgroundColor: "lightyellow" }}
+      >
+        <div style={{ padding: "10px" }}>
+          Hover to see the low menu with selected items (click an item to toggle its selection)
+        </div>
+      </ContextMenuHandler>
+    );
   },
 };

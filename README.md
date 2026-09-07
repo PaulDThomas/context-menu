@@ -68,6 +68,17 @@ const menuItems: IMenuItem[] = [
 </ContextMenuHandler>;
 ```
 
+#### `IMenuItem` properties
+
+| Property       | Type                                              | Description                                                                           |
+| -------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `label`        | `string \| React.ReactElement`                    | Menu item text or element. Use `<hr />` to render a divider.                          |
+| `action`       | `(target?, reactEvent?) => void \| Promise<void>` | Called when the item is clicked.                                                      |
+| `disabled`     | `boolean`                                         | When `true` the item is rendered but not interactive.                                 |
+| `selected`     | `boolean`                                         | When `true` a `✓` is shown next to the item to indicate it is checked/active.         |
+| `selectedIcon` | `React.ReactNode`                                 | Replaces the default `✓` with any custom element or string when the item is selected. |
+| `group`        | `IMenuItem[]`                                     | Nested sub-menu items rendered as a flyout.                                           |
+
 ### AutoHeight
 
 Use `AutoHeight` to wrap content that may expand/contract — it will manage layout height for smoother transitions.
