@@ -181,7 +181,6 @@ export const WithSelected: Story = {
     ),
   },
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [selected, setSelected] = React.useState<Record<string, boolean>>({
       A: true,
       B: false,
@@ -236,7 +235,6 @@ export const WithSelectedLowMenu: Story = {
     children: <div style={{ padding: "10px" }}>Hover to see the low menu with selected items</div>,
   },
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [selected, setSelected] = React.useState<Record<string, boolean>>({
       A: true,
       B: false,
