@@ -5,10 +5,11 @@ import { IMenuItem } from "./interface";
 
 interface ContextMenuEntryProps {
   entry: IMenuItem;
+  selectedSpace: boolean;
   toClose: () => void;
 }
 
-export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
+export const ContextMenuEntry = ({ entry, selectedSpace, toClose }: ContextMenuEntryProps) => {
   const [target, setTarget] = useState<Range | null>(null);
   const [subMenuVisible, setSubMenuVisible] = useState<boolean>(false);
   return (
@@ -31,12 +32,14 @@ export const ContextMenuEntry = ({ entry, toClose }: ContextMenuEntryProps) => {
           : undefined
       }
     >
-      <span
-        className={styles.contextMenuItemCheck}
-        aria-hidden="true"
-      >
-        {entry.selected ? (entry.selectedIcon ?? "\u2713") : "\u00a0"}
-      </span>
+      {selectedSpace && (
+        <span
+          className={styles.contextMenuItemCheck}
+          aria-hidden="true"
+        >
+          {entry.selected ? (entry.selectedIcon ?? "\u2713") : "\u00a0"}
+        </span>
+      )}
       {typeof entry.label === "string" ? (
         <span
           aria-label={entry.label}

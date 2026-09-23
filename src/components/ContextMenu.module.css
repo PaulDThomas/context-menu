@@ -83,3 +83,10 @@
   display: inline-block;
   text-align: center;
 }
+
+.contextMenu hr {
+  flex-grow: 1;
+  cursor: none;
+  margin: 0;
+  padding: 0;
+}

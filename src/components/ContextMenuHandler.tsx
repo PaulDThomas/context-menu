@@ -24,7 +24,9 @@ export interface ContextMenuHandlerProps extends React.HTMLAttributes<HTMLDivEle
   showLowMenu?: boolean;
 }
 
-function isDivider(label: string | React.ReactElement): boolean {
+export function isDivider(
+  label: string | React.ReactElement,
+): label is React.ReactElement<HTMLHRElement> {
   return typeof label !== "string" && label.type === "hr";
 }
 
@@ -46,7 +48,7 @@ export const ContextMenuHandler = ({
             menuItems.length > 0 &&
             !isDivider(menuItems[0].label)
               ? {
-                  label: <hr style={{ flexGrow: 1, cursor: "none", margin: "0", padding: "0" }} />,
+                  label: <hr />,
                 }
               : null,
           ].filter((item) => item !== null),

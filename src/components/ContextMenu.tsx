@@ -1,6 +1,7 @@
-import React, { forwardRef, useLayoutEffect, useState } from "react";
+import React, { forwardRef, Fragment, useLayoutEffect, useState } from "react";
 import styles from "./ContextMenu.module.css";
 import { ContextMenuEntry } from "./ContextMenuEntry";
+import { isDivider } from "./ContextMenuHandler";
 import { IMenuItem } from "./interface";
 
 // Constants for menu size estimation when ref is not yet available
@@ -45,6 +46,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       xPos + menuWidth > window.innerWidth
         ? Math.max(window.innerWidth - menuWidth - ESTIMATED_MENU_PADDING, 0)
         : xPos;
+    const selectedSpace = entries.some((e) => e.selected !== undefined);
 
     return (
       <div
@@ -61,13 +63,18 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
           e.stopPropagation();
         }}
       >
-        {entries.map((entry, i) => (
-          <ContextMenuEntry
-            key={i}
-            entry={entry}
-            toClose={toClose}
-          />
-        ))}
+        {entries.map((entry, i) =>
+          isDivider(entry.label) ? (
+            <Fragment key={i}>{entry.label}</Fragment>
+          ) : (
+            <ContextMenuEntry
+              key={i}
+              entry={entry}
+              selectedSpace={selectedSpace}
+              toClose={toClose}
+            />
+          ),
+        )}
       </div>
     );
   },
