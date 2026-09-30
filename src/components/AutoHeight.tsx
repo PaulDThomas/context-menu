@@ -75,6 +75,8 @@ export function AutoHeight({
     if (!hide) {
       // Want to show: transition to open
       if (animationState === "closed" || animationState === "closing") {
+        // useEffectEvent creates stable callbacks that safely call setState within effects
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         transitionToOpening();
       }
       // If already opening or open, stay in that state
