@@ -18,6 +18,10 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     dockedWindows: new Map(),
     collapsedEdges: new Set(),
   });
+  const [activeWindowsByEdge, setActiveWindowsByEdge] = useState<Map<DockEdge, string>>(new Map());
+  const [panelContentHosts, setPanelContentHosts] = useState<Map<DockEdge, HTMLDivElement>>(
+    new Map(),
+  );
 
   const dock = useCallback((id: string, edge: DockEdge, stackDirection: StackDirection): void => {
     console.log("🔵 DockingContext.dock called:", { id, edge, stackDirection });
@@ -48,23 +52,57 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
       return newState;
     });
-  }, []);
-
-  const undock = useCallback((id: string): void => {
-    console.log("🟠 DockingContext.undock called:", { id });
-    setState((prevState) => {
-      const newState = {
-        ...prevState,
-        dockedWindows: new Map(prevState.dockedWindows),
-      };
-      newState.dockedWindows.delete(id);
-      console.log("🟠 DockingContext.undock - state updated:", {
-        id,
-        allDockedWindows: Array.from(newState.dockedWindows.keys()),
-      });
-      return newState;
+    setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
+      const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
+      nextActiveWindowsByEdge.set(edge, id);
+      return nextActiveWindowsByEdge;
     });
   }, []);
+
+  const undock = useCallback(
+    (id: string): void => {
+      console.log("🟠 DockingContext.undock called:", { id });
+      let removedEdge: DockEdge | null = null;
+      let nextWindowOnEdgeId: string | null = null;
+      let removedWindowWasActive = false;
+
+      setState((prevState): DockingState => {
+        const newState = {
+          ...prevState,
+          dockedWindows: new Map(prevState.dockedWindows),
+        };
+        const removedWindow = newState.dockedWindows.get(id);
+        newState.dockedWindows.delete(id);
+        console.log("🟠 DockingContext.undock - state updated:", {
+          id,
+          allDockedWindows: Array.from(newState.dockedWindows.keys()),
+        });
+
+        if (removedWindow) {
+          removedEdge = removedWindow.edge;
+          const nextWindowOnEdge = Array.from(newState.dockedWindows.values())
+            .filter((window) => window.edge === removedWindow.edge)
+            .sort((a, b) => a.order - b.order)[0];
+          nextWindowOnEdgeId = nextWindowOnEdge ? nextWindowOnEdge.id : null;
+          removedWindowWasActive = activeWindowsByEdge.get(removedWindow.edge) === id;
+        }
+
+        return newState;
+      });
+      if (removedEdge !== null && removedWindowWasActive) {
+        setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
+          const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
+          if (nextWindowOnEdgeId) {
+            nextActiveWindowsByEdge.set(removedEdge!, nextWindowOnEdgeId);
+          } else {
+            nextActiveWindowsByEdge.delete(removedEdge!);
+          }
+          return nextActiveWindowsByEdge;
+        });
+      }
+    },
+    [activeWindowsByEdge],
+  );
 
   const toggleCollapse = useCallback((id: string): void => {
     setState((prevState) => {
@@ -127,11 +165,57 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     });
   }, []);
 
+  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
+    setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
+      if (prevActiveWindowsByEdge.get(edge) === id) {
+        return prevActiveWindowsByEdge;
+      }
+      const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
+      nextActiveWindowsByEdge.set(edge, id);
+      return nextActiveWindowsByEdge;
+    });
+  }, []);
+
+  const getActiveWindowOnEdge = useCallback(
+    (edge: DockEdge): string | null => {
+      return activeWindowsByEdge.get(edge) ?? null;
+    },
+    [activeWindowsByEdge],
+  );
+
+  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
+    setPanelContentHosts((prevPanelContentHosts) => {
+      const currentHost = prevPanelContentHosts.get(edge) ?? null;
+      if (currentHost === host) {
+        return prevPanelContentHosts;
+      }
+
+      const nextPanelContentHosts = new Map(prevPanelContentHosts);
+      if (host) {
+        nextPanelContentHosts.set(edge, host);
+      } else {
+        nextPanelContentHosts.delete(edge);
+      }
+      return nextPanelContentHosts;
+    });
+  }, []);
+
+  const getPanelContentHost = useCallback(
+    (edge: DockEdge): HTMLDivElement | null => {
+      return panelContentHosts.get(edge) ?? null;
+    },
+    [panelContentHosts],
+  );
+
   const contextValue: DockingContextType = {
     state,
     dock,
     undock,
     toggleCollapse,
+    setActiveWindowOnEdge,
+    getActiveWindowOnEdge,
+    setPanelContentHost,
+    getPanelContentHost,
     getDockedWindow,
     getWindowsOnEdge,
     isEdgeCollapsed,

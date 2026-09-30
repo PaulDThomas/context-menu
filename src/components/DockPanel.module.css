@@ -4,30 +4,28 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
   z-index: 2400;
   display: flex;
-  gap: 2px;
-  padding: 2px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .dockPanel.edge-top {
   top: 0;
   left: 0;
   right: 0;
-  flex-direction: row;
+  flex-direction: column;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-  max-height: 48px;
-  overflow-y: auto;
-  overflow-x: auto;
+  height: 35vh;
+  max-height: 320px;
 }
 
 .dockPanel.edge-bottom {
   bottom: 0;
   left: 0;
   right: 0;
-  flex-direction: row;
+  flex-direction: column;
   border-top: 1px solid rgba(0, 0, 0, 0.2);
-  max-height: 48px;
-  overflow-y: auto;
-  overflow-x: auto;
+  height: 35vh;
+  max-height: 320px;
 }
 
 .dockPanel.edge-left {
@@ -36,10 +34,7 @@
   bottom: 0;
   flex-direction: column;
   border-right: 1px solid rgba(0, 0, 0, 0.2);
-  width: 160px;
-  max-width: 25vw;
-  overflow-y: auto;
-  overflow-x: hidden;
+  width: min(35vw, 420px);
 }
 
 .dockPanel.edge-right {
@@ -48,10 +43,31 @@
   bottom: 0;
   flex-direction: column;
   border-left: 1px solid rgba(0, 0, 0, 0.2);
-  width: 160px;
-  max-width: 25vw;
-  overflow-y: auto;
-  overflow-x: hidden;
+  width: min(35vw, 420px);
+}
+
+.dockPanelContent {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dockPanelTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: rgb(246, 246, 246);
+}
+
+.dockPanel.edge-left .dockPanelTabs,
+.dockPanel.edge-right .dockPanelTabs {
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  max-height: 120px;
+  overflow: auto;
 }
 
 .dockTabButton {
@@ -74,4 +90,9 @@
 
 .dockTabButton:active {
   background-color: rgb(200, 200, 200);
+}
+
+.activeDockTabButton {
+  background-color: rgb(220, 232, 255);
+  border-color: rgba(43, 100, 205, 0.45);
 }

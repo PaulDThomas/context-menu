@@ -134,6 +134,15 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const docking = dockable && dockingContext ? dockingContext : null;
     const dockedWindow = docking?.getDockedWindow(id);
     const isDocked = !!dockedWindow;
+    const activeDockedWindowId =
+      isDocked && dockedWindow
+        ? (docking?.getActiveWindowOnEdge?.(dockedWindow.edge) ?? null)
+        : null;
+    const isActiveDockedWindow =
+      !isDocked || !dockedWindow || !activeDockedWindowId || activeDockedWindowId === id;
+    const dockPanelContentHost =
+      isDocked && dockedWindow ? (docking?.getPanelContentHost?.(dockedWindow.edge) ?? null) : null;
+    const portalTarget = dockPanelContentHost ?? document.body;
     const [targetSnapEdge, setTargetSnapEdge] = useState<DockEdge | null>(null);
     const targetSnapEdgeRef = useRef<DockEdge | null>(null);
     const [isDraggingForDock, setIsDraggingForDock] = useState<boolean>(false);
@@ -779,29 +788,18 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                   ...(isDocked ? {} : rest.style),
                   opacity: moving ? 0.8 : windowVisible ? 1 : 0,
                   visibility: windowVisible ? "visible" : "hidden",
+                  display: isDocked
+                    ? isActiveDockedWindow
+                      ? "flex"
+                      : "none"
+                    : rest.style?.display,
                   zIndex: zIndex,
                   minHeight: isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
                   minWidth: isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
-                  maxHeight: isDocked
-                    ? dockedWindow?.edge === "top" || dockedWindow?.edge === "bottom"
-                      ? "auto"
-                      : "100%"
-                    : (rest.style?.maxHeight ?? "1000px"),
-                  maxWidth: isDocked
-                    ? dockedWindow?.edge === "left" || dockedWindow?.edge === "right"
-                      ? "auto"
-                      : "100%"
-                    : (rest.style?.maxWidth ?? "1000px"),
-                  width: isDocked
-                    ? dockedWindow?.edge === "top" || dockedWindow?.edge === "bottom"
-                      ? "100%"
-                      : "auto"
-                    : rest.style?.width,
-                  height: isDocked
-                    ? dockedWindow?.edge === "left" || dockedWindow?.edge === "right"
-                      ? "100%"
-                      : "auto"
-                    : rest.style?.height,
+                  maxHeight: isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
+                  maxWidth: isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
+                  width: isDocked ? "100%" : rest.style?.width,
+                  height: isDocked ? "100%" : rest.style?.height,
                   // left: isDocked ? undefined : (rest.style?.left as any),
                   // top: isDocked ? undefined : (rest.style?.top as any),
                   // right: isDocked ? undefined : (rest.style?.right as any),
@@ -809,6 +807,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                   // transform: isDocked ? undefined : (rest.style?.transform as any),
                 }}
                 onClickCapture={(e) => {
+                  if (isDocked && dockedWindow) {
+                    docking?.setActiveWindowOnEdge?.(dockedWindow.edge, id);
+                  }
                   pushToTop();
                   rest.onClickCapture?.(e);
                 }}
@@ -886,7 +887,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 </div>
               </div>
             </>,
-            document.body,
+            portalTarget,
           )}
       </div>
     );

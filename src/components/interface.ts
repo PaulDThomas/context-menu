@@ -31,6 +31,10 @@ export interface DockingContextType {
   dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => void;
   undock: (id: string) => void;
   toggleCollapse: (id: string) => void;
+  setActiveWindowOnEdge?: (edge: DockEdge, id: string) => void;
+  getActiveWindowOnEdge?: (edge: DockEdge) => string | null;
+  setPanelContentHost?: (edge: DockEdge, host: HTMLDivElement | null) => void;
+  getPanelContentHost?: (edge: DockEdge) => HTMLDivElement | null;
   getDockedWindow: (id: string) => DockedWindow | undefined;
   getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
   isEdgeCollapsed: (edge: DockEdge) => boolean;
