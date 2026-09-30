@@ -19,6 +19,7 @@
   overflow: auto;
   max-height: 95vh;
   max-width: 95vw;
+  box-sizing: border-box;
 }
 
 .contextWindow.docked {
@@ -28,11 +29,12 @@
   box-shadow: none;
   border-radius: 0;
   z-index: 2500;
+  padding: 0;
 }
 
 .contextWindow.dockedTop {
   top: 0;
-  left: 0;
+  left: var(--tab-area-width, 0);
   right: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   border-top: none;
@@ -44,7 +46,7 @@
 
 .contextWindow.dockedBottom {
   bottom: 0;
-  left: 0;
+  left: var(--tab-area-width, 0);
   right: 0;
   border-top: 1px solid rgba(0, 0, 0, 0.2);
   border-bottom: none;
@@ -56,7 +58,7 @@
 
 .contextWindow.dockedLeft {
   left: 0;
-  top: 0;
+  top: var(--tab-area-height, 0);
   bottom: 0;
   border-right: 1px solid rgba(0, 0, 0, 0.2);
   border-left: none;
@@ -66,7 +68,7 @@
 
 .contextWindow.dockedRight {
   right: 0;
-  top: 0;
+  top: var(--tab-area-height, 0);
   bottom: 0;
   border-left: 1px solid rgba(0, 0, 0, 0.2);
   border-right: none;
@@ -83,10 +85,15 @@
   line-height: 28px;
   max-height: 28px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .contextWindow.docked .contextWindowBody {
-  height: calc(100% - 40px);
+  height: calc(100% - 28px);
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .contextWindow.dockedCollapsed {
@@ -184,6 +191,7 @@
   padding-bottom: 8px;
   margin-right: 4px;
   height: calc(100% - 40px);
+  box-sizing: border-box;
 }
 
 .contextWindowBody::-webkit-scrollbar {
