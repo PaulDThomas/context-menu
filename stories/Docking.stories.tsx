@@ -1,0 +1,591 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useRef, useState } from "react";
+import type { DockEdge, StackDirection } from "../src/components";
+import { ContextWindow, ContextWindowHandle, DockingProvider, DockPanel } from "../src/components";
+
+const meta = {
+  title: "Components/Docking",
+  parameters: {
+    layout: "fullscreen",
+  },
+} satisfies Meta;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+const dummyContent = (title: string) => (
+  <div style={{ padding: "15px" }}>
+    <h3 style={{ margin: "0 0 10px 0", fontSize: "14px" }}>{title}</h3>
+    <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#666" }}>
+      This is a dockable window. You can:
+    </p>
+    <ul style={{ margin: "0", paddingLeft: "20px", fontSize: "12px", color: "#666" }}>
+      <li>Drag near screen edges to snap-dock</li>
+      <li>Click the dock button to dock to right edge</li>
+      <li>Drag away from edge to undock</li>
+      <li>Click undock button when docked</li>
+    </ul>
+  </div>
+);
+
+export const KitchenSink: Story = {
+  render: () => {
+    const DockingKitchenSink = () => {
+      const [visibleWindows, setVisibleWindows] = useState<Record<string, boolean>>({
+        "window-1": true,
+        "window-2": true,
+        "window-3": true,
+        "window-4": true,
+        "window-5": false,
+      });
+
+      const windowRefs = useRef<Record<string, ContextWindowHandle | null>>({});
+
+      const toggleWindow = (id: string) => {
+        setVisibleWindows((prev) => ({
+          ...prev,
+          [id]: !prev[id],
+        }));
+      };
+
+      const handleDockWindow = (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+        const ref = windowRefs.current[id];
+        if (ref) {
+          ref.dock(edge, stackDirection);
+        }
+      };
+
+      return (
+        <DockingProvider>
+          <div
+            style={{
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "#f5f5f5",
+              display: "grid",
+              gridTemplateColumns: "160px 1fr 160px",
+              gridTemplateRows: "48px 1fr 48px",
+              gap: 0,
+              overflow: "hidden",
+            }}
+          >
+            {/* Top Panel */}
+            <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
+              <DockPanel edge="top" />
+            </div>
+
+            {/* Left Panel */}
+            <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
+              <DockPanel edge="left" />
+            </div>
+
+            {/* Center Content Area */}
+            <div
+              style={{
+                gridColumn: 2,
+                gridRow: 2,
+                position: "relative",
+                overflow: "auto",
+                padding: "20px",
+              }}
+            >
+              {/* Control Panel */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  left: "10px",
+                  backgroundColor: "white",
+                  border: "1px solid #ccc",
+                  borderRadius: "8px",
+                  padding: "15px",
+                  maxWidth: "300px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                }}
+              >
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "16px" }}>Docking Demo</h3>
+                <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#666" }}>
+                  Toggle windows and test docking behavior:
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {[
+                    { id: "window-1", label: "Window 1 (Right)" },
+                    { id: "window-2", label: "Window 2 (Bottom)" },
+                    { id: "window-3", label: "Window 3 (Left)" },
+                    { id: "window-4", label: "Window 4 (Top)" },
+                    { id: "window-5", label: "Window 5 (Free)" },
+                  ].map(({ id, label }) => (
+                    <label
+                      key={id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleWindows[id] ?? false}
+                        onChange={() => toggleWindow(id)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <div style={{ marginTop: "12px", fontSize: "11px", color: "#999" }}>
+                  💡 Drag windows near screen edges to snap-dock
+                </div>
+              </div>
+
+              {/* Windows container */}
+              <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                {/* Window 1: Dockable to Right */}
+                <ContextWindow
+                  ref={(ref) => {
+                    if (ref) windowRefs.current["window-1"] = ref;
+                  }}
+                  id="window-1"
+                  visible={visibleWindows["window-1"] ?? false}
+                  title="Window 1 - Right Docked"
+                  dockable={true}
+                  defaultStackDirection="vertical"
+                  onClose={() => toggleWindow("window-1")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  {dummyContent("Window 1 - Try dragging to right edge")}
+                  <button
+                    onClick={() => handleDockWindow("window-1", "right", "vertical")}
+                    style={{
+                      padding: "8px 12px",
+                      margin: "10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      backgroundColor: "#007bff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Dock to Right (Vertical)
+                  </button>
+                </ContextWindow>
+
+                {/* Window 2: Dockable to Bottom */}
+                <ContextWindow
+                  ref={(ref) => {
+                    if (ref) windowRefs.current["window-2"] = ref;
+                  }}
+                  id="window-2"
+                  visible={visibleWindows["window-2"] ?? false}
+                  title="Window 2 - Bottom Docked"
+                  dockable={true}
+                  defaultStackDirection="horizontal"
+                  onClose={() => toggleWindow("window-2")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  {dummyContent("Window 2 - Try dragging to bottom edge")}
+                  <button
+                    onClick={() => handleDockWindow("window-2", "bottom", "horizontal")}
+                    style={{
+                      padding: "8px 12px",
+                      margin: "10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Dock to Bottom (Horizontal)
+                  </button>
+                </ContextWindow>
+
+                {/* Window 3: Dockable to Left */}
+                <ContextWindow
+                  ref={(ref) => {
+                    if (ref) windowRefs.current["window-3"] = ref;
+                  }}
+                  id="window-3"
+                  visible={visibleWindows["window-3"] ?? false}
+                  title="Window 3 - Left Docked"
+                  dockable={true}
+                  defaultStackDirection="vertical"
+                  onClose={() => toggleWindow("window-3")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  {dummyContent("Window 3 - Try dragging to left edge")}
+                  <button
+                    onClick={() => handleDockWindow("window-3", "left", "vertical")}
+                    style={{
+                      padding: "8px 12px",
+                      margin: "10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      backgroundColor: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Dock to Left (Vertical)
+                  </button>
+                </ContextWindow>
+
+                {/* Window 4: Dockable to Top */}
+                <ContextWindow
+                  ref={(ref) => {
+                    if (ref) windowRefs.current["window-4"] = ref;
+                  }}
+                  id="window-4"
+                  visible={visibleWindows["window-4"] ?? false}
+                  title="Window 4 - Top Docked"
+                  dockable={true}
+                  defaultStackDirection="horizontal"
+                  onClose={() => toggleWindow("window-4")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  {dummyContent("Window 4 - Try dragging to top edge")}
+                  <button
+                    onClick={() => handleDockWindow("window-4", "top", "horizontal")}
+                    style={{
+                      padding: "8px 12px",
+                      margin: "10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      backgroundColor: "#ffc107",
+                      color: "black",
+                      border: "none",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Dock to Top (Horizontal)
+                  </button>
+                </ContextWindow>
+
+                {/* Window 5: Non-Dockable Window */}
+                <ContextWindow
+                  id="window-5"
+                  visible={visibleWindows["window-5"] ?? false}
+                  title="Window 5 - Non-Dockable"
+                  dockable={false}
+                  onClose={() => toggleWindow("window-5")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  <div style={{ padding: "15px" }}>
+                    <h3 style={{ margin: "0 0 10px 0", fontSize: "14px" }}>
+                      Window 5 - Non-Dockable
+                    </h3>
+                    <p style={{ margin: "0", fontSize: "12px", color: "#666" }}>
+                      This window is not dockable. Notice there's no dock button in the title bar.
+                      You can still drag it around normally.
+                    </p>
+                  </div>
+                </ContextWindow>
+
+                {/* Instructions */}
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "10px",
+                    left: "10px",
+                    backgroundColor: "white",
+                    border: "1px solid #ccc",
+                    borderRadius: "8px",
+                    padding: "15px",
+                    maxWidth: "350px",
+                    fontSize: "12px",
+                    color: "#333",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <h4 style={{ margin: "0 0 8px 0", fontSize: "14px" }}>Instructions:</h4>
+                  <ul style={{ margin: "0", paddingLeft: "18px" }}>
+                    <li>Drag windows within 24px of edges to see snap indicator</li>
+                    <li>Release to dock, or drag away to cancel</li>
+                    <li>Click dock button in title bar for quick docking</li>
+                    <li>Click undock button (or drag away) to undock</li>
+                    <li>Click window tab to toggle collapse/expand</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel */}
+            <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
+              <DockPanel edge="right" />
+            </div>
+
+            {/* Bottom Panel */}
+            <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
+              <DockPanel edge="bottom" />
+            </div>
+          </div>
+        </DockingProvider>
+      );
+    };
+
+    return <DockingKitchenSink />;
+  },
+};
+
+export const SingleDockableWindow: Story = {
+  render: () => {
+    const [visible, setVisible] = useState(true);
+    const windowRef = useRef<ContextWindowHandle>(null);
+
+    return (
+      <DockingProvider>
+        <div
+          style={{
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "#f5f5f5",
+            display: "grid",
+            gridTemplateColumns: "160px 1fr 160px",
+            gridTemplateRows: "48px 1fr 48px",
+            gap: 0,
+            overflow: "hidden",
+          }}
+        >
+          {/* Top Panel */}
+          <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
+            <DockPanel edge="top" />
+          </div>
+
+          {/* Left Panel */}
+          <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
+            <DockPanel edge="left" />
+          </div>
+
+          {/* Center Content Area */}
+          <div
+            style={{
+              gridColumn: 2,
+              gridRow: 2,
+              position: "relative",
+              overflow: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ContextWindow
+              ref={windowRef}
+              id="single-window"
+              visible={visible}
+              title="Single Dockable Window"
+              dockable={true}
+              defaultStackDirection="vertical"
+              onClose={() => setVisible(false)}
+              style={{ width: "400px", minHeight: "250px" }}
+            >
+              <div style={{ padding: "20px" }}>
+                <h2 style={{ margin: "0 0 15px 0" }}>Single Dockable Window</h2>
+                <p>Try dragging this window near any screen edge (within 24px).</p>
+                <p>You'll see a blue highlight indicating where it will dock.</p>
+                <button
+                  onClick={() => windowRef.current?.dock("right", "vertical")}
+                  style={{
+                    padding: "10px 15px",
+                    marginRight: "10px",
+                    cursor: "pointer",
+                    backgroundColor: "#007bff",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Dock to Right
+                </button>
+                <button
+                  onClick={() => windowRef.current?.undock()}
+                  style={{
+                    padding: "10px 15px",
+                    cursor: "pointer",
+                    backgroundColor: "#6c757d",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Undock
+                </button>
+              </div>
+            </ContextWindow>
+          </div>
+
+          {/* Right Panel */}
+          <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
+            <DockPanel edge="right" />
+          </div>
+
+          {/* Bottom Panel */}
+          <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
+            <DockPanel edge="bottom" />
+          </div>
+        </div>
+      </DockingProvider>
+    );
+  },
+};
+
+export const MultipleDockedWindows: Story = {
+  render: () => {
+    const [visibleWindows, setVisibleWindows] = useState({
+      w1: true,
+      w2: true,
+      w3: true,
+      w4: true,
+    });
+
+    const toggleWindow = (id: string) => {
+      setVisibleWindows((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    };
+
+    return (
+      <DockingProvider>
+        <div
+          style={{
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "#f5f5f5",
+            display: "grid",
+            gridTemplateColumns: "160px 1fr 160px",
+            gridTemplateRows: "auto 48px 1fr 48px",
+            gap: 0,
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              gridColumn: "1 / 4",
+              gridRow: 1,
+              padding: "20px",
+              backgroundColor: "white",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            <h2 style={{ margin: "0 0 15px 0" }}>Multiple Docked Windows</h2>
+            <div style={{ display: "flex", gap: "15px", fontSize: "14px" }}>
+              {[
+                { id: "w1", label: "Window 1" },
+                { id: "w2", label: "Window 2" },
+                { id: "w3", label: "Window 3" },
+                { id: "w4", label: "Window 4" },
+              ].map(({ id, label }) => (
+                <label
+                  key={id}
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={visibleWindows[id as keyof typeof visibleWindows] ?? false}
+                    onChange={() => toggleWindow(id)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Panel */}
+          <div style={{ gridColumn: "1 / 4", gridRow: 2, position: "relative" }}>
+            <DockPanel edge="top" />
+          </div>
+
+          {/* Left Panel */}
+          <div style={{ gridColumn: 1, gridRow: 3, position: "relative", overflow: "auto" }}>
+            <DockPanel edge="left" />
+          </div>
+
+          {/* Center Content Area */}
+          <div
+            style={{
+              gridColumn: 2,
+              gridRow: 3,
+              position: "relative",
+              overflow: "auto",
+              padding: "20px",
+            }}
+          >
+            {visibleWindows.w1 && (
+              <ContextWindow
+                id="w1"
+                visible={true}
+                title="Window 1 (Right)"
+                dockable={true}
+                defaultStackDirection="vertical"
+                onClose={() => toggleWindow("w1")}
+                style={{ width: "300px", minHeight: "150px" }}
+              >
+                <div style={{ padding: "10px", fontSize: "12px" }}>Window 1 Content</div>
+              </ContextWindow>
+            )}
+
+            {visibleWindows.w2 && (
+              <ContextWindow
+                id="w2"
+                visible={true}
+                title="Window 2 (Bottom)"
+                dockable={true}
+                defaultStackDirection="horizontal"
+                onClose={() => toggleWindow("w2")}
+                style={{ width: "300px", minHeight: "150px" }}
+              >
+                <div style={{ padding: "10px", fontSize: "12px" }}>Window 2 Content</div>
+              </ContextWindow>
+            )}
+
+            {visibleWindows.w3 && (
+              <ContextWindow
+                id="w3"
+                visible={true}
+                title="Window 3 (Left)"
+                dockable={true}
+                defaultStackDirection="vertical"
+                onClose={() => toggleWindow("w3")}
+                style={{ width: "300px", minHeight: "150px" }}
+              >
+                <div style={{ padding: "10px", fontSize: "12px" }}>Window 3 Content</div>
+              </ContextWindow>
+            )}
+
+            {visibleWindows.w4 && (
+              <ContextWindow
+                id="w4"
+                visible={true}
+                title="Window 4 (Top)"
+                dockable={true}
+                defaultStackDirection="horizontal"
+                onClose={() => toggleWindow("w4")}
+                style={{ width: "300px", minHeight: "150px" }}
+              >
+                <div style={{ padding: "10px", fontSize: "12px" }}>Window 4 Content</div>
+              </ContextWindow>
+            )}
+          </div>
+
+          {/* Right Panel */}
+          <div style={{ gridColumn: 3, gridRow: 3, position: "relative", overflow: "auto" }}>
+            <DockPanel edge="right" />
+          </div>
+
+          {/* Bottom Panel */}
+          <div style={{ gridColumn: "1 / 4", gridRow: 4, position: "relative" }}>
+            <DockPanel edge="bottom" />
+          </div>
+        </div>
+      </DockingProvider>
+    );
+  },
+};

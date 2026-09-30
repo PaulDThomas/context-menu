@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { ClickForMenu } from "../ClickForMenu";
-import { IMenuItem } from "../interface";
+import { ClickForMenu } from "../src/components/ClickForMenu";
+import type { IMenuItem } from "../src/components/interface";
 
 const meta = {
   title: "Components/ClickForMenu",
@@ -15,7 +15,6 @@ const meta = {
       },
     },
   },
-  tags: ["autodocs"],
 } satisfies Meta<typeof ClickForMenu>;
 
 export default meta;

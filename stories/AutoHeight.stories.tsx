@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { AutoHeight } from "../AutoHeight";
+import { AutoHeight } from "../src/components/AutoHeight";
 
 const meta = {
   title: "Components/AutoHeight",
@@ -8,7 +8,6 @@ const meta = {
   parameters: {
     layout: "centered",
   },
-  tags: ["autodocs"],
   argTypes: {
     hide: {
       control: "boolean",

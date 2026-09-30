@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import React from "react";
 import { fn } from "storybook/test";
-import { ContextMenuHandler } from "../ContextMenuHandler";
-import { IMenuItem } from "../interface";
+import { ContextMenuHandler } from "../src/components/ContextMenuHandler";
+import type { IMenuItem } from "../src/components/interface";
 
 const meta = {
   title: "Components/ContextMenuHandler",
@@ -16,7 +16,6 @@ const meta = {
       },
     },
   },
-  tags: ["autodocs"],
 } satisfies Meta<typeof ContextMenuHandler>;
 
 export default meta;
