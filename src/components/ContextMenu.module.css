@@ -27,11 +27,10 @@
 }
 
 .contextMenu hr {
-  min-height: 4px;
-  max-height: 4px;
   flex-grow: 1;
   cursor: none;
-  margin: 0;
+  margin-top: 4px;
+  margin-bottom: 8px;
   padding: 0;
 }
 
@@ -46,7 +45,7 @@
 .contextMenuItem {
   color: rgb(17, 20, 24);
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 8px;
   min-width: 80px;
   position: relative;
   display: flex;

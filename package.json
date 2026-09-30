@@ -1,6 +1,6 @@
 {
   "name": "@asup/context-menu",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "REACT Typescript Context menu component",
   "author": "Paul Thomas <@PaulDThomas>",
   "private": false,
@@ -108,7 +108,7 @@
   },
   "@parcel/transformer-css": {
     "cssModules": {
-      "pattern": "aiw-[name]-[hash]-[local]",
+      "pattern": "acxtm-[name]-[local]",
       "dashedIndents": true
     }
   },

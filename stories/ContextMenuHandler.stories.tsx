@@ -56,12 +56,13 @@ const nestedMenuItems: IMenuItem[] = [
     ],
   },
   { label: "Green", action: fn() },
+  { label: <hr /> },
   {
     label: "Blue colors",
     action: fn(),
     group: [
       { label: "Light blue", action: fn() },
-      { label: "Cyan", action: fn() },
+      { label: "Cyan", action: fn(), selected: true },
       { label: "Dark blue", action: fn() },
     ],
   },
