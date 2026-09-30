@@ -405,6 +405,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         }
         // CRITICAL: Arm the global interaction end listener so onInteractionEnd fires for this window
         armInteractionEnd();
+        // Prevent scrollbars from appearing when window is dragged outside viewport
+        document.body.style.overflow = "hidden";
         pushToTop();
       },
       onMouseMove: (e: MouseEvent) => {
@@ -488,6 +490,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         isInInteractionRef.current = false;
         // Safety cleanup - ensure snap indicator clears even if onInteractionEnd doesn't fire
         setTargetSnapEdge(null);
+        // Restore normal scrollbar behavior after drag ends
+        document.body.style.overflow = "";
       },
       onInteractionEnd: () => {
         // Guard: only process if this window is actually in an interaction

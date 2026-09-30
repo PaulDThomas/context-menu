@@ -728,6 +728,43 @@ onMouseDown: () => {
 
 ---
 
+### Preventing Scrollbars During Drag
+
+When a window is dragged, especially pre-snap or when undocking, it may move outside the viewport bounds. Without special handling, the browser automatically adds scrollbars to accommodate the off-screen elements, creating visual jitter.
+
+**Solution: Lock Scrollbars During Drag**
+
+```typescript
+onMouseDown: () => {
+  // ... other setup ...
+  // Prevent scrollbars from appearing when window is dragged outside viewport
+  document.body.style.overflow = "hidden";
+  armInteractionEnd();
+  pushToTop();
+};
+
+onMouseUp: () => {
+  // ... other cleanup ...
+  // Restore normal scrollbar behavior after drag ends
+  document.body.style.overflow = "";
+};
+```
+
+**How it works:**
+
+1. When drag starts (`onMouseDown`): Set `document.body.overflow = 'hidden'` to prevent scrollbars
+2. User drags window anywhere, including outside viewport - no scrollbars appear
+3. When drag ends (`onMouseUp`): Clear the override to restore normal scrollbar behavior
+4. Window snaps to dock or settles in viewport - scrollbars only appear if actually needed by page content
+
+**Benefits:**
+
+- Smooth drag experience without visual jitter from scrollbar appearance/disappearance
+- Prevents layout shift when scrollbars toggle on/off
+- Works for both floating and docking scenarios
+
+---
+
 ### Three Layers of Protection Against Stale Closures & Duplicate Processing
 
 The component uses three complementary refs to handle complex re-render scenarios:
