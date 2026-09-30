@@ -644,6 +644,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
     // This effect derives state from props, which is acceptable when there's no synchronous setState
     useEffect(() => {
+      if (!visible && isDocked && docking) {
+        docking.undock(id);
+      }
+    }, [visible, isDocked, docking, id]);
+
+    useEffect(() => {
       if (visible && !windowInDOM) {
         // Window should be in DOM when visible becomes true
         startTransition(() => {

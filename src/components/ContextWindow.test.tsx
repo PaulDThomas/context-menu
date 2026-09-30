@@ -1,8 +1,9 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
 import { ContextWindow, ContextWindowHandle, MIN_Z_INDEX } from "./ContextWindow";
-import { DockingContext } from "./DockingContext";
+import { DockPanel } from "./DockPanel";
+import { DockingContext, DockingProvider } from "./DockingContext";
 import type { DockEdge, DockedWindow, DockingContextType, StackDirection } from "./interface";
 
 describe("Context window", () => {
@@ -1287,6 +1288,54 @@ describe("Context window", () => {
 
     await act(async () => {
       render(<TestComponent />);
+    });
+
+    test("Closing the only docked window removes the edge DockPanel and tab button", async () => {
+      const user = userEvent.setup();
+
+      const TestComponent = (): React.ReactElement => {
+        const [visible, setVisible] = useState<boolean>(true);
+        const ref = useRef<ContextWindowHandle>(null);
+
+        useEffect(() => {
+          ref.current?.dock("right", "vertical");
+        }, []);
+
+        return (
+          <DockingProvider>
+            <DockPanel edge="right" />
+            <ContextWindow
+              ref={ref}
+              id="single-docked-window"
+              visible={visible}
+              title="Single Docked Window"
+              dockable={true}
+              onClose={() => setVisible(false)}
+            >
+              <span>Docked content</span>
+            </ContextWindow>
+          </DockingProvider>
+        );
+      };
+
+      await act(async () => {
+        render(<TestComponent />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "single-docked-window" })).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByLabelText("Close");
+      await act(async () => {
+        await user.click(closeButton);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("button", { name: "single-docked-window" }),
+        ).not.toBeInTheDocument();
+      });
     });
 
     // First dock the window
