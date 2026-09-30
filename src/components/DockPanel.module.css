@@ -1,0 +1,77 @@
+.dockPanel {
+  position: fixed;
+  background-color: rgb(240, 240, 240);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  z-index: 2400;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+
+.dockPanel.edge-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  max-height: 48px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.dockPanel.edge-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+  max-height: 48px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.dockPanel.edge-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  width: 160px;
+  max-width: 25vw;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dockPanel.edge-right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+  width: 160px;
+  max-width: 25vw;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dockTabButton {
+  padding: 4px 6px;
+  background-color: rgb(250, 250, 250);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dockTabButton:hover {
+  background-color: rgb(230, 230, 230);
+}
+
+.dockTabButton:active {
+  background-color: rgb(200, 200, 200);
+}

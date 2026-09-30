@@ -21,6 +21,83 @@
   max-width: 95vw;
 }
 
+.contextWindow.docked {
+  position: fixed;
+  resize: none;
+  transform: none !important;
+  box-shadow: none;
+  border-radius: 0;
+  z-index: 2500;
+}
+
+.contextWindow.dockedTop {
+  top: 0;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.contextWindow.dockedBottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+  border-bottom: none;
+  border-left: none;
+  border-right: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.contextWindow.dockedLeft {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  border-left: none;
+  border-top: none;
+  border-bottom: none;
+}
+
+.contextWindow.dockedRight {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+}
+
+.contextWindow.docked .contextWindowTitle {
+  cursor: move;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  margin: 0;
+  padding: 4px;
+  height: 28px;
+  line-height: 28px;
+  max-height: 28px;
+  width: 100%;
+}
+
+.contextWindow.docked .contextWindowBody {
+  height: calc(100% - 40px);
+}
+
+.contextWindow.dockedCollapsed {
+  height: 28px;
+  width: auto;
+}
+
+.contextWindow.dockedCollapsed .contextWindowBody {
+  display: none;
+}
+
 .contextWindowTitle {
   border-bottom: 1px black dashed;
   box-sizing: unset;
@@ -64,6 +141,42 @@
 .contextWindowTitleClose:hover {
   background-color: black;
   color: white;
+}
+
+.dockButton {
+  display: flex;
+  color: black;
+  height: 16px;
+  width: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  cursor: pointer;
+  line-height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.dockButton:hover {
+  background-color: #e0e0e0;
+}
+
+.undockButton {
+  display: flex;
+  color: black;
+  height: 16px;
+  width: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  cursor: pointer;
+  line-height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.undockButton:hover {
+  background-color: #e0e0e0;
 }
 
 .contextWindowBody {
