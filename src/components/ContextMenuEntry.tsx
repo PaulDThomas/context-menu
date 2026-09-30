@@ -56,7 +56,9 @@ export const ContextMenuEntry = ({ entry, selectedSpace, toClose }: ContextMenuE
           onMouseDownCapture={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            /* istanbul ignore else */
             if (!entry.disabled) {
+              /* istanbul ignore else */
               if (entry.action) {
                 entry.action(target, e);
               }

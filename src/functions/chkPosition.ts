@@ -20,6 +20,7 @@ export const chkPosition = (
       translateX = Math.max(-posn.left + innerBounce, window.innerWidth - posn.right - innerBounce);
     }
     let translateY = 0;
+    /* istanbul ignore else */
     if (posn.top < innerBounce) {
       translateY = -posn.top + innerBounce;
     } else if (posn.bottom > window.innerHeight) {

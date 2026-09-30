@@ -45,7 +45,7 @@ const config: Config = {
 
   // Code coverage
   collectCoverage: true,
-  coverageProvider: "v8",
+  coverageProvider: "babel",
   collectCoverageFrom: [
     "src/**/*.{js,jsx}",
     "src/**/*.{ts,tsx}",

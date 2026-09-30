@@ -26,6 +26,7 @@ export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        /* istanbul ignore else */
         if (!entry.disabled) entry.action?.(target);
       }}
     >

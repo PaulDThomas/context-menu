@@ -2,13 +2,15 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
 import { ContextWindow, ContextWindowHandle, MIN_Z_INDEX } from "./ContextWindow";
+import { DockingContext } from "./DockingContext";
+import type { DockEdge, DockedWindow, DockingContextType, StackDirection } from "./interface";
 
 describe("Context window", () => {
   beforeEach(() => {
-    global.ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+    window.ResizeObserver = class {
+      observe = jest.fn();
+      unobserve = jest.fn();
+      disconnect = jest.fn();
     };
   });
   afterEach(() => {
@@ -663,7 +665,8 @@ describe("Context window", () => {
 
   test("ResizeObserver callback attaches mouseup listener and calls checkPosition on release", async () => {
     let observerCallback: ResizeObserverCallback | null = null;
-    global.ResizeObserver = class {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
         observerCallback = callback;
       }
@@ -851,7 +854,8 @@ describe("Context window", () => {
 
   test("ResizeObserver cleanup removes pending mouseup listener when window is hidden", async () => {
     let observerCallback: ResizeObserverCallback | null = null;
-    global.ResizeObserver = class {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
         observerCallback = callback;
       }
@@ -1053,21 +1057,18 @@ describe("Context window", () => {
     expect(document.getElementById("window-c")).toBeInTheDocument();
 
     // Simulate drag on window-b
-    const windowB = document.getElementById("window-b") as HTMLElement;
-    const titleBar = windowB.querySelector("[role='heading']") as HTMLElement;
+    const titleBar = screen.getByTitle("Window B").closest("div") as HTMLElement;
 
-    if (titleBar) {
-      await act(async () => {
-        fireEvent.mouseDown(titleBar, { button: 0 });
-        fireEvent.mouseMove(titleBar, { movementX: 10, movementY: 10 });
-        fireEvent.mouseUp(titleBar);
-      });
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { button: 0 });
+      fireEvent.mouseMove(titleBar, { movementX: 10, movementY: 10 });
+      fireEvent.mouseUp(titleBar);
+    });
 
-      // After drag, verify windows still exist and are properly positioned
-      expect(document.getElementById("window-a")).toBeInTheDocument();
-      expect(document.getElementById("window-b")).toBeInTheDocument();
-      expect(document.getElementById("window-c")).toBeInTheDocument();
-    }
+    // After drag, verify windows still exist and are properly positioned
+    expect(document.getElementById("window-a")).toBeInTheDocument();
+    expect(document.getElementById("window-b")).toBeInTheDocument();
+    expect(document.getElementById("window-c")).toBeInTheDocument();
   });
 
   test("isDockedAtStartRef captures isDocked state at interaction start", async () => {
@@ -1167,7 +1168,8 @@ describe("Context window", () => {
     });
 
     const window = document.getElementById("no-snap-window") as HTMLElement;
-    const initialStyle = window.getAttribute("style");
+    // Note: initialStyle is not used but kept for potential future use
+    // const initialStyle = window.getAttribute("style");
 
     // Drag in middle of screen (away from edges, won't trigger snap)
     await act(async () => {
@@ -1178,5 +1180,2037 @@ describe("Context window", () => {
 
     // Verify window is still floating (not docked)
     expect(window.classList.contains("docked")).toBe(false);
+  });
+
+  test("dock ref method docks window to specified edge", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge, stackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="ref-dock-test"
+            visible={true}
+            title="Ref Dock Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    await act(async () => {
+      _capturedRef?.current?.dock("right", "vertical");
+    });
+
+    const window = document.getElementById("ref-dock-test") as HTMLElement;
+    expect(window).toBeInTheDocument();
+    expect(dockingState.has("ref-dock-test")).toBe(true);
+  });
+
+  test("undock ref method undocks window", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="ref-undock-test"
+            visible={true}
+            title="Ref Undock Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // First dock the window
+    await act(async () => {
+      _capturedRef?.current?.dock("left", "horizontal");
+    });
+
+    expect(dockingState.has("ref-undock-test")).toBe(true);
+
+    // Then undock it
+    await act(async () => {
+      _capturedRef?.current?.undock();
+    });
+
+    expect(dockingState.has("ref-undock-test")).toBe(false);
+  });
+
+  test("Dock button triggers docking when not docked", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="dock-button-test"
+            visible={true}
+            title="Dock Button Test"
+            dockable={true}
+            defaultStackDirection="vertical"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Find and click dock button
+    const dockButton = screen.getByLabelText("Dock");
+    await user.click(dockButton);
+
+    const window = document.getElementById("dock-button-test") as HTMLElement;
+    expect(window).toBeInTheDocument();
+    expect(dockingState.has("dock-button-test")).toBe(true);
+  });
+
+  test("Undock button triggers undocking when docked", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-button-test"
+            visible={true}
+            title="Undock Button Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // First dock the window via ref
+    await act(async () => {
+      _capturedRef?.current?.dock("top", "horizontal");
+    });
+
+    expect(dockingState.has("undock-button-test")).toBe(true);
+
+    // Find and click undock button
+    const undockButton = screen.getByLabelText("Undock");
+    await user.click(undockButton);
+
+    expect(dockingState.has("undock-button-test")).toBe(false);
+  });
+
+  test("Dock button with blank title shows generic label", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: () => {},
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    await act(async () => {
+      render(
+        <MockDockingProvider>
+          <ContextWindow
+            id="blank-title-dock"
+            visible={true}
+            title=""
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    });
+
+    const dockButton = screen.getByLabelText("Dock");
+    expect(dockButton).toHaveAttribute("title", "Dock window");
+  });
+
+  test("Undock button with whitespace title shows generic label", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: () => {},
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="whitespace-title-undock"
+            visible={true}
+            title="   "
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Dock first
+    await act(async () => {
+      _capturedRef?.current?.dock("bottom", "horizontal");
+    });
+
+    const undockButton = screen.getByLabelText("Undock");
+    expect(undockButton).toHaveAttribute("title", "Undock window");
+  });
+
+  test("Undock from top edge via drag beyond threshold", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-from-top"
+            visible={true}
+            title="Undock From Top"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Dock to top
+    await act(async () => {
+      _capturedRef?.current?.dock("top", "horizontal");
+    });
+    expect(dockingState.has("undock-from-top")).toBe(true);
+
+    const titleBar = screen.getByTitle("Undock From Top") as HTMLElement;
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 200, clientY: 30 });
+      fireEvent.mouseMove(document, { clientX: 200, clientY: 50, movementX: 0, movementY: 20 });
+    });
+
+    expect(dockingState.has("undock-from-top")).toBe(false);
+  });
+
+  test("Undock from bottom edge via drag beyond threshold", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-from-bottom"
+            visible={true}
+            title="Undock From Bottom"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
+
+    try {
+      await act(async () => {
+        render(<TestComponent />);
+      });
+
+      // Dock to bottom
+      await act(async () => {
+        _capturedRef?.current?.dock("bottom", "horizontal");
+      });
+      expect(dockingState.has("undock-from-bottom")).toBe(true);
+
+      const titleBar = screen.getByTitle("Undock From Bottom") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(titleBar, { clientX: 200, clientY: 550 });
+        fireEvent.mouseMove(document, { clientX: 200, clientY: 520, movementX: 0, movementY: -30 });
+      });
+
+      expect(dockingState.has("undock-from-bottom")).toBe(false);
+    } finally {
+      Object.defineProperty(window, "innerHeight", { value: originalHeight, configurable: true });
+    }
+  });
+
+  test("Undock from left edge via drag beyond threshold", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-from-left"
+            visible={true}
+            title="Undock From Left"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Dock to left
+    await act(async () => {
+      _capturedRef?.current?.dock("left", "vertical");
+    });
+    expect(dockingState.has("undock-from-left")).toBe(true);
+
+    const titleBar = screen.getByTitle("Undock From Left") as HTMLElement;
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 30, clientY: 200 });
+      fireEvent.mouseMove(document, { clientX: 50, clientY: 200, movementX: 20, movementY: 0 });
+    });
+
+    expect(dockingState.has("undock-from-left")).toBe(false);
+  });
+
+  test("Undock from right edge via drag beyond threshold", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-from-right"
+            visible={true}
+            title="Undock From Right"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true });
+
+    try {
+      await act(async () => {
+        render(<TestComponent />);
+      });
+
+      // Dock to right
+      await act(async () => {
+        _capturedRef?.current?.dock("right", "vertical");
+      });
+      expect(dockingState.has("undock-from-right")).toBe(true);
+
+      const titleBar = screen.getByTitle("Undock From Right") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(titleBar, { clientX: 770, clientY: 200 });
+        fireEvent.mouseMove(document, { clientX: 750, clientY: 200, movementX: -20, movementY: 0 });
+      });
+
+      expect(dockingState.has("undock-from-right")).toBe(false);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { value: originalWidth, configurable: true });
+    }
+  });
+
+  test("Dockable window displays dock button when floating", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: () => {},
+        undock: () => {},
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: () => [],
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    await act(async () => {
+      render(
+        <MockDockingProvider>
+          <ContextWindow
+            id="dockable-button-test"
+            visible={true}
+            title="Dockable Window"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    });
+
+    const dockButton = screen.getByLabelText("Dock");
+    expect(dockButton).toBeInTheDocument();
+  });
+
+  test("Non-dockable window does not display dock button", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id="non-dockable-test"
+          visible={true}
+          title="Non-Dockable Window"
+          dockable={false}
+        >
+          <span>Content</span>
+        </ContextWindow>,
+      );
+    });
+
+    const dockButton = screen.queryByLabelText("Dock");
+    expect(dockButton).not.toBeInTheDocument();
+  });
+
+  test("Docked window displays undock button", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="docked-undock-button-test"
+            visible={true}
+            title="Docked Window"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Initially dock button should be visible
+    const dockButton = screen.getByLabelText("Dock");
+    expect(dockButton).toBeInTheDocument();
+
+    // Dock the window
+    await act(async () => {
+      _capturedRef?.current?.dock("left", "vertical");
+    });
+
+    // After docking, undock button should be visible
+    const undockButton = screen.getByLabelText("Undock");
+    expect(undockButton).toBeInTheDocument();
+
+    // Dock button should no longer be visible
+    const dockButtonAfter = screen.queryByLabelText("Dock");
+    expect(dockButtonAfter).not.toBeInTheDocument();
+  });
+
+  test("Snap detection for left edge triggers docking when mouse near left", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="snap-left-test"
+            visible={true}
+            title="Snap Left Test"
+            dockable={true}
+            defaultStackDirection="vertical"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Snap Left Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Simulate drag to left edge (clientX near 0)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 100, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 10, clientY: 300, movementX: -90, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window was docked to left
+    expect(dockingState.has("snap-left-test")).toBe(true);
+    const dockedWindow = dockingState.get("snap-left-test");
+    expect(dockedWindow?.edge).toBe("left");
+  });
+
+  test("Snap detection for right edge triggers docking", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="snap-right-test"
+            visible={true}
+            title="Snap Right Test"
+            dockable={true}
+            defaultStackDirection="vertical"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const origInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { value: 1024, configurable: true });
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Snap Right Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Simulate drag to right edge (clientX near window.innerWidth)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 900, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 1010, clientY: 300, movementX: 110, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window was docked to right
+    expect(dockingState.has("snap-right-test")).toBe(true);
+    const dockedWindow = dockingState.get("snap-right-test");
+    expect(dockedWindow?.edge).toBe("right");
+
+    Object.defineProperty(window, "innerWidth", { value: origInnerWidth, configurable: true });
+  });
+
+  test("Snap detection for top edge triggers docking", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="snap-top-test"
+            visible={true}
+            title="Snap Top Test"
+            dockable={true}
+            defaultStackDirection="horizontal"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Snap Top Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Simulate drag to top edge (clientY near 0)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 500, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 500, clientY: 10, movementX: 0, movementY: -290 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window was docked to top
+    expect(dockingState.has("snap-top-test")).toBe(true);
+    const dockedWindow = dockingState.get("snap-top-test");
+    expect(dockedWindow?.edge).toBe("top");
+  });
+
+  test("Snap detection for bottom edge triggers docking", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="snap-bottom-test"
+            visible={true}
+            title="Snap Bottom Test"
+            dockable={true}
+            defaultStackDirection="horizontal"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    const origInnerHeight = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", { value: 768, configurable: true });
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Snap Bottom Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Simulate drag to bottom edge (clientY near window.innerHeight)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 500, clientY: 500 });
+      fireEvent.mouseMove(document, { clientX: 500, clientY: 750, movementX: 0, movementY: 250 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window was docked to bottom
+    expect(dockingState.has("snap-bottom-test")).toBe(true);
+    const dockedWindow = dockingState.get("snap-bottom-test");
+    expect(dockedWindow?.edge).toBe("bottom");
+
+    Object.defineProperty(window, "innerHeight", { value: origInnerHeight, configurable: true });
+  });
+
+  test("Window docked, then dragged away from edge triggers undock", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="undock-by-drag-test"
+            visible={true}
+            title="Undock By Drag Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Dock the window to left
+    await act(async () => {
+      _capturedRef?.current?.dock("left", "vertical");
+    });
+
+    expect(dockingState.has("undock-by-drag-test")).toBe(true);
+
+    const titleBar = screen.getByTitle("Undock By Drag Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Now drag it away from left edge (mouse > UNDOCK_THRESHOLD)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 10, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 100, clientY: 300, movementX: 90, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Should have undocked
+    expect(dockingState.has("undock-by-drag-test")).toBe(false);
+  });
+
+  test("Undock is called when docking is null (early return)", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <ContextWindow
+          ref={ref}
+          id="undock-null-docking-test"
+          visible={true}
+          title="Undock Null Docking"
+          dockable={true}
+        >
+          <span>Content</span>
+        </ContextWindow>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Try to undock when not in a docking context (docking will be undefined)
+    await act(async () => {
+      _capturedRef?.current?.undock();
+    });
+
+    // Window should still exist and not crash
+    const window = document.getElementById("undock-null-docking-test");
+    expect(window).toBeInTheDocument();
+  });
+
+  test("Window not visible initially, becomes visible during drag", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="visibility-test"
+            visible={true}
+            title="Visibility Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Window should be visible
+    const windowElement = document.getElementById("visibility-test") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+
+    const titleBar = screen.getByTitle("Visibility Test") as HTMLElement;
+
+    // Drag it
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 400, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 450, clientY: 350, movementX: 50, movementY: 50 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Window should still be visible
+    const visibleWindow = document.getElementById("visibility-test") as HTMLElement;
+    expect(visibleWindow).not.toHaveStyle("display: none");
+  });
+
+  test("Snap hysteresis: stays snapped to edge when moving within hysteresis threshold", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="snap-hysteresis-test"
+            visible={true}
+            title="Snap Hysteresis Test"
+            dockable={true}
+            defaultStackDirection="vertical"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Snap Hysteresis Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // First drag: snap to left edge
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 100, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: 10, clientY: 300, movementX: -90, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    expect(dockingState.has("snap-hysteresis-test")).toBe(true);
+
+    // Get reference to the docked window before next drag test
+    expect(dockingState.get("snap-hysteresis-test")?.edge).toBe("left");
+  });
+
+  test("Window with position can be dragged", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="drag-window-test"
+            visible={true}
+            title="Drag Window Test"
+            dockable={false}
+            style={{ left: "100px", top: "100px" }}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Drag Window Test") as HTMLElement;
+    expect(titleBar).toBeInTheDocument();
+
+    // Drag the window
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 150, clientY: 115 });
+      fireEvent.mouseMove(document, { clientX: 200, clientY: 180, movementX: 50, movementY: 65 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window moved
+    const windowElement = document.getElementById("drag-window-test") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+  });
+
+  test("Window close button is clickable and calls onClose", async () => {
+    const onCloseMock = jest.fn();
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+
+      return (
+        <ContextWindow
+          ref={ref}
+          id="close-window-test"
+          visible={true}
+          title="Close Window Test"
+          onClose={onCloseMock}
+        >
+          <span>Content</span>
+        </ContextWindow>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Find and click the close button
+    const closeButton = screen.getByLabelText("Close") as HTMLElement;
+    expect(closeButton).toBeInTheDocument();
+
+    // Verify initial visibility
+    const windowElement = document.getElementById("close-window-test") as HTMLElement;
+    expect(windowElement).toHaveStyle("visibility: visible");
+
+    await act(async () => {
+      fireEvent.click(closeButton);
+    });
+
+    // Verify onClose callback was called
+    expect(onCloseMock).toHaveBeenCalled();
+  });
+
+  test("Window with custom styles maintains styles during drag", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="styled-drag-test"
+            visible={true}
+            title="Styled Drag Test"
+            dockable={true}
+            style={{ backgroundColor: "blue", minWidth: "300px" }}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const titleBar = screen.getByTitle("Styled Drag Test") as HTMLElement;
+
+    // Perform a drag operation
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 300, clientY: 200 });
+      fireEvent.mouseMove(document, { clientX: 400, clientY: 300, movementX: 100, movementY: 100 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Window should still be in DOM
+    const windowElement = document.getElementById("styled-drag-test") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+  });
+
+  test("Multiple windows: second window created after first maintains correct z-index", async () => {
+    let _firstRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    let _secondRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = () => {
+      const ref1 = useRef<ContextWindowHandle>(null);
+      const ref2 = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _firstRef = ref1;
+        _secondRef = ref2;
+      }, []);
+
+      return (
+        <>
+          <ContextWindow
+            ref={ref1}
+            id="z-index-window-1"
+            visible={true}
+            title="Window 1"
+          >
+            <span>Content 1</span>
+          </ContextWindow>
+          <ContextWindow
+            ref={ref2}
+            id="z-index-window-2"
+            visible={true}
+            title="Window 2"
+          >
+            <span>Content 2</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Get z-indexes
+    const window1 = document.getElementById("z-index-window-1") as HTMLElement;
+    const window2 = document.getElementById("z-index-window-2") as HTMLElement;
+    const zIndex1 = parseInt(window1.style.zIndex);
+    const zIndex2 = parseInt(window2.style.zIndex);
+
+    // Second window should have same or greater z-index
+    expect(zIndex2).toBeGreaterThanOrEqual(zIndex1);
+  });
+
+  test("Docking and undocking via ref methods works correctly", async () => {
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const dockingState = new Map<string, DockedWindow>();
+
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((w) => w.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+
+      return (
+        <MockDockingProvider>
+          <ContextWindow
+            ref={ref}
+            id="dock-undock-ref-test"
+            visible={true}
+            title="Dock Undock Ref Test"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </MockDockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Dock to right
+    await act(async () => {
+      _capturedRef?.current?.dock("right", "horizontal");
+    });
+    expect(dockingState.get("dock-undock-ref-test")?.edge).toBe("right");
+
+    // Undock
+    await act(async () => {
+      _capturedRef?.current?.undock();
+    });
+    expect(dockingState.has("dock-undock-ref-test")).toBe(false);
+
+    // Dock to bottom
+    await act(async () => {
+      _capturedRef?.current?.dock("bottom", "horizontal");
+    });
+    expect(dockingState.get("dock-undock-ref-test")?.edge).toBe("bottom");
+  });
+
+  test("Guard branches exit early without a docking provider", async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(
+        <ContextWindow
+          id="guard-no-docking"
+          visible={true}
+          title="Guard No Docking"
+          dockable={true}
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    const dockButton = screen.getByLabelText("Dock");
+    await act(async () => {
+      await user.click(dockButton);
+    });
+    expect(screen.getByLabelText("Dock")).toBeInTheDocument();
+
+    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    const RefComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        _capturedRef = ref;
+      }, []);
+      return (
+        <ContextWindow
+          ref={ref}
+          id="guard-undock-no-docking"
+          visible={true}
+          title="Guard Undock No Docking"
+          dockable={true}
+        >
+          <span>Body</span>
+        </ContextWindow>
+      );
+    };
+
+    await act(async () => {
+      render(<RefComponent />);
+    });
+
+    await act(async () => {
+      _capturedRef?.current?.undock();
+    });
+    expect(screen.getByText("Guard Undock No Docking")).toBeInTheDocument();
+  });
+
+  test("Mouseup without an active interaction exits without throwing", async () => {
+    await act(async () => {
+      render(
+        <ContextWindow
+          id="no-interaction-mouseup"
+          visible={true}
+          title="No Interaction Mouseup"
+        >
+          <span>Body</span>
+        </ContextWindow>,
+      );
+    });
+
+    expect(() => {
+      fireEvent.mouseUp(document);
+    }).not.toThrow();
+  });
+
+  test("Snap detection covers hysteresis and edge clearing paths", async () => {
+    const renderWindow = (id: string, title: string, dockable = true) => {
+      const dockingState = new Map<string, DockedWindow>();
+      const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+        const mockDocking: DockingContextType = {
+          state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+          dock: (dockId: string, edge: DockEdge, stackDirection: StackDirection) => {
+            dockingState.set(dockId, {
+              id: dockId,
+              edge,
+              stackDirection,
+              isCollapsed: false,
+              order: 0,
+            });
+          },
+          undock: (dockId: string) => {
+            dockingState.delete(dockId);
+          },
+          getDockedWindow: (dockId: string) => dockingState.get(dockId),
+          getWindowsOnEdge: (edge: DockEdge) =>
+            Array.from(dockingState.values()).filter((win) => win.edge === edge),
+          toggleCollapse: () => {},
+          isEdgeCollapsed: () => false,
+          toggleEdgeCollapse: () => {},
+        };
+        return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+      };
+
+      return render(
+        <MockDockingProvider>
+          <ContextWindow
+            id={id}
+            visible={true}
+            title={title}
+            dockable={dockable}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    };
+
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", { value: 800, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
+
+    try {
+      // Left snap hysteresis
+      const { unmount: unmountLeft } = renderWindow("snap-left-hysteresis", "Snap Left Hysteresis");
+      const leftTitle = screen.getByTitle("Snap Left Hysteresis") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(leftTitle, { clientX: 150, clientY: 200 });
+        fireEvent.mouseMove(document, { clientX: 10, clientY: 200, movementX: -140, movementY: 0 });
+        fireEvent.mouseMove(document, { clientX: 3, clientY: 200, movementX: -7, movementY: 0 });
+        fireEvent.mouseMove(document, { clientX: 100, clientY: 200, movementX: 97, movementY: 0 });
+      });
+      unmountLeft();
+
+      // Right snap hysteresis
+      const { unmount: unmountRight } = renderWindow(
+        "snap-right-hysteresis",
+        "Snap Right Hysteresis",
+      );
+      const rightTitle = screen.getByTitle("Snap Right Hysteresis") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(rightTitle, { clientX: 150, clientY: 200 });
+        fireEvent.mouseMove(document, { clientX: 790, clientY: 200, movementX: 640, movementY: 0 });
+        fireEvent.mouseMove(document, { clientX: 798, clientY: 200, movementX: 8, movementY: 0 });
+        fireEvent.mouseMove(document, {
+          clientX: 400,
+          clientY: 200,
+          movementX: -398,
+          movementY: 0,
+        });
+      });
+      unmountRight();
+
+      // Top snap hysteresis
+      const { unmount: unmountTop } = renderWindow("snap-top-hysteresis", "Snap Top Hysteresis");
+      const topTitle = screen.getByTitle("Snap Top Hysteresis") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(topTitle, { clientX: 150, clientY: 150 });
+        fireEvent.mouseMove(document, { clientX: 150, clientY: 10, movementX: 0, movementY: -140 });
+        fireEvent.mouseMove(document, { clientX: 150, clientY: 5, movementX: 0, movementY: -5 });
+        fireEvent.mouseMove(document, { clientX: 150, clientY: 250, movementX: 0, movementY: 245 });
+      });
+      unmountTop();
+
+      // Bottom snap hysteresis
+      const { unmount: unmountBottom } = renderWindow(
+        "snap-bottom-hysteresis",
+        "Snap Bottom Hysteresis",
+      );
+      const bottomTitle = screen.getByTitle("Snap Bottom Hysteresis") as HTMLElement;
+      await act(async () => {
+        fireEvent.mouseDown(bottomTitle, { clientX: 150, clientY: 150 });
+        fireEvent.mouseMove(document, { clientX: 150, clientY: 590, movementX: 0, movementY: 440 });
+        fireEvent.mouseMove(document, { clientX: 150, clientY: 596, movementX: 0, movementY: 6 });
+        fireEvent.mouseMove(document, {
+          clientX: 150,
+          clientY: 200,
+          movementX: 0,
+          movementY: -396,
+        });
+      });
+      unmountBottom();
+
+      expect(screen.queryByText("Snap Bottom Hysteresis")).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { value: originalWidth, configurable: true });
+      Object.defineProperty(window, "innerHeight", { value: originalHeight, configurable: true });
+    }
+  });
+
+  test("Undocking from a docked edge applies the header offset while dragging", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((win) => win.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    dockingState.set("undock-header-offset", {
+      id: "undock-header-offset",
+      edge: "left",
+      stackDirection: "vertical",
+      isCollapsed: false,
+      order: 0,
+    });
+
+    await act(async () => {
+      render(
+        <MockDockingProvider>
+          <ContextWindow
+            id="undock-header-offset"
+            visible={true}
+            title="Undock Header Offset"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    });
+
+    const titleBar = screen.getByTitle("Undock Header Offset") as HTMLElement;
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 120, clientY: 100 });
+      fireEvent.mouseMove(document, { clientX: 100, clientY: 100, movementX: 0, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    const windowElement = document.getElementById("undock-header-offset") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+    expect(windowElement.style.transform).toMatch(/translate\(-?\d+px, -?\d+px\)/);
+  });
+
+  test("Undocking from top edge applies correct undock logic", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((win) => win.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    dockingState.set("undock-top-edge", {
+      id: "undock-top-edge",
+      edge: "top",
+      stackDirection: "horizontal",
+      isCollapsed: false,
+      order: 0,
+    });
+
+    await act(async () => {
+      render(
+        <MockDockingProvider>
+          <ContextWindow
+            id="undock-top-edge"
+            visible={true}
+            title="Undock Top Edge"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    });
+
+    const titleBar = screen.getByTitle("Undock Top Edge") as HTMLElement;
+    // Move down from top edge (y: 50 -> 200, which is > UNDOCK_THRESHOLD of 20)
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 400, clientY: 50 });
+      fireEvent.mouseMove(document, { clientX: 400, clientY: 200, movementX: 0, movementY: 150 });
+      fireEvent.mouseUp(document);
+    });
+
+    const windowElement = document.getElementById("undock-top-edge") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+    // Verify the window is no longer docked
+    expect(dockingState.has("undock-top-edge")).toBe(false);
+  });
+
+  test("Undocking from bottom edge applies correct undock logic", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((win) => win.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", { value: 800, configurable: true });
+
+    try {
+      dockingState.set("undock-bottom-edge", {
+        id: "undock-bottom-edge",
+        edge: "bottom",
+        stackDirection: "horizontal",
+        isCollapsed: false,
+        order: 0,
+      });
+
+      await act(async () => {
+        render(
+          <MockDockingProvider>
+            <ContextWindow
+              id="undock-bottom-edge"
+              visible={true}
+              title="Undock Bottom Edge"
+              dockable={true}
+            >
+              <span>Body</span>
+            </ContextWindow>
+          </MockDockingProvider>,
+        );
+      });
+
+      const titleBar = screen.getByTitle("Undock Bottom Edge") as HTMLElement;
+      // Move up from bottom edge (y: 750 -> 600, which is < window.innerHeight (800) - UNDOCK_THRESHOLD (20) = 780)
+      await act(async () => {
+        fireEvent.mouseDown(titleBar, { clientX: 400, clientY: 750 });
+        fireEvent.mouseMove(document, {
+          clientX: 400,
+          clientY: 600,
+          movementX: 0,
+          movementY: -150,
+        });
+        fireEvent.mouseUp(document);
+      });
+
+      const windowElement = document.getElementById("undock-bottom-edge") as HTMLElement;
+      expect(windowElement).toBeInTheDocument();
+      // Verify the window is no longer docked
+      expect(dockingState.has("undock-bottom-edge")).toBe(false);
+    } finally {
+      Object.defineProperty(window, "innerHeight", { value: originalHeight, configurable: true });
+    }
+  });
+
+  test("Undocking from right edge applies correct undock logic", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((win) => win.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { value: 1000, configurable: true });
+
+    try {
+      dockingState.set("undock-right-edge", {
+        id: "undock-right-edge",
+        edge: "right",
+        stackDirection: "vertical",
+        isCollapsed: false,
+        order: 0,
+      });
+
+      await act(async () => {
+        render(
+          <MockDockingProvider>
+            <ContextWindow
+              id="undock-right-edge"
+              visible={true}
+              title="Undock Right Edge"
+              dockable={true}
+            >
+              <span>Body</span>
+            </ContextWindow>
+          </MockDockingProvider>,
+        );
+      });
+
+      const titleBar = screen.getByTitle("Undock Right Edge") as HTMLElement;
+      // Move left from right edge (x: 950 -> 800, which is < window.innerWidth (1000) - UNDOCK_THRESHOLD (20) = 980)
+      await act(async () => {
+        fireEvent.mouseDown(titleBar, { clientX: 950, clientY: 300 });
+        fireEvent.mouseMove(document, {
+          clientX: 800,
+          clientY: 300,
+          movementX: -150,
+          movementY: 0,
+        });
+        fireEvent.mouseUp(document);
+      });
+
+      const windowElement = document.getElementById("undock-right-edge") as HTMLElement;
+      expect(windowElement).toBeInTheDocument();
+      // Verify the window is no longer docked
+      expect(dockingState.has("undock-right-edge")).toBe(false);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { value: originalWidth, configurable: true });
+    }
+  });
+
+  test("Docked window drag without exceeding undock threshold does not undock", async () => {
+    const dockingState = new Map<string, DockedWindow>();
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
+      const mockDocking: DockingContextType = {
+        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
+        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
+        },
+        undock: (id: string) => {
+          dockingState.delete(id);
+        },
+        getDockedWindow: (id: string) => dockingState.get(id),
+        getWindowsOnEdge: (edge: DockEdge) =>
+          Array.from(dockingState.values()).filter((win) => win.edge === edge),
+        toggleCollapse: () => {},
+        isEdgeCollapsed: () => false,
+        toggleEdgeCollapse: () => {},
+      };
+      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
+    };
+
+    dockingState.set("no-undock-left", {
+      id: "no-undock-left",
+      edge: "left",
+      stackDirection: "vertical",
+      isCollapsed: false,
+      order: 0,
+    });
+
+    await act(async () => {
+      render(
+        <MockDockingProvider>
+          <ContextWindow
+            id="no-undock-left"
+            visible={true}
+            title="No Undock Left"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </MockDockingProvider>,
+      );
+    });
+
+    const titleBar = screen.getByTitle("No Undock Left") as HTMLElement;
+    // Move from clientX: 10 to clientX: 15 (both <= UNDOCK_THRESHOLD of 20, so no undock)
+    // For left edge, undock only if clientX > 20
+    await act(async () => {
+      fireEvent.mouseDown(titleBar, { clientX: 10, clientY: 100 });
+      fireEvent.mouseMove(document, { clientX: 15, clientY: 100, movementX: 5, movementY: 0 });
+      fireEvent.mouseUp(document);
+    });
+
+    // Verify window is still docked (did not undock)
+    expect(dockingState.has("no-undock-left")).toBe(true);
+    expect(dockingState.get("no-undock-left")?.edge).toBe("left");
   });
 });

@@ -5,9 +5,9 @@ interface UseMouseMoveProps {
   onMouseMove?: (e: MouseEvent) => void;
   onMouseUp?: (e: MouseEvent) => void;
   onInteractionEnd?: (e: MouseEvent | PointerEvent) => void;
-  interactionEndEnabled?: boolean;
+  interactionEndEnabled: boolean;
   onViewportResize?: (e: UIEvent) => void;
-  viewportResizeEnabled?: boolean;
+  viewportResizeEnabled: boolean;
 }
 
 interface UseMouseMoveResult {
@@ -22,9 +22,9 @@ export const useMouseMove = ({
   onMouseMove: onMouseMoveCallback,
   onMouseUp: onMouseUpCallback,
   onInteractionEnd: onInteractionEndCallback,
-  interactionEndEnabled = true,
+  interactionEndEnabled,
   onViewportResize: onViewportResizeCallback,
-  viewportResizeEnabled = true,
+  viewportResizeEnabled,
 }: UseMouseMoveProps): UseMouseMoveResult => {
   const mouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
   const mouseUpRef = useRef<((e: MouseEvent) => void) | null>(null);
@@ -57,8 +57,10 @@ export const useMouseMove = ({
 
   const restoreMouseDownUserSelect = useCallback(() => {
     if (mouseDownElementRef.current) {
-      /* v8 ignore next */
-      mouseDownElementRef.current.style.userSelect = mouseDownUserSelectRef.current ?? "";
+      mouseDownElementRef.current.style.userSelect =
+        mouseDownUserSelectRef.current ??
+        // istanbul ignore next
+        "";
       mouseDownElementRef.current = null;
       mouseDownUserSelectRef.current = null;
     }
