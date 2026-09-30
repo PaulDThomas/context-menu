@@ -101,7 +101,7 @@ const menuWithDivider: IMenuItem[] = [
   },
   { label: <hr /> },
   {
-    label: <span>This does nothing</span>,
+    label: <span style={{ padding: "0 4px", color: "red" }}>This does nothing</span>,
   },
 ];
 

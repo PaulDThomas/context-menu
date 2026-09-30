@@ -26,6 +26,15 @@
   transition: opacity 0.3s linear;
 }
 
+.contextMenu hr {
+  min-height: 4px;
+  max-height: 4px;
+  flex-grow: 1;
+  cursor: none;
+  margin: 0;
+  padding: 0;
+}
+
 .contextMenu.hidden {
   opacity: 0;
 }
@@ -75,18 +84,18 @@
 .contextMenuItemLabel {
   flex-grow: 1;
   height: 19px;
+  margin-right: 4px;
+}
+
+.contextMenuItemLabel:first-child {
+  margin-left: 4px;
 }
 
 .contextMenuItemCheck {
   margin-right: 4px;
+  width: 1em;
   min-width: 1em;
+  max-width: 1em;
   display: inline-block;
   text-align: center;
-}
-
-.contextMenu hr {
-  flex-grow: 1;
-  cursor: none;
-  margin: 0;
-  padding: 0;
 }
