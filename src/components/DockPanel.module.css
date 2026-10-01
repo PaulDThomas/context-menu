@@ -48,6 +48,8 @@
 
 .dockPanelContent {
   position: relative;
+  /* Own stacking context: keeps the docked window's z-index below the resize handle */
+  z-index: 0;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -95,4 +97,51 @@
 .activeDockTabButton {
   background-color: rgb(220, 232, 255);
   border-color: rgba(43, 100, 205, 0.45);
+}
+
+/* Drag handle on the panel's inner edge for resizing the panel */
+.resizeHandle {
+  position: absolute;
+  z-index: 1;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  outline: none;
+}
+
+.resizeHandle:hover,
+.resizeHandle:focus-visible,
+.resizeHandleActive {
+  background-color: rgba(43, 100, 205, 0.45);
+}
+
+.resizeHandle-left,
+.resizeHandle-right {
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.resizeHandle-left {
+  right: 0;
+}
+
+.resizeHandle-right {
+  left: 0;
+}
+
+.resizeHandle-top,
+.resizeHandle-bottom {
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+}
+
+.resizeHandle-top {
+  bottom: 0;
+}
+
+.resizeHandle-bottom {
+  top: 0;
 }
