@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ReactNode, useRef, useState } from "react";
-import type { DockEdge, StackDirection } from "../src/components";
-import { ContextWindow, ContextWindowHandle, DockingProvider, DockPanel } from "../src/components";
+import {
+  ContextWindow,
+  ContextWindowHandle,
+  DockingProvider,
+  DockPanel,
+  type DockEdge,
+  type StackDirection,
+} from "../src/components";
 
 const meta = {
   title: "Components/Docking",
@@ -284,8 +290,8 @@ export const KitchenSink: Story = {
                       Window 5 - Non-Dockable
                     </h3>
                     <p style={{ margin: "0", fontSize: "12px", color: "#666" }}>
-                      This window is not dockable. Notice there's no dock button in the title bar.
-                      You can still drag it around normally.
+                      This window is not dockable. Notice there&apos;s no dock button in the title
+                      bar. You can still drag it around normally.
                     </p>
                   </div>
                 </ContextWindow>
@@ -431,7 +437,7 @@ export const SingleDockableWindow: Story = {
               <div style={{ padding: "20px" }}>
                 <h2 style={{ margin: "0 0 15px 0" }}>Single Dockable Window</h2>
                 <p>Try dragging this window near any screen edge (within 24px).</p>
-                <p>You'll see a blue highlight indicating where it will dock.</p>
+                <p>You&apos;ll see a blue highlight indicating where it will dock.</p>
                 <button
                   onClick={() => windowRef.current?.dock("right", "vertical")}
                   style={{

@@ -1467,7 +1467,7 @@ describe("Context window", () => {
           } as DOMRect;
         }
         const left = parseFloat(this.style.left) || 900;
-        const top = parseFloat(this.style.top) || 100;
+        const top = parseFloat(this.style.top) || 700;
         return {
           left,
           top,
@@ -1492,9 +1492,11 @@ describe("Context window", () => {
 
       const undockedElement = document.getElementById("imperative-undock-bounce") as HTMLElement;
       expect(undockedElement.parentElement).toBe(document.body);
-      // innerWidth 1024: saved left 900 (right edge 1200) is clamped to 1024 - 300 - 16 before
-      // being applied, so the window never overflows the viewport
+      // innerWidth 1024 / innerHeight 768: saved left 900 / top 700 (overflowing right and bottom)
+      // are clamped to 1024 - 300 - 16 and 768 - 200 - 16 before being applied, so the window
+      // never overflows the viewport (which would add scrollbars)
       expect(undockedElement.style.left).toBe("708px");
+      expect(undockedElement.style.top).toBe("552px");
       expect(undockedElement.style.transform).toBe("translate(0px, 0px)");
     } finally {
       rectSpy.mockRestore();
@@ -3159,6 +3161,68 @@ describe("Context window", () => {
     expect(screen.queryByRole("button", { name: /left dock panel/ })).not.toBeInTheDocument();
   });
 
+  test("Docked windows render inside their DockPanel and only the active window is shown", async () => {
+    const TestComponent = () => {
+      const refA = useRef<ContextWindowHandle>(null);
+      const refB = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        refA.current?.dock("left", "vertical");
+        refB.current?.dock("left", "vertical");
+      }, []);
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          {(["a", "b"] as const).map((key) => (
+            <ContextWindow
+              key={key}
+              ref={key === "a" ? refA : refB}
+              id={`panel-window-${key}`}
+              visible={true}
+              title={`Panel Window ${key}`}
+              dockable={true}
+              style={{ width: "300px", left: "50px" }}
+            >
+              <span>Content {key}</span>
+            </ContextWindow>
+          ))}
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const windowA = document.getElementById("panel-window-a") as HTMLDivElement;
+    const windowB = document.getElementById("panel-window-b") as HTMLDivElement;
+    const content = windowA.parentElement as HTMLElement;
+    expect(content.className).toContain("dockPanelContent");
+    expect(windowB.parentElement).toBe(content);
+
+    // The newest docked window is active and fills the content area; floating styles are dropped
+    expect(windowB.style.display).toBe("flex");
+    expect(windowA.style.display).toBe("none");
+    expect(windowB.style.width).toBe("100%");
+    expect(windowB.style.height).toBe("100%");
+    expect(windowB.style.left).toBe("");
+    expect(windowB.className).toContain("docked");
+    expect(windowB.className).toContain("dockedLeft");
+
+    // Tab buttons switch the visible window
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "panel-window-a" }));
+    });
+    expect(windowA.style.display).toBe("flex");
+    expect(windowB.style.display).toBe("none");
+
+    // Clicking a docked window that is not active makes it the active one
+    await act(async () => {
+      fireEvent.click(screen.getByText("Content b"));
+    });
+    expect(windowB.style.display).toBe("flex");
+    expect(windowA.style.display).toBe("none");
+  });
+
   test("initialDockEdge opens the window inside its DockPanel and re-docks on reopen", async () => {
     let setVisible: (visible: boolean) => void = () => {};
 
@@ -3533,8 +3597,11 @@ describe("Context window", () => {
     });
 
     const titleBar = screen.getByTitle("Undock Header Offset") as HTMLElement;
+    // The mock provider is not reactive, so the mouse down/up are split to force re-renders
     await act(async () => {
       fireEvent.mouseDown(titleBar, { clientX: 120, clientY: 100 });
+    });
+    await act(async () => {
       fireEvent.mouseMove(document, { clientX: 100, clientY: 100, movementX: 0, movementY: 0 });
       fireEvent.mouseUp(document);
     });

@@ -83,66 +83,36 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     [bumpActivation],
   );
 
-  const undock = useCallback(
-    (id: string): void => {
-      console.log("🟠 DockingContext.undock called:", { id });
-      let removedEdge: DockEdge | null = null;
-      let nextWindowOnEdgeId: string | null = null;
-      let removedWindowWasActive = false;
-
-      setState((prevState): DockingState => {
-        const newState = {
-          ...prevState,
-          dockedWindows: new Map(prevState.dockedWindows),
-        };
-        const removedWindow = newState.dockedWindows.get(id);
-        newState.dockedWindows.delete(id);
-        console.log("🟠 DockingContext.undock - state updated:", {
-          id,
-          allDockedWindows: Array.from(newState.dockedWindows.keys()),
-        });
-
-        if (removedWindow) {
-          removedEdge = removedWindow.edge;
-          const nextWindowOnEdge = Array.from(newState.dockedWindows.values())
-            .filter((window) => window.edge === removedWindow.edge)
-            .sort((a, b) => a.order - b.order)[0];
-          nextWindowOnEdgeId = nextWindowOnEdge ? nextWindowOnEdge.id : null;
-          removedWindowWasActive = activeWindowsByEdge.get(removedWindow.edge) === id;
-          // An empty edge has no panel, so drop its pinned state
-          if (!nextWindowOnEdge && newState.collapsedEdges.has(removedWindow.edge)) {
-            const nextCollapsedEdges = new Set(newState.collapsedEdges);
-            nextCollapsedEdges.delete(removedWindow.edge);
-            return { ...newState, collapsedEdges: nextCollapsedEdges };
-          }
-        }
-
-        return newState;
+  const undock = useCallback((id: string): void => {
+    console.log("🟠 DockingContext.undock called:", { id });
+    setState((prevState): DockingState => {
+      const newState = {
+        ...prevState,
+        dockedWindows: new Map(prevState.dockedWindows),
+      };
+      const removedWindow = newState.dockedWindows.get(id);
+      newState.dockedWindows.delete(id);
+      console.log("🟠 DockingContext.undock - state updated:", {
+        id,
+        allDockedWindows: Array.from(newState.dockedWindows.keys()),
       });
-      if (removedEdge !== null && removedWindowWasActive) {
-        setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
-          const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
-          if (nextWindowOnEdgeId) {
-            nextActiveWindowsByEdge.set(removedEdge!, nextWindowOnEdgeId);
-          } else {
-            nextActiveWindowsByEdge.delete(removedEdge!);
-          }
-          return nextActiveWindowsByEdge;
-        });
+
+      if (!removedWindow) {
+        return prevState;
       }
-      if (removedEdge !== null && nextWindowOnEdgeId === null) {
-        setPanelZIndexes((prevPanelZIndexes) => {
-          if (!prevPanelZIndexes.has(removedEdge!)) {
-            return prevPanelZIndexes;
-          }
-          const nextPanelZIndexes = new Map(prevPanelZIndexes);
-          nextPanelZIndexes.delete(removedEdge!);
-          return nextPanelZIndexes;
-        });
+      const edgeIsEmpty = !Array.from(newState.dockedWindows.values()).some(
+        (window) => window.edge === removedWindow.edge,
+      );
+      // An empty edge has no panel, so drop its pinned state
+      if (edgeIsEmpty && newState.collapsedEdges.has(removedWindow.edge)) {
+        const nextCollapsedEdges = new Set(newState.collapsedEdges);
+        nextCollapsedEdges.delete(removedWindow.edge);
+        return { ...newState, collapsedEdges: nextCollapsedEdges };
       }
-    },
-    [activeWindowsByEdge],
-  );
+
+      return newState;
+    });
+  }, []);
 
   const toggleCollapse = useCallback((id: string): void => {
     setState((prevState) => {
@@ -229,9 +199,21 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const getActiveWindowOnEdge = useCallback(
     (edge: DockEdge): string | null => {
-      return activeWindowsByEdge.get(edge) ?? null;
+      const activeId = activeWindowsByEdge.get(edge);
+      if (activeId && state.dockedWindows.get(activeId)?.edge === edge) {
+        return activeId;
+      }
+      // The active window has left this edge: the first remaining window takes over (without an
+      // activation bump, so it is not raised)
+      let first: DockedWindow | null = null;
+      state.dockedWindows.forEach((window) => {
+        if (window.edge === edge && (!first || window.order < first.order)) {
+          first = window;
+        }
+      });
+      return (first as DockedWindow | null)?.id ?? null;
     },
-    [activeWindowsByEdge],
+    [activeWindowsByEdge, state.dockedWindows],
   );
 
   const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
@@ -275,9 +257,12 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const getPanelZIndex = useCallback(
     (edge: DockEdge): number | null => {
-      return panelZIndexes.get(edge) ?? null;
+      const edgeHasWindows = Array.from(state.dockedWindows.values()).some(
+        (window) => window.edge === edge,
+      );
+      return edgeHasWindows ? (panelZIndexes.get(edge) ?? null) : null;
     },
-    [panelZIndexes],
+    [panelZIndexes, state.dockedWindows],
   );
 
   const contextValue: DockingContextType = {

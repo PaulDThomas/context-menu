@@ -269,7 +269,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
         return null;
       },
-      [dockable, docking, isDocked],
+      [dockable, docking],
     );
 
     // Define fitToViewport before handleDock and handleUndock so they can use it
@@ -307,7 +307,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           targetSnapEdgeRef: targetSnapEdgeRef.current,
         });
         /* istanbul ignore next */
-        if (!docking || !windowRef.current) return;
+        if (!docking) return;
+        if (!windowRef.current) {
+          // Docking before the window node exists (e.g. from a mount effect): nothing to restore later
+          docking.dock(id, edge, stackDirection);
+          return;
+        }
 
         const currentStyle = windowRef.current.style;
         console.log("handleDock - DETAILED POSITION INFO:", {

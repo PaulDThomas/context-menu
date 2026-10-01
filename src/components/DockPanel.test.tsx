@@ -439,5 +439,164 @@ describe("DockPanel", () => {
       expect(container.querySelector("[class*='dockPanel']")).toBeNull();
       expect(dockingApi!.isEdgeCollapsed("left")).toBe(false);
     });
+
+    test("moving the pointer onto another element does not hide a pinned bar", () => {
+      const { container } = renderWithProvider();
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      fireEvent.mouseOut(document, { relatedTarget: document.body });
+      expect(getPanel(container).className).not.toContain("autoHidden");
+    });
+
+    test("pinning drops the custom panel size and unpinning restores it", () => {
+      const { container } = renderWithProvider();
+      const handle = screen.getByRole("separator", { name: "Resize left dock panel" });
+      fireEvent.keyDown(handle, { key: "ArrowRight", shiftKey: true });
+      expect(getPanel(container).style.width).toBe("80px");
+
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+      expect(getPanel(container).style.width).toBe("");
+
+      fireEvent.click(screen.getByRole("button", { name: "Unpin left dock panel" }));
+      expect(getPanel(container).style.width).toBe("80px");
+    });
+  });
+
+  describe("with the real DockingProvider", () => {
+    let dockingApi: DockingContextType | undefined;
+
+    const CaptureDocking = (): null => {
+      dockingApi = useContext(DockingContext);
+      return null;
+    };
+
+    beforeEach(() => {
+      jest.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      dockingApi = undefined;
+    });
+
+    test("only renders for its own edge and is removed when its last window leaves", () => {
+      const { container } = render(
+        <DockingProvider>
+          <CaptureDocking />
+          <DockPanel edge="left" />
+          <DockPanel edge="right" />
+        </DockingProvider>,
+      );
+      expect(container.querySelector("[class*='dockPanel']")).toBeNull();
+
+      act(() => dockingApi!.dock("window-a", "right", "vertical"));
+      expect(screen.queryByRole("button", { name: "Pin left dock panel" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Pin right dock panel" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "window-a" })).toBeInTheDocument();
+
+      act(() => dockingApi!.undock("window-a"));
+      expect(container.querySelector("[class*='dockPanel']")).toBeNull();
+    });
+
+    test("registers its content area as the portal host for docked windows", () => {
+      const { container, unmount } = render(
+        <DockingProvider>
+          <CaptureDocking />
+          <DockPanel edge="top" />
+        </DockingProvider>,
+      );
+      expect(dockingApi!.getPanelContentHost?.("top")).toBeNull();
+
+      act(() => dockingApi!.dock("window-a", "top", "horizontal"));
+      const content = container.querySelector("[class*='dockPanelContent']");
+      expect(content).not.toBeNull();
+      expect(dockingApi!.getPanelContentHost?.("top")).toBe(content);
+
+      act(() => dockingApi!.undock("window-a"));
+      expect(dockingApi!.getPanelContentHost?.("top")).toBeNull();
+      unmount();
+    });
+
+    test("tabs follow docking order and mark the active window", () => {
+      render(
+        <DockingProvider>
+          <CaptureDocking />
+          <DockPanel edge="bottom" />
+        </DockingProvider>,
+      );
+      act(() => {
+        dockingApi!.dock("window-a", "bottom", "horizontal");
+        dockingApi!.dock("window-b", "bottom", "horizontal");
+      });
+
+      const tabs = screen
+        .getAllByRole("button")
+        .filter((button) => button.title.startsWith("Activate"));
+      expect(tabs.map((tab) => tab.textContent)).toEqual(["window-a", "window-b"]);
+      expect(tabs[1].className).toContain("activeDockTabButton");
+
+      fireEvent.click(tabs[0]);
+      expect(dockingApi!.getActiveWindowOnEdge?.("bottom")).toBe("window-a");
+      expect(tabs[0].className).toContain("activeDockTabButton");
+      expect(tabs[1].className).not.toContain("activeDockTabButton");
+    });
+
+    test("remembers its size while empty and reuses it when a window docks again", () => {
+      const { container } = render(
+        <DockingProvider>
+          <CaptureDocking />
+          <DockPanel edge="right" />
+        </DockingProvider>,
+      );
+      act(() => dockingApi!.dock("window-a", "right", "vertical"));
+      const handle = screen.getByRole("separator", { name: "Resize right dock panel" });
+      fireEvent.keyDown(handle, { key: "ArrowLeft", shiftKey: true });
+      const panel = container.firstElementChild as HTMLElement;
+      const size = panel.style.width;
+      expect(size).not.toBe("");
+
+      act(() => dockingApi!.undock("window-a"));
+      expect(container.firstElementChild).toBeNull();
+
+      act(() => dockingApi!.dock("window-b", "right", "vertical"));
+      expect((container.firstElementChild as HTMLElement).style.width).toBe(size);
+    });
+  });
+
+  test("treats the first window as active when the provider has no active window", () => {
+    const setActiveWindowOnEdge = jest.fn();
+    const windows = [
+      buildDockedWindow("window-a", "left", 0),
+      buildDockedWindow("window-b", "left", 1),
+    ];
+    const contextValue: DockingContextType = {
+      state: {
+        dockedWindows: new Map(
+          windows.map((window): [string, DockedWindow] => [window.id, window]),
+        ),
+        collapsedEdges: new Set(),
+      },
+      dock: () => {},
+      undock: () => {},
+      toggleCollapse: () => {},
+      setActiveWindowOnEdge,
+      getDockedWindow: (id) => windows.find((window) => window.id === id),
+      getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      isEdgeCollapsed: () => false,
+      toggleEdgeCollapse: () => {},
+    };
+
+    render(
+      <DockingContext.Provider value={contextValue}>
+        <DockPanel edge="left" />
+      </DockingContext.Provider>,
+    );
+
+    expect(screen.getByRole("button", { name: "window-a" }).className).toContain(
+      "activeDockTabButton",
+    );
+    fireEvent.mouseDown(screen.getByRole("separator"), { button: 0, clientX: 10, clientY: 0 });
+    expect(setActiveWindowOnEdge).toHaveBeenCalledWith("left", "window-a");
+    fireEvent.mouseUp(document);
   });
 });
