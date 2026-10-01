@@ -368,6 +368,30 @@ describe("DockingProvider", () => {
       api.closeWindow("a");
       expect(onClose).toHaveBeenCalledTimes(1);
     });
+
+    test("handles registered actions without onClose callback", () => {
+      const onUndock = jest.fn();
+      api.registerWindowActions("b", { onUndock });
+      api.closeWindow("b");
+      api.requestUndock("b");
+      expect(onUndock).toHaveBeenCalledTimes(1);
+    });
+
+    test("handles registered actions without onUndock callback", () => {
+      const onClose = jest.fn();
+      api.registerWindowActions("c", { onClose });
+      api.closeWindow("c");
+      api.requestUndock("c");
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test("handles registered actions with empty object", () => {
+      api.registerWindowActions("d");
+      api.closeWindow("d");
+      api.requestUndock("d");
+      // Should not throw or error
+      expect(true).toBe(true);
+    });
   });
 
   describe("pre-dock rects", () => {

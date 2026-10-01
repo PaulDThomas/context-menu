@@ -1,6 +1,6 @@
 import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
+import { dockingReducer, initialDockingState } from "../reducer";
 import { DockZoneIndicator } from "./DockZoneIndicator";
-import { dockingReducer, initialDockingState } from "./dockingReducer";
 import type {
   DockEdge,
   DockedWindow,
@@ -29,6 +29,14 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
     dispatch({ type: "setActiveWindowOnEdge", edge, id });
+  }, []);
+
+  const activateWindowOnEdge = useCallback((edge: DockEdge, id?: string): void => {
+    dispatch({ type: "activateWindowOnEdge", edge, id });
+  }, []);
+
+  const toggleAndRaiseEdge = useCallback((edge: DockEdge): void => {
+    dispatch({ type: "toggleAndRaiseEdge", edge });
   }, []);
 
   const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
@@ -112,7 +120,9 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       getDockedWindow,
       getWindowsOnEdge,
       setActiveWindowOnEdge,
+      activateWindowOnEdge,
       getActiveWindowOnEdge,
+      toggleAndRaiseEdge,
       setPanelContentHost,
       getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
         state.panelContentHosts.get(edge) ?? null,
@@ -140,6 +150,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     dock,
     undock,
     setActiveWindowOnEdge,
+    activateWindowOnEdge,
+    toggleAndRaiseEdge,
     setPanelContentHost,
     toggleEdgeCollapse,
     registerWindow,

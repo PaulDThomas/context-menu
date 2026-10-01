@@ -18,7 +18,9 @@ describe("DockPanelTabButton", () => {
       getDockedWindow: jest.fn(),
       getWindowsOnEdge: jest.fn(() => []),
       setActiveWindowOnEdge: jest.fn(),
+      activateWindowOnEdge: jest.fn(),
       getActiveWindowOnEdge: jest.fn(() => null),
+      toggleAndRaiseEdge: jest.fn(),
       setPanelContentHost: jest.fn(),
       getPanelContentHost: jest.fn(() => null),
       isEdgeCollapsed: jest.fn(() => false),
@@ -68,7 +70,7 @@ describe("DockPanelTabButton", () => {
   test("Calls onClick when clicked", () => {
     const context = renderTab({}, { windowId: "win-3" });
     fireEvent.click(screen.getByRole("button", { name: "win-3" }));
-    expect(context.setActiveWindowOnEdge).toHaveBeenCalledWith("left", "win-3");
+    expect(context.activateWindowOnEdge).toHaveBeenCalledWith("left", "win-3");
   });
 
   test("Context menu can show, close and undock the related window", async () => {
@@ -89,7 +91,7 @@ describe("DockPanelTabButton", () => {
     fireEvent.mouseDown(screen.getByText("Close"));
     fireEvent.mouseDown(screen.getByText("Undock"));
 
-    expect(context.setActiveWindowOnEdge).toHaveBeenCalledWith("left", "win-menu");
+    expect(context.activateWindowOnEdge).toHaveBeenCalledWith("left", "win-menu");
     expect(context.closeWindow).toHaveBeenCalledWith("win-menu");
     expect(context.requestUndock).toHaveBeenCalledWith("win-menu");
     jest.useRealTimers();

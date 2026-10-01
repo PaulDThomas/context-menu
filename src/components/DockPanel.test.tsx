@@ -42,7 +42,7 @@ describe("DockPanel", () => {
   });
 
   test("renders tabs and activates selected docked window", () => {
-    const setActiveWindowOnEdge = jest.fn();
+    const activateWindowOnEdge = jest.fn();
     const windows = [
       buildDockedWindow("window-a", "right", 0),
       buildDockedWindow("window-b", "right", 1),
@@ -52,7 +52,7 @@ describe("DockPanel", () => {
       ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      setActiveWindowOnEdge,
+      activateWindowOnEdge,
       getActiveWindowOnEdge: () => "window-a",
       setPanelContentHost: () => {},
       getPanelContentHost: () => null,
@@ -76,7 +76,7 @@ describe("DockPanel", () => {
 
     fireEvent.click(secondButton);
 
-    expect(setActiveWindowOnEdge).toHaveBeenCalledWith("right", "window-b");
+    expect(activateWindowOnEdge).toHaveBeenCalledWith("right", "window-b");
   });
 
   test("applies the z-index of the visible window to the panel", () => {
@@ -218,13 +218,13 @@ describe("DockPanel", () => {
     });
 
     test("mouse and keyboard interaction on the handle raises the panel", () => {
-      const setActiveWindowOnEdge = jest.fn();
+      const activateWindowOnEdge = jest.fn();
       const windows = [buildDockedWindow("window-a", "right", 0)];
       const contextValue: DockingContextType = {
         ...createMockDocking(new Map()),
         dock: () => {},
         undock: () => {},
-        setActiveWindowOnEdge,
+        activateWindowOnEdge,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
         getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
@@ -241,18 +241,18 @@ describe("DockPanel", () => {
       const handle = screen.getByRole("separator", { name: "Resize right dock panel" });
 
       fireEvent.mouseDown(handle, { button: 0, clientX: 300, clientY: 0 });
-      expect(setActiveWindowOnEdge).toHaveBeenCalledWith("right", "window-a");
+      expect(activateWindowOnEdge).toHaveBeenCalledWith("right");
       fireEvent.mouseUp(document);
 
-      setActiveWindowOnEdge.mockClear();
+      activateWindowOnEdge.mockClear();
       fireEvent.keyDown(handle, { key: "ArrowLeft" });
-      expect(setActiveWindowOnEdge).toHaveBeenCalledWith("right", "window-a");
+      expect(activateWindowOnEdge).toHaveBeenCalledWith("right");
 
       // Keys that do not resize leave the stacking order alone
-      setActiveWindowOnEdge.mockClear();
+      activateWindowOnEdge.mockClear();
       fireEvent.keyDown(handle, { key: "ArrowUp" });
       fireEvent.keyDown(handle, { key: "Enter" });
-      expect(setActiveWindowOnEdge).not.toHaveBeenCalled();
+      expect(activateWindowOnEdge).not.toHaveBeenCalled();
     });
 
     test("releases document listeners when unmounted mid-resize", () => {
@@ -535,7 +535,7 @@ describe("DockPanel", () => {
   });
 
   test("treats the first window as active when the provider has no active window", () => {
-    const setActiveWindowOnEdge = jest.fn();
+    const activateWindowOnEdge = jest.fn();
     const windows = [
       buildDockedWindow("window-a", "left", 0),
       buildDockedWindow("window-b", "left", 1),
@@ -544,7 +544,7 @@ describe("DockPanel", () => {
       ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      setActiveWindowOnEdge,
+      activateWindowOnEdge,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
       isEdgeCollapsed: () => false,
@@ -561,7 +561,7 @@ describe("DockPanel", () => {
       "activeDockTabButton",
     );
     fireEvent.mouseDown(screen.getByRole("separator"), { button: 0, clientX: 10, clientY: 0 });
-    expect(setActiveWindowOnEdge).toHaveBeenCalledWith("left", "window-a");
+    expect(activateWindowOnEdge).toHaveBeenCalledWith("left");
     fireEvent.mouseUp(document);
   });
 });

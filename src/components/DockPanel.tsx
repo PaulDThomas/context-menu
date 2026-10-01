@@ -27,20 +27,11 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   const contentHostRef = useRef<HTMLDivElement | null>(null);
   const setPanelContentHost = docking.setPanelContentHost;
   const getActiveWindowOnEdge = docking.getActiveWindowOnEdge;
-  const setActiveWindowOnEdge = docking.setActiveWindowOnEdge;
 
   // Interacting with the handle raises the panel, matching a click on the docked window itself
   const bringPanelToTop = useCallback(() => {
-    const activeId =
-      getActiveWindowOnEdge(edge) ??
-      windows[0]?.id ??
-      // istanbul ignore next
-      null;
-    /* istanbul ignore else */
-    if (activeId) {
-      setActiveWindowOnEdge(edge, activeId);
-    }
-  }, [edge, getActiveWindowOnEdge, setActiveWindowOnEdge, windows]);
+    docking.activateWindowOnEdge(edge);
+  }, [edge, docking]);
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again
   const { panelSize, isResizing, handleResizeMouseDown, handleResizeKeyDown } = useDockPanelResize(
@@ -83,8 +74,7 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   const togglePinned = () => {
     // The pointer is on the pin button, so a freshly pinned bar starts shown
     setAutoHidden(false);
-    docking.toggleEdgeCollapse(edge);
-    bringPanelToTop();
+    docking.toggleAndRaiseEdge(edge);
   };
 
   return (

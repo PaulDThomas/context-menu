@@ -18,10 +18,7 @@ export const DockPanelTabButton = ({
   const docking = useDocking();
 
   const showWindow = () => {
-    if (docking.isEdgeCollapsed(edge)) {
-      docking.toggleEdgeCollapse(edge);
-    }
-    docking.setActiveWindowOnEdge(edge, windowId);
+    docking.activateWindowOnEdge(edge, windowId);
   };
 
   return (
