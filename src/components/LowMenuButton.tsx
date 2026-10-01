@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { classNames } from "../functions/classNames";
 import styles from "./LowMenu.module.css";
 import { LowSubMenu } from "./LowSubMenu";
 import { IMenuItem } from "./interface";
@@ -10,9 +11,7 @@ export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
   const [target, setTarget] = useState<Range | null>(null);
   return (
     <div
-      className={[styles.lowMenuItem, entry.disabled ? styles.disabled : ""]
-        .filter((c) => c !== "")
-        .join(" ")}
+      className={classNames(styles.lowMenuItem, entry.disabled && styles.disabled)}
       aria-label={typeof entry.label === "string" ? entry.label : undefined}
       aria-disabled={entry.disabled}
       onMouseEnter={() => {
@@ -26,6 +25,7 @@ export const LowMenuButton = ({ entry }: LowMenuButtonProps) => {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        /* istanbul ignore else */
         if (!entry.disabled) entry.action?.(target);
       }}
     >

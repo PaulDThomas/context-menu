@@ -1,0 +1,257 @@
+.dockPanel {
+  position: fixed;
+  background-color: rgb(240, 240, 240);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  z-index: 2400;
+  display: flex;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dockPanel.edge-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  height: 35vh;
+  max-height: 320px;
+}
+
+.dockPanel.edge-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-direction: column;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+  height: 35vh;
+  max-height: 320px;
+}
+
+.dockPanel.edge-left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  width: min(35vw, 420px);
+}
+
+.dockPanel.edge-right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+  width: min(35vw, 420px);
+}
+
+.dockPanelContent {
+  position: relative;
+  /* Own stacking context: keeps the docked window's z-index below the resize handle */
+  z-index: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dockPanelTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: rgb(246, 246, 246);
+}
+
+.dockPanel.edge-left .dockPanelTabs,
+.dockPanel.edge-right .dockPanelTabs {
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  max-height: 120px;
+  overflow: auto;
+}
+
+.dockTabButton {
+  padding: 4px 6px;
+  background-color: rgb(250, 250, 250);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dockTabButton:hover {
+  background-color: rgb(230, 230, 230);
+}
+
+.dockTabButton:active {
+  background-color: rgb(200, 200, 200);
+}
+
+.activeDockTabButton {
+  background-color: rgb(220, 232, 255);
+  border-color: rgba(43, 100, 205, 0.45);
+}
+
+/* Drag handle on the panel's inner edge for resizing the panel */
+.resizeHandle {
+  position: absolute;
+  z-index: 1;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  outline: none;
+}
+
+.resizeHandle:hover,
+.resizeHandle:focus-visible,
+.resizeHandleActive {
+  background-color: rgba(43, 100, 205, 0.45);
+}
+
+.resizeHandle-left,
+.resizeHandle-right {
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.resizeHandle-left {
+  right: 0;
+}
+
+.resizeHandle-right {
+  left: 0;
+}
+
+.resizeHandle-top,
+.resizeHandle-bottom {
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+}
+
+.resizeHandle-top {
+  bottom: 0;
+}
+
+.resizeHandle-bottom {
+  top: 0;
+}
+
+.dockPanelContent[hidden] {
+  display: none;
+}
+
+.dockPinButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 3px 5px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgb(80, 80, 80);
+  cursor: pointer;
+}
+
+.dockPinButton:hover {
+  background-color: rgb(230, 230, 230);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.dockPinButton svg {
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.dockPinButtonPinned {
+  color: rgb(43, 100, 205);
+}
+
+.dockPinButtonPinned svg {
+  transform: none;
+}
+
+/* Pinned: contents hidden, the button bar lies flat against the screen edge */
+.dockPanel.pinned {
+  background-color: rgb(246, 246, 246);
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+
+/* Auto-hidden pinned bar: slid off-screen leaving only a thin line at the edge */
+.dockPanel.autoHidden {
+  background-color: rgb(160, 180, 215);
+}
+
+.dockPanel.autoHidden > * {
+  opacity: 0;
+}
+
+.dockPanel.autoHidden.edge-left {
+  transform: translateX(calc(-100% + 4px));
+}
+
+.dockPanel.autoHidden.edge-right {
+  transform: translateX(calc(100% - 4px));
+}
+
+.dockPanel.autoHidden.edge-top {
+  transform: translateY(calc(-100% + 4px));
+}
+
+.dockPanel.autoHidden.edge-bottom {
+  transform: translateY(calc(100% - 4px));
+}
+
+/* Keyboard users tabbing into the bar get it back */
+.dockPanel.autoHidden:has(:focus-visible) {
+  transform: none;
+  background-color: rgb(246, 246, 246);
+}
+
+.dockPanel.autoHidden:has(:focus-visible) > * {
+  opacity: 1;
+}
+
+.dockPanel.pinned.edge-top,
+.dockPanel.pinned.edge-bottom {
+  height: auto;
+  max-height: none;
+}
+
+.dockPanel.pinned.edge-left,
+.dockPanel.pinned.edge-right {
+  width: auto;
+}
+
+.dockPanel.pinned .dockPanelTabs {
+  border-top: none;
+}
+
+.dockPanel.pinned.edge-left .dockPanelTabs,
+.dockPanel.pinned.edge-right .dockPanelTabs {
+  flex: 1 1 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dockPanel.pinned.edge-left .dockTabButton,
+.dockPanel.pinned.edge-right .dockTabButton {
+  writing-mode: vertical-rl;
+  padding: 6px 4px;
+}
