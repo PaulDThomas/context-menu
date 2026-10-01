@@ -32,6 +32,21 @@ export interface WindowZRange {
   maxZIndex: number;
 }
 
+/** Window configuration and metadata stored in DockingContext */
+export interface WindowConfig {
+  title: string;
+  titleElement?: React.ReactNode;
+  dockable?: boolean;
+  initialDockEdge?: DockEdge;
+  allowUndock?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
+  onMouseDown?: (e: React.MouseEvent<HTMLElement>) => void;
+  onDock?: () => void;
+  onUndock?: () => void;
+  moving?: boolean;
+}
+
 export interface DockingContextType {
   /** Dock a window into an edge's panel, optionally recording where it was floating */
   dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => void;
@@ -50,6 +65,10 @@ export interface DockingContextType {
   /** Join the shared stacking order; windows are stacked in registration order until raised */
   registerWindow: (id: string, zRange: WindowZRange) => void;
   unregisterWindow: (id: string) => void;
+  /** Register a window's configuration (title, dockable status, etc.) */
+  registerWindowConfig: (id: string, config: WindowConfig) => void;
+  /** Retrieve a window's configuration by ID */
+  getWindowConfig: (id: string) => WindowConfig | undefined;
   registerWindowActions: (
     id: string,
     actions?: { onClose?: () => void; onUndock?: () => void },

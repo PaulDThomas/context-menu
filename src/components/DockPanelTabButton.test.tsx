@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { DockingContext } from "./DockingContext";
 import { DockPanelTabButton } from "./DockPanelTabButton";
-import type { DockingContextType } from "./interface";
+import type { DockingContextType, WindowConfig } from "./interface";
 
 describe("DockPanelTabButton", () => {
   const renderTab = (
@@ -10,8 +10,11 @@ describe("DockPanelTabButton", () => {
       windowId?: string;
       edge?: "top" | "right" | "bottom" | "left";
       isActive?: boolean;
+      windowConfig?: WindowConfig;
     } = {},
   ) => {
+    const windowId = props.windowId ?? "win";
+    const windowConfig = props.windowConfig ?? { title: windowId };
     const context = {
       dock: jest.fn(),
       undock: jest.fn(),
@@ -27,6 +30,8 @@ describe("DockPanelTabButton", () => {
       toggleEdgeCollapse: jest.fn(),
       registerWindow: jest.fn(),
       unregisterWindow: jest.fn(),
+      registerWindowConfig: jest.fn(),
+      getWindowConfig: jest.fn((id: string) => (id === windowId ? windowConfig : undefined)),
       registerWindowActions: jest.fn(),
       unregisterWindowActions: jest.fn(),
       closeWindow: jest.fn(),
@@ -43,7 +48,7 @@ describe("DockPanelTabButton", () => {
     render(
       <DockingContext.Provider value={context}>
         <DockPanelTabButton
-          windowId={props.windowId ?? "win"}
+          windowId={windowId}
           edge={props.edge ?? "left"}
           isActive={props.isActive ?? false}
         />
@@ -53,7 +58,7 @@ describe("DockPanelTabButton", () => {
   };
 
   test("Inactive tab shows the window id", () => {
-    renderTab({}, { windowId: "win-1" });
+    renderTab({}, { windowId: "win-1", windowConfig: { title: "win-1" } });
     const button = screen.getByRole("button", { name: "win-1" });
     expect(button).toHaveAttribute("title", "Activate win-1");
     expect(button).toHaveClass("dockTabButton");
@@ -61,21 +66,21 @@ describe("DockPanelTabButton", () => {
   });
 
   test("Active tab has the active class", () => {
-    renderTab({}, { windowId: "win-2", isActive: true });
+    renderTab({}, { windowId: "win-2", isActive: true, windowConfig: { title: "win-2" } });
     expect(screen.getByRole("button", { name: "win-2" })).toHaveClass(
       "dockTabButton activeDockTabButton",
     );
   });
 
   test("Calls onClick when clicked", () => {
-    const context = renderTab({}, { windowId: "win-3" });
+    const context = renderTab({}, { windowId: "win-3", windowConfig: { title: "win-3" } });
     fireEvent.click(screen.getByRole("button", { name: "win-3" }));
     expect(context.activateWindowOnEdge).toHaveBeenCalledWith("left", "win-3");
   });
 
   test("Context menu can show, close and undock the related window", async () => {
     jest.useFakeTimers();
-    const context = renderTab({}, { windowId: "win-menu" });
+    const context = renderTab({}, { windowId: "win-menu", windowConfig: { title: "win-menu" } });
 
     const button = screen.getByRole("button", { name: "win-menu" });
     fireEvent.contextMenu(button, { pageX: 10, pageY: 10 });

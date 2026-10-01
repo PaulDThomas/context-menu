@@ -1,35 +1,33 @@
-import { ReactNode } from "react";
 import { classNames } from "../functions/classNames";
+import { useDocking } from "../functions/useDocking";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleButton } from "./ContextWindowTitleButton";
 import { CloseIcon, DockIcon, UndockIcon } from "./icons";
 
 interface ContextWindowTitleBarProps {
-  title: string;
-  titleElement?: ReactNode;
-  moving: boolean;
-  onMouseDown: (e: React.MouseEvent<HTMLElement>) => void;
-  /** Shows the Dock button when set */
-  onDock?: () => void;
-  /** Shows the Undock button when set */
-  onUndock?: () => void;
-  onClose?: () => void;
+  id: string;
 }
 
-export const ContextWindowTitleBar = ({
-  title,
-  titleElement,
-  moving,
-  onMouseDown,
-  onDock,
-  onUndock,
-  onClose,
-}: ContextWindowTitleBarProps): React.ReactElement => {
+export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React.ReactElement => {
+  const docking = useDocking();
+  const windowConfig = docking.getWindowConfig(id);
+
+  if (!windowConfig) {
+    throw new Error(`Window config not found for id: ${id}`);
+  }
+
+  const title = windowConfig.title ?? "";
+  const titleElement = windowConfig.titleElement;
   const windowLabel = title && title.trim() !== "" ? title : "window";
+
+  const handleClose = (): void => {
+    docking.closeWindow(id);
+  };
+
   return (
     <div
-      className={classNames(styles.contextWindowTitle, moving && styles.moving)}
-      onMouseDown={onMouseDown}
+      className={classNames(styles.contextWindowTitle, windowConfig.moving && styles.moving)}
+      onMouseDown={windowConfig.onMouseDown}
     >
       <div
         className={styles.contextWindowTitleText}
@@ -37,22 +35,22 @@ export const ContextWindowTitleBar = ({
       >
         {titleElement ? titleElement : title}
       </div>
-      {onDock && (
+      {windowConfig.onDock && (
         <ContextWindowTitleButton
           className={styles.dockButton}
           label="Dock"
           title={`Dock ${windowLabel}`}
-          onClick={onDock}
+          onClick={windowConfig.onDock}
         >
           <DockIcon size={14} />
         </ContextWindowTitleButton>
       )}
-      {onUndock && (
+      {windowConfig.onUndock && (
         <ContextWindowTitleButton
           className={styles.undockButton}
           label="Undock"
           title={`Undock ${windowLabel}`}
-          onClick={onUndock}
+          onClick={windowConfig.onUndock}
         >
           <UndockIcon size={14} />
         </ContextWindowTitleButton>
@@ -61,7 +59,7 @@ export const ContextWindowTitleBar = ({
         className={styles.contextWindowTitleClose}
         label="Close"
         title={`Close ${windowLabel}`}
-        onClick={onClose}
+        onClick={handleClose}
       >
         <CloseIcon />
       </ContextWindowTitleButton>

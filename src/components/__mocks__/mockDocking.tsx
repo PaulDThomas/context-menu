@@ -1,6 +1,12 @@
 import { ReactNode, useReducer, useState } from "react";
 import { DockingContext } from "../DockingContext";
-import type { DockEdge, DockedWindow, DockingContextType, WindowRect } from "../interface";
+import type {
+  DockEdge,
+  DockedWindow,
+  DockingContextType,
+  WindowConfig,
+  WindowRect,
+} from "../interface";
 
 /**
  * A minimal docking context backed by plain Maps, for tests that need to drive components
@@ -14,6 +20,7 @@ export const createMockDocking = (
   preDockRects: Map<string, WindowRect> = new Map(),
   collapsedEdges: Set<DockEdge> = new Set(),
   activeWindowsByEdge: Map<DockEdge, string> = new Map(),
+  windowConfigs: Map<string, WindowConfig> = new Map(),
 ): DockingContextType => ({
   dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => {
     if (preDockRect && !preDockRects.has(id)) {
@@ -67,6 +74,10 @@ export const createMockDocking = (
   },
   registerWindow: () => {},
   unregisterWindow: () => {},
+  registerWindowConfig: (id: string, config: WindowConfig) => {
+    windowConfigs.set(id, config);
+  },
+  getWindowConfig: (id: string) => windowConfigs.get(id),
   registerWindowActions: () => {},
   unregisterWindowActions: () => {},
   closeWindow: () => {},
@@ -97,6 +108,7 @@ export const MockDockingProvider = ({
   const [preDockRects] = useState<Map<string, WindowRect>>(() => new Map());
   const [collapsedEdges] = useState<Set<DockEdge>>(() => new Set());
   const [activeWindowsByEdge] = useState<Map<DockEdge, string>>(() => new Map());
+  const [windowConfigs] = useState<Map<string, WindowConfig>>(() => new Map());
   const value = createMockDocking(
     dockedWindows,
     overrides,
@@ -104,6 +116,7 @@ export const MockDockingProvider = ({
     preDockRects,
     collapsedEdges,
     activeWindowsByEdge,
+    windowConfigs,
   );
 
   return <DockingContext.Provider value={value}>{children}</DockingContext.Provider>;

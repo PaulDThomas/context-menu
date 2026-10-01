@@ -5,6 +5,7 @@ import type {
   DockEdge,
   DockedWindow,
   DockingContextType,
+  WindowConfig,
   WindowRect,
   WindowZRange,
 } from "./interface";
@@ -18,6 +19,7 @@ interface DockingProviderProps {
 export const DockingProvider = ({ children }: DockingProviderProps): React.ReactElement => {
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
+  const windowConfigs = useRef(new Map<string, WindowConfig>());
 
   const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
     dispatch({ type: "dock", id, edge, preDockRect });
@@ -53,6 +55,14 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const unregisterWindow = useCallback((id: string): void => {
     dispatch({ type: "unregisterWindow", id });
+  }, []);
+
+  const registerWindowConfig = useCallback((id: string, config: WindowConfig): void => {
+    windowConfigs.current.set(id, config);
+  }, []);
+
+  const getWindowConfig = useCallback((id: string): WindowConfig | undefined => {
+    return windowConfigs.current.get(id);
   }, []);
 
   const registerWindowActions = useCallback(
@@ -130,6 +140,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       toggleEdgeCollapse,
       registerWindow,
       unregisterWindow,
+      registerWindowConfig,
+      getWindowConfig,
       registerWindowActions,
       unregisterWindowActions,
       closeWindow,
@@ -156,6 +168,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     toggleEdgeCollapse,
     registerWindow,
     unregisterWindow,
+    registerWindowConfig,
+    getWindowConfig,
     registerWindowActions,
     unregisterWindowActions,
     closeWindow,
