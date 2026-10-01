@@ -1,6 +1,6 @@
 import { useContext } from "react";
-import { DockingContext } from "./DockingContext";
-import type { DockingContextType } from "./interface";
+import { DockingContext } from "../components/DockingContext";
+import type { DockingContextType } from "../components/interface";
 
 export const useDocking = (): DockingContextType => {
   const context = useContext(DockingContext);

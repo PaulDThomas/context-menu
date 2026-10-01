@@ -1,3 +1,4 @@
+import { useDocking } from "../functions/useDocking";
 import { AutoHeight } from "./AutoHeight";
 import { ClickForMenu } from "./ClickForMenu";
 import { ContextMenu } from "./ContextMenu";
@@ -6,7 +7,6 @@ import { ContextWindow } from "./ContextWindow";
 import { DockingProvider } from "./DockingContext";
 import { DockPanel } from "./DockPanel";
 import type { DockEdge, DockingContextType, IMenuItem, StackDirection } from "./interface";
-import { useDocking } from "./useDocking";
 
 export {
   AutoHeight,

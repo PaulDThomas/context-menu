@@ -12,22 +12,36 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
+import { classNames } from "../functions/classNames";
+import {
+  CONTEXT_WINDOW_DATA_ATTR,
+  CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR,
+  CONTEXT_WINDOW_RESET_EVENT,
+  CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR,
+  MAX_Z_INDEX,
+  MIN_Z_INDEX,
+} from "../functions/contextWindowConstants";
+import { getMaxZIndex } from "../functions/getMaxZIndex";
+import { resetAllWindowZIndexes } from "../functions/resetAllWindowZIndexes";
 import { useMouseMove } from "../functions/useMouseMove";
 import styles from "./ContextWindow.module.css";
+import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import { DockingContext } from "./DockingContext";
 import type { DockEdge, StackDirection } from "./interface";
 
-export const MIN_Z_INDEX = 3000;
-export const MAX_Z_INDEX = 3010;
-const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
-const CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR = "data-context-window-min-z-index";
-const CONTEXT_WINDOW_RESET_EVENT = "context-window-reset-z-index";
-const CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR = "data-context-window-reset-counter";
-const CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR = "data-context-window-reset-source";
+export { MAX_Z_INDEX, MIN_Z_INDEX };
+
 const SNAP_THRESHOLD = 24;
 const UNDOCK_THRESHOLD = 20;
 const SNAP_HYSTERESIS = 40; // px threshold to UN-snap once snapped (larger than SNAP_THRESHOLD)
+
+const dockedEdgeClassNames: Record<DockEdge, string> = {
+  top: styles.dockedTop,
+  bottom: styles.dockedBottom,
+  left: styles.dockedLeft,
+  right: styles.dockedRight,
+};
 
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   id: string;
@@ -53,59 +67,6 @@ export interface ContextWindowHandle {
   dock: (edge: DockEdge, stackDirection: StackDirection) => void;
   undock: () => void;
 }
-
-// Helper function to get the highest zIndex from all context windows in the DOM
-const getMaxZIndex = (componentMinZIndex: number, currentWindow?: HTMLElement | null): number => {
-  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
-  let maxZIndex = componentMinZIndex - 1;
-  windows.forEach((win) => {
-    if (currentWindow && win === currentWindow) {
-      return;
-    }
-    const zIndexStr = (win as HTMLElement).style.zIndex;
-    /* istanbul ignore else */
-    if (zIndexStr) {
-      const zIndex = parseInt(zIndexStr, 10);
-      if (!isNaN(zIndex) && zIndex > maxZIndex) {
-        maxZIndex = zIndex;
-      }
-    }
-  });
-  return maxZIndex;
-};
-
-const getWindowMinZIndex = (windowElement: HTMLElement, fallbackMinZIndex: number): number => {
-  const minZIndexAttr = windowElement.getAttribute(CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR);
-  const parsedMinZIndex = minZIndexAttr ? parseInt(minZIndexAttr, 10) : NaN;
-  return Number.isNaN(parsedMinZIndex) ? fallbackMinZIndex : parsedMinZIndex;
-};
-
-const markBodyResetState = (sourceWindowId?: string): void => {
-  const currentCounter = parseInt(
-    document.body.getAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR) ?? "0",
-    10,
-  );
-  const nextCounter = Number.isNaN(currentCounter) ? 1 : currentCounter + 1;
-  document.body.setAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR, `${nextCounter}`);
-
-  if (sourceWindowId) {
-    document.body.setAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR, sourceWindowId);
-    return;
-  }
-
-  document.body.removeAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
-};
-
-const resetAllWindowZIndexes = (fallbackMinZIndex: number, sourceWindowId?: string): void => {
-  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
-  windows.forEach((win) => {
-    const element = win as HTMLElement;
-    element.style.zIndex = `${getWindowMinZIndex(element, fallbackMinZIndex)}`;
-  });
-
-  markBodyResetState(sourceWindowId);
-  document.dispatchEvent(new Event(CONTEXT_WINDOW_RESET_EVENT));
-};
 
 export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>(
   (
@@ -179,10 +140,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const interactionProcessedRef = useRef<boolean>(false);
     // Track if this window is currently in an active interaction (needed because useMouseMove fires globally)
     const isInInteractionRef = useRef<boolean>(false);
-
-    // Debug: track render cycles
-    const renderCountRef = useRef<number>(0);
-    renderCountRef.current++;
 
     // Position
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -297,15 +254,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     const handleDock = useCallback(
       (edge: DockEdge, stackDirection: StackDirection) => {
-        console.log("🔴 handleDock CALLED:", {
-          edge,
-          stackDirection,
-          isDocked,
-          id,
-          renderCount: renderCountRef.current,
-          preDockState,
-          targetSnapEdgeRef: targetSnapEdgeRef.current,
-        });
         /* istanbul ignore next */
         if (!docking) return;
         if (!windowRef.current) {
@@ -313,26 +261,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           docking.dock(id, edge, stackDirection);
           return;
         }
-
-        const currentStyle = windowRef.current.style;
-        console.log("handleDock - DETAILED POSITION INFO:", {
-          rectLeft: windowRef.current.getBoundingClientRect().left,
-          rectTop: windowRef.current.getBoundingClientRect().top,
-          rectRight: windowRef.current.getBoundingClientRect().right,
-          rectBottom: windowRef.current.getBoundingClientRect().bottom,
-          rectWidth: windowRef.current.getBoundingClientRect().width,
-          rectHeight: windowRef.current.getBoundingClientRect().height,
-          styleLeft: currentStyle.left,
-          styleTop: currentStyle.top,
-          styleTransform: currentStyle.transform,
-          windowPosX: windowPos.current.x,
-          windowPosY: windowPos.current.y,
-          windowVisible,
-          isDocked,
-          elementDisplay: window.getComputedStyle(windowRef.current).display,
-          elementVisibility: window.getComputedStyle(windowRef.current).visibility,
-          elementPosition: window.getComputedStyle(windowRef.current).position,
-        });
 
         // Preserve the original floating coordinates while side-switching a docked window.
         // If a window is already docked, left/top are panel-relative (often 0/empty),
@@ -352,15 +280,13 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
         docking.dock(id, edge, stackDirection);
       },
-      [docking, id, isDocked, preDockState, windowVisible],
+      [docking, id, isDocked],
     );
 
     const handleUndock = useCallback(
-      (fromAction: boolean = false, pointer?: { x: number; y: number }) => {
-        console.log("handleUndock called", { isDocked, id, preDockState, fromAction });
+      (pointer?: { x: number; y: number }) => {
         /* istanbul ignore next */
         if (!docking || !isDocked) {
-          console.log("handleUndock returning early - docking:", !!docking, "isDocked:", isDocked);
           return;
         }
         if (!allowUndock) {
@@ -400,7 +326,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         undockViaActionRef.current = !pointer;
 
         docking.undock(id);
-        console.log("handleUndock completed - undock() called");
       },
       [id, docking, isDocked, preDockState, allowUndock],
     );
@@ -479,19 +404,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Reset flags to allow this interaction to be processed
         interactionProcessedRef.current = false;
         isInInteractionRef.current = true; // Mark that this window is now in an active interaction
-        console.log("↓ Interaction started", {
-          id,
-          renderCount: renderCountRef.current,
-          isDockedAtStart: isDockedAtStartRef.current,
-        });
         windowPos.current = parseTranslate(windowRef.current?.style.transform);
         setMoving(true);
         setIsDraggingForDock(true);
         // If we're starting a drag, the window must be visible enough to interact with
         // Force windowVisible to true to enable onInteractionEnd firing
-        /* c8 ignore next 3 */
         /* istanbul ignore next */
-        /* babel ignore next */
         if (!windowVisible) {
           setWindowVisible(true);
         }
@@ -505,9 +423,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         lastMousePosRef.current = { x: e.clientX, y: e.clientY };
 
         // Track if window became visible during drag (safety check)
-        /* c8 ignore next 8 */
         /* istanbul ignore next */
-        /* babel ignore next */
         if (!windowVisible && windowRef.current) {
           const rect = windowRef.current.getBoundingClientRect();
           const isInViewport =
@@ -541,7 +457,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
           if (shouldUndock) {
             // Positioning is applied after the floating node remounts (see useLayoutEffect)
-            handleUndock(false, { x: e.clientX, y: e.clientY });
+            handleUndock({ x: e.clientX, y: e.clientY });
             isDockedRef.current = false;
             return;
           }
@@ -550,14 +466,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         move(e.movementX, e.movementY);
       },
       onMouseUp: () => {
-        console.log("onMouseUp fired", {
-          id,
-          renderCount: renderCountRef.current,
-          isDocked,
-          targetSnapEdgeRef: targetSnapEdgeRef.current,
-          isDraggingForDock,
-          moving,
-        });
         setMoving(false);
         // Mark that this interaction is complete (safety cleanup)
         isInInteractionRef.current = false;
@@ -571,56 +479,26 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // useMouseMove fires onInteractionEnd for ALL mounted components globally when mouseup fires
         // We should only process for components that are actually in an active interaction
         if (!isInInteractionRef.current) {
-          console.log("↑ Interaction ended (not involved in interaction)", {
-            id,
-            renderCount: renderCountRef.current,
-          });
           return;
         }
 
         // Check if this interaction has already been processed to prevent duplicate fires
-        /* c8 ignore next 4 */
         /* istanbul ignore next */
-        /* babel ignore next */
         if (interactionProcessedRef.current) {
-          console.log("↑ Interaction ended (duplicate, skipping)", {
-            id,
-            renderCount: renderCountRef.current,
-          });
           return;
         }
         interactionProcessedRef.current = true;
 
         // Snap to dock on interaction end if we're near an edge
         // Use isDockedAtStartRef to avoid stale closures from re-renders during the same interaction
-        console.log("↑ Interaction ended", {
-          id,
-          renderCount: renderCountRef.current,
-          isDockedAtStart: isDockedAtStartRef.current,
-          targetSnapEdgeRef: targetSnapEdgeRef.current,
-        });
 
         // Dock if the window is floating at release (including a window that was undocked
         // earlier in this same drag) and the pointer is over a snap zone
         const isDockedNow = isDockedRef.current;
         let isDocking = false;
         if (!isDockedNow && dockable && docking && targetSnapEdgeRef.current) {
-          console.log("✓ All conditions met - docking", {
-            id,
-            edge: targetSnapEdgeRef.current,
-          });
           handleDock(targetSnapEdgeRef.current, defaultStackDirection);
           isDocking = true;
-        } else if (!isDockedNow && dockable && docking) {
-          console.log("✗ Docking blocked - no snap", {
-            id,
-            refIsNull: targetSnapEdgeRef.current === null,
-          });
-        } else if (isDockedNow) {
-          console.log("✗ Interaction on docked window - skipping dock logic", {
-            id,
-            isDockedAtStart: isDockedAtStartRef.current,
-          });
         }
 
         setIsDraggingForDock(false);
@@ -654,23 +532,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }),
       [pushToTop, handleDock, handleUndock],
     );
-
-    // Log isDocked state changes for debugging
-    useEffect(() => {
-      console.log("isDocked state changed:", {
-        isDocked,
-        dockedWindow: dockedWindow
-          ? { edge: dockedWindow.edge, stackDirection: dockedWindow.stackDirection }
-          : null,
-        id,
-        renderCount: renderCountRef.current,
-        targetSnapEdgeRefCurrent: targetSnapEdgeRef.current,
-      });
-      /* istanbul ignore next */
-      if (isDocked) {
-        console.log("⚠️ isDocked became true - stack trace marker");
-      }
-    }, [isDocked, dockedWindow, id]);
 
     // Apply restored floating position to the newly mounted (re-portaled) window node after undock
     useLayoutEffect(() => {
@@ -838,22 +699,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Clear floating position styles when window becomes docked
     useEffect(() => {
       if (isDocked && windowRef.current) {
-        console.log(
-          "useEffect[isDocked] - isDocked became true, clearing floating styles after dock",
-          {
-            id,
-            isDraggingForDock,
-            moving,
-            targetSnapEdgeRef: targetSnapEdgeRef.current,
-          },
-        );
         // Clear direct DOM style mutations that were set during floating state
         windowRef.current.style.left = "";
         windowRef.current.style.top = "";
         windowRef.current.style.transform = "";
         windowPos.current = { x: 0, y: 0 };
         // Also clear the snap edge ref since we've docked
-        console.log("Clearing targetSnapEdgeRef due to isDocked=true");
         targetSnapEdgeRef.current = null;
         setTargetSnapEdge(null);
       }
@@ -877,18 +728,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 id={id}
                 {...{ [CONTEXT_WINDOW_DATA_ATTR]: "true" }}
                 {...{ [CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR]: `${minZIndex}` }}
-                className={[
+                className={classNames(
                   styles.contextWindow,
-                  isDocked ? styles.docked : "",
-                  isDocked
-                    ? styles[
-                        `docked${dockedWindow?.edge?.charAt(0).toUpperCase()}${dockedWindow?.edge?.slice(1)}`
-                      ]
-                    : "",
+                  isDocked && styles.docked,
+                  isDocked && dockedWindow && dockedEdgeClassNames[dockedWindow.edge],
                   rest.className,
-                ]
-                  .filter((c) => c)
-                  .join(" ")}
+                )}
                 style={{
                   ...(isDocked ? {} : rest.style),
                   opacity: moving ? 0.8 : windowVisible ? 1 : 0,
@@ -905,11 +750,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                   maxWidth: isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
                   width: isDocked ? "100%" : rest.style?.width,
                   height: isDocked ? "100%" : rest.style?.height,
-                  // left: isDocked ? undefined : (rest.style?.left as any),
-                  // top: isDocked ? undefined : (rest.style?.top as any),
-                  // right: isDocked ? undefined : (rest.style?.right as any),
-                  // bottom: isDocked ? undefined : (rest.style?.bottom as any),
-                  // transform: isDocked ? undefined : (rest.style?.transform as any),
                 }}
                 onClickCapture={(e) => {
                   if (isDocked && dockedWindow && activeDockedWindowId !== id) {
@@ -919,74 +759,19 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                   rest.onClickCapture?.(e);
                 }}
               >
-                <div
-                  className={[styles.contextWindowTitle, moving ? styles.moving : ""]
-                    .filter((c) => c !== "")
-                    .join(" ")}
+                <ContextWindowTitleBar
+                  title={title}
+                  titleElement={titleElement}
+                  moving={moving}
                   onMouseDown={onMouseDown}
-                >
-                  <div
-                    className={styles.contextWindowTitleText}
-                    title={title}
-                  >
-                    {titleElement ? titleElement : title}
-                  </div>
-                  {dockable && !isDocked && (
-                    <div
-                      className={styles.dockButton}
-                      role="button"
-                      aria-label="Dock"
-                      onClick={() => handleDock("right", defaultStackDirection)}
-                      title={`Dock ${title && title.trim() !== "" ? title : "window"}`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        fill="currentColor"
-                        viewBox="0 0 16 16"
-                      >
-                        <path d="M8 1H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5V1zm5 0v12h-1V1h1z" />
-                      </svg>
-                    </div>
-                  )}
-                  {dockable && isDocked && allowUndock && (
-                    <div
-                      className={styles.undockButton}
-                      role="button"
-                      aria-label="Undock"
-                      onClick={() => handleUndock(true)}
-                      title={`Undock ${title && title.trim() !== "" ? title : "window"}`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        fill="currentColor"
-                        viewBox="0 0 16 16"
-                      >
-                        <path d="M3 2.5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1 5 0v.006c0 .07 0 .27-.038.494H15a.5.5 0 0 1 0 1H1a.5.5 0 0 1 0-1h2.038A3 3 0 0 0 3 2.506V2.5zm2.68 1.022A1.5 1.5 0 0 0 3.5 3.5h9a1.5 1.5 0 0 0-2.18-1.478L8 5.5l-2.32-2.978z" />
-                      </svg>
-                    </div>
-                  )}
-                  <div
-                    className={styles.contextWindowTitleClose}
-                    role="button"
-                    aria-label="Close"
-                    onClick={onClose}
-                    title={`Close ${title && title.trim() !== "" ? title : "window"}`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                    </svg>
-                  </div>
-                </div>
+                  onDock={
+                    dockable && !isDocked
+                      ? () => handleDock("right", defaultStackDirection)
+                      : undefined
+                  }
+                  onUndock={dockable && isDocked && allowUndock ? () => handleUndock() : undefined}
+                  onClose={onClose}
+                />
                 <div className={styles.contextWindowBody}>
                   <div>{children}</div>
                 </div>

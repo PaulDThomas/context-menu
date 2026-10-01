@@ -53,6 +53,7 @@ const config: Config = {
     "!**/interface.ts",
     "!**/main.ts",
     "!**/__dummy__/**",
+    "!**/__mocks__/**",
     "!**/*.stories.{ts,tsx}",
   ],
   moduleNameMapper: {

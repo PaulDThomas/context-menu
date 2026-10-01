@@ -36,7 +36,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const dock = useCallback(
     (id: string, edge: DockEdge, stackDirection: StackDirection): void => {
-      console.log("🔵 DockingContext.dock called:", { id, edge, stackDirection });
       setState((prevState) => {
         const newState = {
           ...prevState,
@@ -55,11 +54,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
           stackDirection,
           isCollapsed: false,
           order: nextOrder,
-        });
-
-        console.log("🔵 DockingContext.dock - state updated:", {
-          id,
-          allDockedWindows: Array.from(newState.dockedWindows.keys()),
         });
 
         return newState;
@@ -84,7 +78,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   );
 
   const undock = useCallback((id: string): void => {
-    console.log("🟠 DockingContext.undock called:", { id });
     setState((prevState): DockingState => {
       const newState = {
         ...prevState,
@@ -92,10 +85,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       };
       const removedWindow = newState.dockedWindows.get(id);
       newState.dockedWindows.delete(id);
-      console.log("🟠 DockingContext.undock - state updated:", {
-        id,
-        allDockedWindows: Array.from(newState.dockedWindows.keys()),
-      });
 
       if (!removedWindow) {
         return prevState;
@@ -134,13 +123,7 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   }, []);
 
   const getDockedWindow = useCallback(
-    (id: string): DockedWindow | undefined => {
-      const result = state.dockedWindows.get(id);
-      if (result) {
-        console.log("🟣 DockingContext.getDockedWindow - FOUND:", { id, result });
-      }
-      return result;
-    },
+    (id: string): DockedWindow | undefined => state.dockedWindows.get(id),
     [state.dockedWindows],
   );
 

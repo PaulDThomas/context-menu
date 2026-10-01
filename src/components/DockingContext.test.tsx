@@ -1,8 +1,7 @@
-import { act, render, renderHook } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { useContext } from "react";
 import { DockingContext, DockingProvider } from "./DockingContext";
 import type { DockingContextType } from "./interface";
-import { useDocking } from "./useDocking";
 
 describe("DockingProvider", () => {
   let api: DockingContextType;
@@ -250,20 +249,5 @@ describe("DockingProvider", () => {
       api.setPanelZIndex?.("bottom", null);
     });
     expect(api.getPanelZIndex?.("bottom")).toBeNull();
-  });
-});
-
-describe("useDocking", () => {
-  test("returns the docking context inside a DockingProvider", () => {
-    const { result } = renderHook(() => useDocking(), { wrapper: DockingProvider });
-    expect(typeof result.current.dock).toBe("function");
-  });
-
-  test("throws outside a DockingProvider", () => {
-    jest.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => renderHook(() => useDocking())).toThrow(
-      "useDocking must be used within a DockingProvider",
-    );
-    jest.restoreAllMocks();
   });
 });

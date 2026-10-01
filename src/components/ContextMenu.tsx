@@ -1,4 +1,5 @@
 import React, { forwardRef, Fragment, useLayoutEffect, useState } from "react";
+import { classNames } from "../functions/classNames";
 import styles from "./ContextMenu.module.css";
 import { ContextMenuEntry } from "./ContextMenuEntry";
 import { isDivider } from "./ContextMenuHandler";
@@ -51,9 +52,7 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     return (
       <div
         ref={ref}
-        className={[styles.contextMenu, visible ? styles.visible : styles.hidden]
-          .filter((c) => c !== "")
-          .join(" ")}
+        className={classNames(styles.contextMenu, visible ? styles.visible : styles.hidden)}
         style={{
           top: `${adjustedYPos}px`,
           left: `${adjustedXPos}px`,
