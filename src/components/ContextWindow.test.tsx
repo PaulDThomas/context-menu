@@ -3113,6 +3113,52 @@ describe("Context window", () => {
     expect(dockingState.get("dock-undock-ref-test")?.edge).toBe("bottom");
   });
 
+  test("Unmounting a docked window removes it from its DockPanel", async () => {
+    let windowRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    let setMounted: (mounted: boolean) => void = () => {};
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      const [mounted, setMountedState] = useState(true);
+      useEffect(() => {
+        windowRef = ref;
+        setMounted = setMountedState;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          {mounted && (
+            <ContextWindow
+              ref={ref}
+              id="unmount-docked-test"
+              visible={true}
+              title="Unmount Docked Test"
+              dockable={true}
+            >
+              <span>Content</span>
+            </ContextWindow>
+          )}
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+    await act(async () => {
+      windowRef?.current?.dock("left", "vertical");
+    });
+    expect(screen.getByRole("button", { name: "unmount-docked-test" })).toBeInTheDocument();
+
+    await act(async () => {
+      setMounted(false);
+    });
+
+    expect(screen.queryByRole("button", { name: "unmount-docked-test" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /left dock panel/ })).not.toBeInTheDocument();
+  });
+
   test("Guard branches exit early without a docking provider", async () => {
     const user = userEvent.setup();
 

@@ -1,6 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { DOCK_PANEL_MIN_SIZE, DOCK_PANEL_VIEWPORT_GAP, DockPanel } from "./DockPanel";
-import { DockingContext } from "./DockingContext";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { useContext } from "react";
+import {
+  DOCK_PANEL_AUTOHIDE_DISTANCE,
+  DOCK_PANEL_MIN_SIZE,
+  DOCK_PANEL_VIEWPORT_GAP,
+  DockPanel,
+} from "./DockPanel";
+import { DockingContext, DockingProvider } from "./DockingContext";
 import type { DockedWindow, DockingContextType } from "./interface";
 
 const buildDockedWindow = (
@@ -285,6 +291,153 @@ describe("DockPanel", () => {
       expect(document.body.style.cursor).toBe("col-resize");
       unmount();
       expect(document.body.style.cursor).toBe("");
+    });
+  });
+
+  describe("pinning", () => {
+    let dockingApi: DockingContextType | undefined;
+
+    const CaptureDocking = (): null => {
+      dockingApi = useContext(DockingContext);
+      return null;
+    };
+
+    const renderWithProvider = () => {
+      const result = render(
+        <DockingProvider>
+          <CaptureDocking />
+          <DockPanel edge="left" />
+        </DockingProvider>,
+      );
+      act(() => {
+        dockingApi!.dock("window-a", "left", "vertical");
+        dockingApi!.dock("window-b", "left", "vertical");
+      });
+      return result;
+    };
+
+    const getContent = (container: HTMLElement) =>
+      container.querySelector("[class*='dockPanelContent']") as HTMLElement;
+
+    beforeEach(() => {
+      jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 30,
+        bottom: 500,
+        width: 30,
+        height: 500,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      dockingApi = undefined;
+    });
+
+    const getPanel = (container: HTMLElement) => container.firstElementChild as HTMLElement;
+
+    test("pin hides the contents and resize handle without touching the page; unpin restores", () => {
+      const { container } = renderWithProvider();
+
+      expect(getContent(container).hidden).toBe(false);
+      expect(screen.getByRole("separator")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      const unpinButton = screen.getByRole("button", { name: "Unpin left dock panel" });
+      expect(unpinButton).toHaveAttribute("aria-pressed", "true");
+      expect(getContent(container).hidden).toBe(true);
+      expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+      expect(getPanel(container).className).toContain("pinned");
+      expect(getPanel(container).className).not.toContain("autoHidden");
+      expect(document.body.style.paddingLeft).toBe("");
+
+      fireEvent.click(unpinButton);
+
+      expect(screen.getByRole("button", { name: "Pin left dock panel" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      expect(getContent(container).hidden).toBe(false);
+      expect(screen.getByRole("separator")).toBeInTheDocument();
+    });
+
+    test("a pinned bar auto-hides when the pointer moves away and returns when it comes back", () => {
+      const { container } = renderWithProvider();
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      // Bar spans x 0-30, so the threshold sits at x 78
+      fireEvent.mouseMove(document, { clientX: 30 + DOCK_PANEL_AUTOHIDE_DISTANCE, clientY: 200 });
+      expect(getPanel(container).className).not.toContain("autoHidden");
+
+      fireEvent.mouseMove(document, {
+        clientX: 31 + DOCK_PANEL_AUTOHIDE_DISTANCE,
+        clientY: 200,
+      });
+      expect(getPanel(container).className).toContain("autoHidden");
+
+      fireEvent.mouseMove(document, { clientX: 10, clientY: 200 });
+      expect(getPanel(container).className).not.toContain("autoHidden");
+
+      // Diagonal distance from the bar's corner counts too
+      fireEvent.mouseMove(document, { clientX: 70, clientY: 540 });
+      expect(getPanel(container).className).toContain("autoHidden");
+    });
+
+    test("leaving the window hides a pinned bar; unpinned panels never auto-hide", () => {
+      const { container } = renderWithProvider();
+
+      fireEvent.mouseMove(document, { clientX: 900, clientY: 200 });
+      expect(getPanel(container).className).not.toContain("autoHidden");
+
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+      fireEvent.mouseOut(document, { relatedTarget: null });
+      expect(getPanel(container).className).toContain("autoHidden");
+
+      // Re-pinning starts shown (the pointer is on the pin button) even if it was hidden before
+      fireEvent.click(screen.getByRole("button", { name: "Unpin left dock panel" }));
+      expect(getPanel(container).className).not.toContain("autoHidden");
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+      expect(getPanel(container).className).not.toContain("autoHidden");
+    });
+
+    test("clicking a window button while pinned unpins and shows that window", () => {
+      const { container } = renderWithProvider();
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      fireEvent.click(screen.getByRole("button", { name: "window-a" }));
+
+      expect(dockingApi!.isEdgeCollapsed("left")).toBe(false);
+      expect(dockingApi!.getActiveWindowOnEdge?.("left")).toBe("window-a");
+      expect(getContent(container).hidden).toBe(false);
+    });
+
+    test("docking onto a pinned edge unpins it", () => {
+      renderWithProvider();
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      act(() => dockingApi!.dock("window-c", "left", "vertical"));
+
+      expect(dockingApi!.isEdgeCollapsed("left")).toBe(false);
+      expect(dockingApi!.getActiveWindowOnEdge?.("left")).toBe("window-c");
+      expect(screen.getByRole("button", { name: "Pin left dock panel" })).toBeInTheDocument();
+    });
+
+    test("removing the last window from a pinned edge removes the panel and clears the pin", () => {
+      const { container } = renderWithProvider();
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+
+      act(() => dockingApi!.undock("window-a"));
+      expect(dockingApi!.isEdgeCollapsed("left")).toBe(true);
+
+      act(() => dockingApi!.undock("window-b"));
+
+      expect(container.querySelector("[class*='dockPanel']")).toBeNull();
+      expect(dockingApi!.isEdgeCollapsed("left")).toBe(false);
     });
   });
 });

@@ -69,6 +69,15 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
         nextActiveWindowsByEdge.set(edge, id);
         return nextActiveWindowsByEdge;
       });
+      // Docking a window shows it, so a pinned (contents hidden) edge is unpinned
+      setState((prevState) => {
+        if (!prevState.collapsedEdges.has(edge)) {
+          return prevState;
+        }
+        const nextCollapsedEdges = new Set(prevState.collapsedEdges);
+        nextCollapsedEdges.delete(edge);
+        return { ...prevState, collapsedEdges: nextCollapsedEdges };
+      });
       bumpActivation(id);
     },
     [bumpActivation],
@@ -100,6 +109,12 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
             .sort((a, b) => a.order - b.order)[0];
           nextWindowOnEdgeId = nextWindowOnEdge ? nextWindowOnEdge.id : null;
           removedWindowWasActive = activeWindowsByEdge.get(removedWindow.edge) === id;
+          // An empty edge has no panel, so drop its pinned state
+          if (!nextWindowOnEdge && newState.collapsedEdges.has(removedWindow.edge)) {
+            const nextCollapsedEdges = new Set(newState.collapsedEdges);
+            nextCollapsedEdges.delete(removedWindow.edge);
+            return { ...newState, collapsedEdges: nextCollapsedEdges };
+          }
         }
 
         return newState;

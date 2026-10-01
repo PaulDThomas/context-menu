@@ -145,3 +145,113 @@
 .resizeHandle-bottom {
   top: 0;
 }
+
+.dockPanelContent[hidden] {
+  display: none;
+}
+
+.dockPinButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 3px 5px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgb(80, 80, 80);
+  cursor: pointer;
+}
+
+.dockPinButton:hover {
+  background-color: rgb(230, 230, 230);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.dockPinButton svg {
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.dockPinButtonPinned {
+  color: rgb(43, 100, 205);
+}
+
+.dockPinButtonPinned svg {
+  transform: none;
+}
+
+/* Pinned: contents hidden, the button bar lies flat against the screen edge */
+.dockPanel.pinned {
+  background-color: rgb(246, 246, 246);
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+
+/* Auto-hidden pinned bar: slid off-screen leaving only a thin line at the edge */
+.dockPanel.autoHidden {
+  background-color: rgb(160, 180, 215);
+}
+
+.dockPanel.autoHidden > * {
+  opacity: 0;
+}
+
+.dockPanel.autoHidden.edge-left {
+  transform: translateX(calc(-100% + 4px));
+}
+
+.dockPanel.autoHidden.edge-right {
+  transform: translateX(calc(100% - 4px));
+}
+
+.dockPanel.autoHidden.edge-top {
+  transform: translateY(calc(-100% + 4px));
+}
+
+.dockPanel.autoHidden.edge-bottom {
+  transform: translateY(calc(100% - 4px));
+}
+
+/* Keyboard users tabbing into the bar get it back */
+.dockPanel.autoHidden:has(:focus-visible) {
+  transform: none;
+  background-color: rgb(246, 246, 246);
+}
+
+.dockPanel.autoHidden:has(:focus-visible) > * {
+  opacity: 1;
+}
+
+.dockPanel.pinned.edge-top,
+.dockPanel.pinned.edge-bottom {
+  height: auto;
+  max-height: none;
+}
+
+.dockPanel.pinned.edge-left,
+.dockPanel.pinned.edge-right {
+  width: auto;
+}
+
+.dockPanel.pinned .dockPanelTabs {
+  border-top: none;
+}
+
+.dockPanel.pinned.edge-left .dockPanelTabs,
+.dockPanel.pinned.edge-right .dockPanelTabs {
+  flex: 1 1 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: center;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dockPanel.pinned.edge-left .dockTabButton,
+.dockPanel.pinned.edge-right .dockTabButton {
+  writing-mode: vertical-rl;
+  padding: 6px 4px;
+}

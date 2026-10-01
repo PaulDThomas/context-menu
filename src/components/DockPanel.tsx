@@ -8,6 +8,8 @@ interface DockPanelProps {
 }
 
 export const DOCK_PANEL_MIN_SIZE = 80;
+// A pinned panel auto-hides once the pointer is further than this from its button bar
+export const DOCK_PANEL_AUTOHIDE_DISTANCE = 48;
 // Space always left free between the panel's inner edge and the opposite side of the viewport
 export const DOCK_PANEL_VIEWPORT_GAP = 40;
 const KEYBOARD_STEP = 10;
@@ -148,21 +150,78 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
     };
   }, [edge, setPanelContentHost, windows.length]);
 
+  const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
+  // A pinned bar slides away to a thin line once the pointer moves away from it
+  const [isAutoHidden, setIsAutoHidden] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isPinned) {
+      return;
+    }
+    const handlePointerMove = (e: MouseEvent) => {
+      const panel = panelRef.current;
+      /* istanbul ignore next */
+      if (!panel) {
+        return;
+      }
+      // Measured as rendered: the full bar while shown, just the edge line while hidden
+      const rect = panel.getBoundingClientRect();
+      const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right);
+      const dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
+      setIsAutoHidden(Math.hypot(dx, dy) > DOCK_PANEL_AUTOHIDE_DISTANCE);
+    };
+    // Leaving the window counts as moving away
+    const handlePointerLeave = (e: MouseEvent) => {
+      if (e.relatedTarget === null) {
+        setIsAutoHidden(true);
+      }
+    };
+    document.addEventListener("mousemove", handlePointerMove);
+    document.addEventListener("mouseout", handlePointerLeave);
+    return () => {
+      document.removeEventListener("mousemove", handlePointerMove);
+      document.removeEventListener("mouseout", handlePointerLeave);
+    };
+  }, [isPinned]);
+
   if (windows.length === 0) {
     return null;
   }
 
-  const containerClass = `${styles.dockPanel} ${styles[`edge-${edge}`]}`;
+  const autoHidden = isPinned && isAutoHidden;
+  const containerClass = [
+    styles.dockPanel,
+    styles[`edge-${edge}`],
+    isPinned ? styles.pinned : "",
+    autoHidden ? styles.autoHidden : "",
+  ]
+    .filter((className) => className !== "")
+    .join(" ");
   const activeWindowId = docking.getActiveWindowOnEdge?.(edge) ?? windows[0]?.id ?? null;
   // Panels stack with floating windows using the z-index of their visible (active) window
   const panelZIndex = docking.getPanelZIndex?.(edge) ?? undefined;
   const horizontal = isHorizontalEdge(edge);
   const sizeStyle: React.CSSProperties =
-    panelSize === null
+    panelSize === null || isPinned
       ? {}
       : horizontal
         ? { width: panelSize, maxWidth: `calc(100vw - ${DOCK_PANEL_VIEWPORT_GAP}px)` }
         : { height: panelSize, maxHeight: `calc(100vh - ${DOCK_PANEL_VIEWPORT_GAP}px)` };
+
+  const togglePinned = () => {
+    // The pointer is on the pin button, so a freshly pinned bar starts shown
+    setIsAutoHidden(false);
+    docking.toggleEdgeCollapse(edge);
+    bringPanelToTop();
+  };
+
+  const activateWindow = (id: string) => {
+    // Choosing a window from a pinned bar shows its contents again
+    if (isPinned) {
+      docking.toggleEdgeCollapse(edge);
+    }
+    docking.setActiveWindowOnEdge?.(edge, id);
+  };
 
   return (
     <div
@@ -170,28 +229,52 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
       className={containerClass}
       style={{ zIndex: panelZIndex, ...sizeStyle }}
     >
-      <div
-        className={[
-          styles.resizeHandle,
-          styles[`resizeHandle-${edge}`],
-          isResizing ? styles.resizeHandleActive : "",
-        ]
-          .filter((className) => className !== "")
-          .join(" ")}
-        role="separator"
-        aria-orientation={horizontal ? "vertical" : "horizontal"}
-        aria-label={`Resize ${edge} dock panel`}
-        aria-valuemin={DOCK_PANEL_MIN_SIZE}
-        aria-valuenow={panelSize ?? undefined}
-        tabIndex={0}
-        onMouseDown={handleResizeMouseDown}
-        onKeyDown={handleResizeKeyDown}
-      />
+      {!isPinned && (
+        <div
+          className={[
+            styles.resizeHandle,
+            styles[`resizeHandle-${edge}`],
+            isResizing ? styles.resizeHandleActive : "",
+          ]
+            .filter((className) => className !== "")
+            .join(" ")}
+          role="separator"
+          aria-orientation={horizontal ? "vertical" : "horizontal"}
+          aria-label={`Resize ${edge} dock panel`}
+          aria-valuemin={DOCK_PANEL_MIN_SIZE}
+          aria-valuenow={panelSize ?? undefined}
+          tabIndex={0}
+          onMouseDown={handleResizeMouseDown}
+          onKeyDown={handleResizeKeyDown}
+        />
+      )}
+      {/* Kept mounted while pinned so the docked window isn't remounted */}
       <div
         ref={contentHostRef}
         className={styles.dockPanelContent}
+        hidden={isPinned}
       />
       <div className={styles.dockPanelTabs}>
+        <button
+          className={[styles.dockPinButton, isPinned ? styles.dockPinButtonPinned : ""]
+            .filter((className) => className !== "")
+            .join(" ")}
+          aria-pressed={isPinned}
+          aria-label={isPinned ? `Unpin ${edge} dock panel` : `Pin ${edge} dock panel`}
+          title={isPinned ? "Unpin: show window contents" : "Pin: hide window contents"}
+          onClick={togglePinned}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+          >
+            <path d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354z" />
+          </svg>
+        </button>
         {windows.map((window) => {
           const isActive = window.id === activeWindowId;
           return (
@@ -200,7 +283,7 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
               className={[styles.dockTabButton, isActive ? styles.activeDockTabButton : ""]
                 .filter((className) => className !== "")
                 .join(" ")}
-              onClick={() => docking.setActiveWindowOnEdge?.(edge, window.id)}
+              onClick={() => activateWindow(window.id)}
               title={`Activate ${window.id}`}
             >
               {window.id}

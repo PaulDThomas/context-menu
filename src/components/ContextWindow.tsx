@@ -157,6 +157,18 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     useLayoutEffect(() => {
       isDockedRef.current = isDocked;
     }, [isDocked]);
+    // Unmounting a docked window must release its DockPanel slot (and the panel if it was the last)
+    const dockingRef = useRef(docking);
+    useLayoutEffect(() => {
+      dockingRef.current = docking;
+    }, [docking]);
+    useEffect(() => {
+      return () => {
+        if (isDockedRef.current) {
+          dockingRef.current?.undock(id);
+        }
+      };
+    }, [id]);
     // Track if this interaction cycle has already been processed to prevent duplicate onInteractionEnd fires
     const interactionProcessedRef = useRef<boolean>(false);
     // Track if this window is currently in an active interaction (needed because useMouseMove fires globally)
