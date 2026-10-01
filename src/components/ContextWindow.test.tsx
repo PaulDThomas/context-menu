@@ -1420,6 +1420,87 @@ describe("Context window", () => {
     expect(undockedElement.style.height).toBe("200px");
   });
 
+  test("Imperative undock bounces a partially off-screen restored position back on-screen", async () => {
+    let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = (): React.ReactElement => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        capturedRef = ref;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="right" />
+          <ContextWindow
+            ref={ref}
+            id="imperative-undock-bounce"
+            visible={true}
+            title="Imperative Undock Bounce"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    // Rect follows style.left/top so the remounted node reports its restored position
+    const rectSpy = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.id !== "imperative-undock-bounce") {
+          return {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 0,
+            height: 0,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+          } as DOMRect;
+        }
+        const left = parseFloat(this.style.left) || 900;
+        const top = parseFloat(this.style.top) || 100;
+        return {
+          left,
+          top,
+          right: left + 300,
+          bottom: top + 200,
+          width: 300,
+          height: 200,
+          x: left,
+          y: top,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+
+    try {
+      await act(async () => {
+        capturedRef?.current?.dock("right", "vertical");
+      });
+
+      await act(async () => {
+        capturedRef?.current?.undock();
+      });
+
+      const undockedElement = document.getElementById("imperative-undock-bounce") as HTMLElement;
+      expect(undockedElement.parentElement).toBe(document.body);
+      // innerWidth 1024: saved left 900 (right edge 1200) is clamped to 1024 - 300 - 16 before
+      // being applied, so the window never overflows the viewport
+      expect(undockedElement.style.left).toBe("708px");
+      expect(undockedElement.style.transform).toBe("translate(0px, 0px)");
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
   test("Undock button restores floating position after non-drag side change", async () => {
     let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 

@@ -364,7 +364,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           pendingFloatingStyleRef.current = { left: 16 + window.scrollX, top: 16 + window.scrollY };
         }
 
-        undockViaActionRef.current = fromAction;
+        // Any non-drag undock (header button, imperative ref.undock(), etc.) must land fully on-screen.
+        // Drag-undocks are left alone so the window stays attached to the pointer.
+        undockViaActionRef.current = !pointer;
 
         docking.undock(id);
         console.log("handleUndock completed - undock() called");
@@ -654,6 +656,20 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         const width = pending.width ?? 200;
         left = Math.max(0, pointer.x - width / 2) + window.scrollX;
         top = Math.max(0, pointer.y - 14) + window.scrollY;
+      } else if (undockViaActionRef.current) {
+        // Clamp before applying: even a transient off-screen position can add page scrollbars
+        // that persist (e.g. with 100vw/100vh layouts) after checkPosition moves the window back
+        const innerBounce = 16;
+        const width = pending.width ?? el.offsetWidth;
+        const height = pending.height ?? el.offsetHeight;
+        const viewLeft = left - window.scrollX;
+        const viewTop = top - window.scrollY;
+        if (viewLeft + width > window.innerWidth) {
+          left = Math.max(innerBounce, window.innerWidth - width - innerBounce) + window.scrollX;
+        }
+        if (viewTop + height > window.innerHeight) {
+          top = Math.max(innerBounce, window.innerHeight - height - innerBounce) + window.scrollY;
+        }
       }
       el.style.left = `${left}px`;
       el.style.top = `${top}px`;
