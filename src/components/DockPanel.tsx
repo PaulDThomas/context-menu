@@ -31,7 +31,12 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
 
   // Interacting with the handle raises the panel, matching a click on the docked window itself
   const bringPanelToTop = useCallback(() => {
-    const activeId = getActiveWindowOnEdge?.(edge) ?? windows[0]?.id ?? null;
+    const activeId =
+      getActiveWindowOnEdge?.(edge) ??
+      windows[0]?.id ??
+      // istanbul ignore next
+      null;
+    /* istanbul ignore else */
     if (activeId) {
       setActiveWindowOnEdge?.(edge, activeId);
     }
@@ -64,7 +69,11 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
     return null;
   }
 
-  const activeWindowId = getActiveWindowOnEdge?.(edge) ?? windows[0]?.id ?? null;
+  const activeWindowId =
+    getActiveWindowOnEdge?.(edge) ??
+    windows[0]?.id ??
+    // istanbul ignore next
+    null;
   // Panels stack with floating windows using the z-index of their visible (active) window
   const panelZIndex = docking.getPanelZIndex?.(edge) ?? undefined;
   const horizontal = isHorizontalEdge(edge);

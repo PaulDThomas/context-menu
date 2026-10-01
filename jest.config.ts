@@ -46,6 +46,14 @@ const config: Config = {
   // Code coverage
   collectCoverage: true,
   coverageProvider: "babel",
+  coverageThreshold: {
+    global: {
+      statements: 100,
+      branches: 100,
+      functions: 100,
+      lines: 100,
+    },
+  },
   collectCoverageFrom: [
     "src/**/*.{js,jsx}",
     "src/**/*.{ts,tsx}",

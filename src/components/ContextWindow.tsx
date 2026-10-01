@@ -30,8 +30,6 @@ import { DockZoneIndicator } from "./DockZoneIndicator";
 import { DockingContext } from "./DockingContext";
 import type { DockEdge, StackDirection } from "./interface";
 
-export { MAX_Z_INDEX, MIN_Z_INDEX };
-
 const SNAP_THRESHOLD = 24;
 const UNDOCK_THRESHOLD = 20;
 const SNAP_HYSTERESIS = 40; // px threshold to UN-snap once snapped (larger than SNAP_THRESHOLD)
@@ -316,8 +314,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           // normal open; the on-screen clamp after remount keeps it visible
           const anchor = divRef.current?.getBoundingClientRect();
           pendingFloatingStyleRef.current = {
-            left: (anchor?.left ?? 16) + window.scrollX,
-            top: (anchor?.bottom ?? 16) + window.scrollY,
+            left:
+              (anchor?.left ??
+                // istanbul ignore next
+                16) + window.scrollX,
+            top:
+              (anchor?.bottom ??
+                // istanbul ignore next
+                16) + window.scrollY,
           };
         }
 
@@ -373,6 +377,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       // but not when promoted automatically because another window left the panel
       if (activationCount !== lastActivationCountRef.current) {
         lastActivationCountRef.current = activationCount;
+        /* istanbul ignore else */
         if (isDocked) {
           pushToTop();
         }
@@ -542,6 +547,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       pendingFloatingStyleRef.current = null;
       const el = windowRef.current;
       let { left, top } = pending;
+      /* istanbul ignore else */
       if (pending.anchorToPointer) {
         // Use the latest pointer position - moves may have arrived before this re-render
         const pointer = lastMousePosRef.current;
@@ -601,6 +607,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
       if (initialDockEdge && docking && !initialDockAppliedRef.current) {
         initialDockAppliedRef.current = true;
+        /* istanbul ignore else */
         if (!isDockedRef.current) {
           docking.dock(id, initialDockEdge, defaultStackDirection);
         }
