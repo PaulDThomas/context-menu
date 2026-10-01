@@ -6,7 +6,6 @@ import {
   DockingProvider,
   DockPanel,
   type DockEdge,
-  type StackDirection,
 } from "../src/components";
 
 const meta = {
@@ -56,10 +55,10 @@ export const KitchenSink: Story = {
         }));
       };
 
-      const handleDockWindow = (id: string, edge: DockEdge, stackDirection: StackDirection) => {
+      const handleDockWindow = (id: string, edge: DockEdge) => {
         const ref = windowRefs.current[id];
         if (ref) {
-          ref.dock(edge, stackDirection);
+          ref.dock(edge);
         }
       };
 
@@ -161,13 +160,12 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-1"] ?? false}
                   title="Window 1 - Right Docked"
                   dockable={true}
-                  defaultStackDirection="vertical"
                   onClose={() => toggleWindow("window-1")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
                   {dummyContent("Window 1 - Try dragging to right edge")}
                   <button
-                    onClick={() => handleDockWindow("window-1", "right", "vertical")}
+                    onClick={() => handleDockWindow("window-1", "right")}
                     style={{
                       padding: "8px 12px",
                       margin: "10px",
@@ -192,13 +190,12 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-2"] ?? false}
                   title="Window 2 - Bottom Docked"
                   dockable={true}
-                  defaultStackDirection="horizontal"
                   onClose={() => toggleWindow("window-2")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
                   {dummyContent("Window 2 - Try dragging to bottom edge")}
                   <button
-                    onClick={() => handleDockWindow("window-2", "bottom", "horizontal")}
+                    onClick={() => handleDockWindow("window-2", "bottom")}
                     style={{
                       padding: "8px 12px",
                       margin: "10px",
@@ -223,13 +220,12 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-3"] ?? false}
                   title="Window 3 - Left Docked"
                   dockable={true}
-                  defaultStackDirection="vertical"
                   onClose={() => toggleWindow("window-3")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
                   {dummyContent("Window 3 - Try dragging to left edge")}
                   <button
-                    onClick={() => handleDockWindow("window-3", "left", "vertical")}
+                    onClick={() => handleDockWindow("window-3", "left")}
                     style={{
                       padding: "8px 12px",
                       margin: "10px",
@@ -254,13 +250,12 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-4"] ?? false}
                   title="Window 4 - Top Docked"
                   dockable={true}
-                  defaultStackDirection="horizontal"
                   onClose={() => toggleWindow("window-4")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
                   {dummyContent("Window 4 - Try dragging to top edge")}
                   <button
-                    onClick={() => handleDockWindow("window-4", "top", "horizontal")}
+                    onClick={() => handleDockWindow("window-4", "top")}
                     style={{
                       padding: "8px 12px",
                       margin: "10px",
@@ -303,7 +298,6 @@ export const KitchenSink: Story = {
                   title="Window 6 - Starts Docked"
                   dockable={true}
                   initialDockEdge="left"
-                  defaultStackDirection="vertical"
                   onClose={() => toggleWindow("window-6")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
@@ -324,7 +318,6 @@ export const KitchenSink: Story = {
                   dockable={true}
                   initialDockEdge="bottom"
                   allowUndock={false}
-                  defaultStackDirection="horizontal"
                   onClose={() => toggleWindow("window-7")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
@@ -430,7 +423,6 @@ export const SingleDockableWindow: Story = {
               visible={visible}
               title="Single Dockable Window"
               dockable={true}
-              defaultStackDirection="vertical"
               onClose={() => setVisible(false)}
               style={{ width: "400px", minHeight: "250px" }}
             >
@@ -575,7 +567,6 @@ export const MultipleDockedWindows: Story = {
                 visible={true}
                 title="Window 1 (Right)"
                 dockable={true}
-                defaultStackDirection="vertical"
                 onClose={() => toggleWindow("w1")}
                 style={{ width: "300px", minHeight: "150px" }}
               >
@@ -589,7 +580,6 @@ export const MultipleDockedWindows: Story = {
                 visible={true}
                 title="Window 2 (Bottom)"
                 dockable={true}
-                defaultStackDirection="horizontal"
                 onClose={() => toggleWindow("w2")}
                 style={{ width: "300px", minHeight: "150px" }}
               >
@@ -603,7 +593,6 @@ export const MultipleDockedWindows: Story = {
                 visible={true}
                 title="Window 3 (Left)"
                 dockable={true}
-                defaultStackDirection="vertical"
                 onClose={() => toggleWindow("w3")}
                 style={{ width: "300px", minHeight: "150px" }}
               >
@@ -617,7 +606,6 @@ export const MultipleDockedWindows: Story = {
                 visible={true}
                 title="Window 4 (Top)"
                 dockable={true}
-                defaultStackDirection="horizontal"
                 onClose={() => toggleWindow("w4")}
                 style={{ width: "300px", minHeight: "150px" }}
               >
@@ -702,7 +690,6 @@ export const InitiallyDockedWindow: Story = {
           title="Initially Docked Window"
           dockable={true}
           initialDockEdge="right"
-          defaultStackDirection="vertical"
           onClose={() => setVisible(false)}
           style={{ width: "350px", minHeight: "200px" }}
         >
@@ -757,7 +744,6 @@ export const LockedDockedWindow: Story = {
           dockable={true}
           initialDockEdge="left"
           allowUndock={false}
-          defaultStackDirection="vertical"
           onClose={() => setVisible(false)}
           style={{ width: "350px", minHeight: "200px" }}
         >

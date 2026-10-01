@@ -142,7 +142,6 @@ A floating, draggable window rendered in a portal. Clicking a window brings it t
 | `onOpen` / `onClose`    | `() => void`                             | —             | Called when the window opens / when its close button is clicked.                                                              |
 | `minZIndex`/`maxZIndex` | `number`                                 | `3000`/`3010` | Z-index range used when bringing windows to the front.                                                                        |
 | `dockable`              | `boolean`                                | `false`       | Allows the window to dock into a `DockPanel` (requires a `DockingProvider`).                                                  |
-| `defaultStackDirection` | `"vertical" \| "horizontal"`             | `"vertical"`  | Stack direction used when the window is docked by dragging or by `initialDockEdge`.                                           |
 | `initialDockEdge`       | `"top" \| "right" \| "bottom" \| "left"` | —             | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                 |
 | `allowUndock`           | `boolean`                                | `true`        | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing. |
 
@@ -150,11 +149,13 @@ A floating, draggable window rendered in a portal. Clicking a window brings it t
 
 Pass a `ref` to control the window from code:
 
-| Method                       | Description                                                                                         |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- |
-| `pushToTop()`                | Brings the window to the front.                                                                     |
-| `dock(edge, stackDirection)` | Docks the window (or moves a docked window to another edge). Works even when `allowUndock={false}`. |
-| `undock()`                   | Undocks the window back to its previous floating position (no-op when `allowUndock={false}`).       |
+| Method        | Description                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| `pushToTop()` | Brings the window to the front.                                                                     |
+| `dock(edge)`  | Docks the window (or moves a docked window to another edge). Works even when `allowUndock={false}`. |
+| `undock()`    | Undocks the window back to its previous floating position (no-op when `allowUndock={false}`).       |
+
+> Window stacking is owned by the `DockingProvider`. Without a provider every `ContextWindow` simply uses its own `minZIndex`, and clicking a window no longer raises it above the others.
 
 ### Docking
 
@@ -203,7 +204,6 @@ export function App(): React.ReactElement {
         visible
         dockable
         initialDockEdge="bottom"
-        defaultStackDirection="horizontal"
         allowUndock={false}
       >
         Console content
@@ -216,7 +216,7 @@ export function App(): React.ReactElement {
 #### Docking and undocking
 
 - **Drag to dock** – drag a dockable window's title bar within 24px of a screen edge; a highlight shows the target edge and releasing docks the window there.
-- **Dock button** – the title bar dock button docks the window to the right edge; `ref.dock(edge, stackDirection)` docks to any edge.
+- **Dock button** – the title bar dock button docks the window to the right edge; `ref.dock(edge)` docks to any edge.
 - **Drag to undock** – drag a docked window's title bar away from its edge. The window follows the pointer and can be re-docked to another edge in the same drag, without releasing the mouse.
 - **Undock button** / `ref.undock()` – returns the window to its previous floating position, moved fully on-screen if needed. A window that started docked opens below its anchor element.
 - **Close** – closing (or unmounting) a docked window removes it from the panel.
@@ -237,9 +237,30 @@ Each panel has a content area, filled by the active window, and a strip of tab b
 
 #### `useDocking` (Hook)
 
-`useDocking()` returns the `DockingContextType` from the nearest `DockingProvider` (it throws outside a provider). It can be used to inspect or drive docking state, e.g. `getWindowsOnEdge(edge)`, `getDockedWindow(id)`, `dock(id, edge, stackDirection)`, `undock(id)`, `isEdgeCollapsed(edge)` (pinned) and `toggleEdgeCollapse(edge)`.
+`useDocking()` returns the `DockingContextType` from the nearest `DockingProvider` (it throws outside a provider). All docking state lives in a single reducer inside the provider, and the hook exposes it as:
 
-Exported types: `DockEdge`, `StackDirection`, `DockingContextType`.
+| Member                                                            | Description                                                                              |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `dock(id, edge, preDockRect?)` / `undock(id, { viaDrag })`        | Move a window into / out of an edge panel. A drag undock keeps the stored floating rect. |
+| `getDockedWindow(id)` / `getWindowsOnEdge(edge)`                  | Inspect what is docked where.                                                            |
+| `getActiveWindowOnEdge(edge)` / `setActiveWindowOnEdge(edge, id)` | Read or change the window a panel is showing. Activating a window also raises it.        |
+| `isEdgeCollapsed(edge)` / `toggleEdgeCollapse(edge)`              | Read or toggle an edge's pinned (auto-hide) state.                                       |
+| `registerWindow(id, zRange)` / `unregisterWindow(id)`             | Join / leave the shared stacking order. `ContextWindow` does this for you.               |
+| `raiseWindow(id)`                                                 | Move a window to the top of the stacking order.                                          |
+| `getWindowZIndex(id)` / `getPanelZIndex(edge)`                    | The derived z-index of a window, or of the panel showing it (`null` when unknown).       |
+| `getPreDockRect(id)`                                              | The floating position a docked window will return to.                                    |
+| `startDockDrag(id)` / `setDockDragEdge(edge)` / `endDockDrag(id)` | Drive the shared drop zone indicator the provider renders during a drag.                 |
+| `setPanelContentHost(edge, host)` / `getPanelContentHost(edge)`   | Used by `DockPanel` to publish the element docked windows portal into.                   |
+
+Exported types: `DockEdge`, `DockingContextType`.
+
+### Breaking changes in v3
+
+- `DockingProvider` now owns window stacking. Windows outside a provider keep a fixed z-index instead of being raised on click.
+- `StackDirection`, the `defaultStackDirection` prop and the third argument of `dock(id, edge, stackDirection)` have been removed; a panel's layout follows its edge.
+- The context no longer exposes `state`, `toggleCollapse`, `isCollapsed`, `setPanelZIndex` or `getWindowActivationCount`; use `isEdgeCollapsed`/`toggleEdgeCollapse` and the derived `getWindowZIndex`/`getPanelZIndex` instead.
+- `ContextWindowHandle.dock` takes a single `edge` argument.
+- Windows no longer render `data-context-window*` attributes, and the global z-index reset event has gone; stacking is derived from the provider's ordering and each window's `minZIndex`/`maxZIndex`.
 
 ### useMouseMove (Hook)
 

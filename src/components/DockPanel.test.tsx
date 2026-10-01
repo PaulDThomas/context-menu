@@ -7,6 +7,7 @@ import {
   DockPanel,
 } from "./DockPanel";
 import { DockingContext, DockingProvider } from "./DockingContext";
+import { createMockDocking } from "./__mocks__/mockDocking";
 import type { DockedWindow, DockingContextType } from "./interface";
 
 const buildDockedWindow = (
@@ -17,20 +18,14 @@ const buildDockedWindow = (
   id,
   edge,
   order,
-  stackDirection: "vertical",
-  isCollapsed: false,
 });
 
 describe("DockPanel", () => {
   test("does not render when no windows are docked on the target edge", () => {
     const contextValue: DockingContextType = {
-      state: {
-        dockedWindows: new Map(),
-        collapsedEdges: new Set(),
-      },
+      ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      toggleCollapse: () => {},
       getDockedWindow: () => undefined,
       getWindowsOnEdge: () => [],
       isEdgeCollapsed: () => false,
@@ -54,15 +49,9 @@ describe("DockPanel", () => {
     ];
 
     const contextValue: DockingContextType = {
-      state: {
-        dockedWindows: new Map(
-          windows.map((window): [string, DockedWindow] => [window.id, window]),
-        ),
-        collapsedEdges: new Set(),
-      },
+      ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      toggleCollapse: () => {},
       setActiveWindowOnEdge,
       getActiveWindowOnEdge: () => "window-a",
       setPanelContentHost: () => {},
@@ -93,15 +82,9 @@ describe("DockPanel", () => {
   test("applies the z-index of the visible window to the panel", () => {
     const windows = [buildDockedWindow("window-a", "top", 0)];
     const contextValue: DockingContextType = {
-      state: {
-        dockedWindows: new Map(
-          windows.map((window): [string, DockedWindow] => [window.id, window]),
-        ),
-        collapsedEdges: new Set(),
-      },
+      ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      toggleCollapse: () => {},
       getPanelZIndex: (edge) => (edge === "top" ? 3005 : null),
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
@@ -122,15 +105,9 @@ describe("DockPanel", () => {
     const renderPanel = (edge: DockedWindow["edge"]) => {
       const windows = [buildDockedWindow("window-a", edge, 0)];
       const contextValue: DockingContextType = {
-        state: {
-          dockedWindows: new Map(
-            windows.map((window): [string, DockedWindow] => [window.id, window]),
-          ),
-          collapsedEdges: new Set(),
-        },
+        ...createMockDocking(new Map()),
         dock: () => {},
         undock: () => {},
-        toggleCollapse: () => {},
         getDockedWindow: (id) => windows.find((window) => window.id === id),
         getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
         isEdgeCollapsed: () => false,
@@ -244,15 +221,9 @@ describe("DockPanel", () => {
       const setActiveWindowOnEdge = jest.fn();
       const windows = [buildDockedWindow("window-a", "right", 0)];
       const contextValue: DockingContextType = {
-        state: {
-          dockedWindows: new Map(
-            windows.map((window): [string, DockedWindow] => [window.id, window]),
-          ),
-          collapsedEdges: new Set(),
-        },
+        ...createMockDocking(new Map()),
         dock: () => {},
         undock: () => {},
-        toggleCollapse: () => {},
         setActiveWindowOnEdge,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -310,8 +281,8 @@ describe("DockPanel", () => {
         </DockingProvider>,
       );
       act(() => {
-        dockingApi!.dock("window-a", "left", "vertical");
-        dockingApi!.dock("window-b", "left", "vertical");
+        dockingApi!.dock("window-a", "left");
+        dockingApi!.dock("window-b", "left");
       });
       return result;
     };
@@ -420,7 +391,7 @@ describe("DockPanel", () => {
       renderWithProvider();
       fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
 
-      act(() => dockingApi!.dock("window-c", "left", "vertical"));
+      act(() => dockingApi!.dock("window-c", "left"));
 
       expect(dockingApi!.isEdgeCollapsed("left")).toBe(false);
       expect(dockingApi!.getActiveWindowOnEdge?.("left")).toBe("window-c");
@@ -489,7 +460,7 @@ describe("DockPanel", () => {
       );
       expect(container.querySelector("[class*='dockPanel']")).toBeNull();
 
-      act(() => dockingApi!.dock("window-a", "right", "vertical"));
+      act(() => dockingApi!.dock("window-a", "right"));
       expect(screen.queryByRole("button", { name: "Pin left dock panel" })).toBeNull();
       expect(screen.getByRole("button", { name: "Pin right dock panel" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "window-a" })).toBeInTheDocument();
@@ -507,7 +478,7 @@ describe("DockPanel", () => {
       );
       expect(dockingApi!.getPanelContentHost?.("top")).toBeNull();
 
-      act(() => dockingApi!.dock("window-a", "top", "horizontal"));
+      act(() => dockingApi!.dock("window-a", "top"));
       const content = container.querySelector("[class*='dockPanelContent']");
       expect(content).not.toBeNull();
       expect(dockingApi!.getPanelContentHost?.("top")).toBe(content);
@@ -525,8 +496,8 @@ describe("DockPanel", () => {
         </DockingProvider>,
       );
       act(() => {
-        dockingApi!.dock("window-a", "bottom", "horizontal");
-        dockingApi!.dock("window-b", "bottom", "horizontal");
+        dockingApi!.dock("window-a", "bottom");
+        dockingApi!.dock("window-b", "bottom");
       });
 
       const tabs = screen
@@ -548,7 +519,7 @@ describe("DockPanel", () => {
           <DockPanel edge="right" />
         </DockingProvider>,
       );
-      act(() => dockingApi!.dock("window-a", "right", "vertical"));
+      act(() => dockingApi!.dock("window-a", "right"));
       const handle = screen.getByRole("separator", { name: "Resize right dock panel" });
       fireEvent.keyDown(handle, { key: "ArrowLeft", shiftKey: true });
       const panel = container.firstElementChild as HTMLElement;
@@ -558,7 +529,7 @@ describe("DockPanel", () => {
       act(() => dockingApi!.undock("window-a"));
       expect(container.firstElementChild).toBeNull();
 
-      act(() => dockingApi!.dock("window-b", "right", "vertical"));
+      act(() => dockingApi!.dock("window-b", "right"));
       expect((container.firstElementChild as HTMLElement).style.width).toBe(size);
     });
   });
@@ -570,15 +541,9 @@ describe("DockPanel", () => {
       buildDockedWindow("window-b", "left", 1),
     ];
     const contextValue: DockingContextType = {
-      state: {
-        dockedWindows: new Map(
-          windows.map((window): [string, DockedWindow] => [window.id, window]),
-        ),
-        collapsedEdges: new Set(),
-      },
+      ...createMockDocking(new Map()),
       dock: () => {},
       undock: () => {},
-      toggleCollapse: () => {},
       setActiveWindowOnEdge,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),

@@ -32,13 +32,13 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   // Interacting with the handle raises the panel, matching a click on the docked window itself
   const bringPanelToTop = useCallback(() => {
     const activeId =
-      getActiveWindowOnEdge?.(edge) ??
+      getActiveWindowOnEdge(edge) ??
       windows[0]?.id ??
       // istanbul ignore next
       null;
     /* istanbul ignore else */
     if (activeId) {
-      setActiveWindowOnEdge?.(edge, activeId);
+      setActiveWindowOnEdge(edge, activeId);
     }
   }, [edge, getActiveWindowOnEdge, setActiveWindowOnEdge, windows]);
 
@@ -50,10 +50,6 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   );
 
   useEffect(() => {
-    if (!setPanelContentHost) {
-      return;
-    }
-
     setPanelContentHost(edge, contentHostRef.current);
 
     return () => {
@@ -70,12 +66,12 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   }
 
   const activeWindowId =
-    getActiveWindowOnEdge?.(edge) ??
+    getActiveWindowOnEdge(edge) ??
     windows[0]?.id ??
     // istanbul ignore next
     null;
   // Panels stack with floating windows using the z-index of their visible (active) window
-  const panelZIndex = docking.getPanelZIndex?.(edge) ?? undefined;
+  const panelZIndex = docking.getPanelZIndex(edge) ?? undefined;
   const horizontal = isHorizontalEdge(edge);
   const sizeStyle: React.CSSProperties =
     panelSize === null || isPinned
@@ -96,7 +92,7 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
     if (isPinned) {
       docking.toggleEdgeCollapse(edge);
     }
-    setActiveWindowOnEdge?.(edge, id);
+    setActiveWindowOnEdge(edge, id);
   };
 
   return (

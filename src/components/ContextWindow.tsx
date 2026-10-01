@@ -13,22 +13,12 @@ import {
 import { createPortal } from "react-dom";
 import { chkPosition } from "../functions/chkPosition";
 import { classNames } from "../functions/classNames";
-import {
-  CONTEXT_WINDOW_DATA_ATTR,
-  CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR,
-  CONTEXT_WINDOW_RESET_EVENT,
-  CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR,
-  MAX_Z_INDEX,
-  MIN_Z_INDEX,
-} from "../functions/contextWindowConstants";
-import { getMaxZIndex } from "../functions/getMaxZIndex";
-import { resetAllWindowZIndexes } from "../functions/resetAllWindowZIndexes";
+import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { useMouseMove } from "../functions/useMouseMove";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
-import { DockZoneIndicator } from "./DockZoneIndicator";
 import { DockingContext } from "./DockingContext";
-import type { DockEdge, StackDirection } from "./interface";
+import type { DockEdge } from "./interface";
 
 const SNAP_THRESHOLD = 24;
 const UNDOCK_THRESHOLD = 20;
@@ -53,7 +43,6 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
   minZIndex?: number;
   maxZIndex?: number;
   dockable?: boolean;
-  defaultStackDirection?: StackDirection;
   /** Dock into this edge's DockPanel whenever the window opens (requires `dockable`) */
   initialDockEdge?: DockEdge;
   /** When false, a docked window stays docked: no undock button, drag-undock or `undock()` */
@@ -62,7 +51,7 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
 
 export interface ContextWindowHandle {
   pushToTop: () => void;
-  dock: (edge: DockEdge, stackDirection: StackDirection) => void;
+  dock: (edge: DockEdge) => void;
   undock: () => void;
 }
 
@@ -79,7 +68,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       minZIndex = MIN_Z_INDEX,
       maxZIndex = MAX_Z_INDEX,
       dockable = false,
-      defaultStackDirection = "vertical",
       initialDockEdge,
       allowUndock = true,
       ...rest
@@ -88,7 +76,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
   ): React.ReactElement => {
     const divRef = useRef<HTMLDivElement | null>(null);
     const windowRef = useRef<HTMLDivElement | null>(null);
-    const [zIndex, setZIndex] = useState<number>(minZIndex);
 
     // Track internal state: whether window is in DOM and whether it's been positioned
     const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
@@ -98,21 +85,34 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Docking state
     const dockingContext = useContext(DockingContext);
     const docking = dockable && dockingContext ? dockingContext : null;
+    // Stacking is shared by every window in the provider, docked or not
+    const stacking = dockingContext ?? null;
     const dockedWindow = docking?.getDockedWindow(id);
     const isDocked = !!dockedWindow;
     const activeDockedWindowId =
-      isDocked && dockedWindow
-        ? (docking?.getActiveWindowOnEdge?.(dockedWindow.edge) ?? null)
-        : null;
+      isDocked && dockedWindow ? (docking?.getActiveWindowOnEdge(dockedWindow.edge) ?? null) : null;
     const isActiveDockedWindow =
       !isDocked || !dockedWindow || !activeDockedWindowId || activeDockedWindowId === id;
     const dockPanelContentHost =
-      isDocked && dockedWindow ? (docking?.getPanelContentHost?.(dockedWindow.edge) ?? null) : null;
+      isDocked && dockedWindow ? (docking?.getPanelContentHost(dockedWindow.edge) ?? null) : null;
     const portalTarget = dockPanelContentHost ?? document.body;
-    const [targetSnapEdge, setTargetSnapEdge] = useState<DockEdge | null>(null);
     const targetSnapEdgeRef = useRef<DockEdge | null>(null);
-    const [isDraggingForDock, setIsDraggingForDock] = useState<boolean>(false);
     const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+    // Without a DockingProvider a window cannot stack, so it sits on its own floor
+    const zIndex = stacking?.getWindowZIndex(id) ?? minZIndex;
+    const registerWindow = stacking?.registerWindow;
+    const unregisterWindow = stacking?.unregisterWindow;
+    const raiseWindow = stacking?.raiseWindow;
+    useEffect(() => {
+      if (!registerWindow || !unregisterWindow) {
+        return;
+      }
+      registerWindow(id, { minZIndex, maxZIndex });
+      return () => {
+        unregisterWindow(id);
+      };
+    }, [id, maxZIndex, minZIndex, registerWindow, unregisterWindow]);
 
     // Capture isDocked state at interaction start to prevent stale closures during re-renders
     const isDockedAtStartRef = useRef<boolean>(false);
@@ -142,18 +142,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Position
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
     const [moving, setMoving] = useState<boolean>(false);
-    const [preDockState, setPreDockState] = useState<{
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null>(null);
-    const preDockStateRef = useRef<{
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null>(null);
     const undockViaActionRef = useRef<boolean>(false);
     // Docking re-portals the window between document.body and the DockPanel, which remounts
     // the DOM node. Floating styles must be applied to the new node after it mounts.
@@ -251,32 +239,30 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     }, []);
 
     const handleDock = useCallback(
-      (edge: DockEdge, stackDirection: StackDirection) => {
+      (edge: DockEdge) => {
         /* istanbul ignore next */
         if (!docking) return;
         if (!windowRef.current) {
           // Docking before the window node exists (e.g. from a mount effect): nothing to restore later
-          docking.dock(id, edge, stackDirection);
+          docking.dock(id, edge);
           return;
         }
 
         // Preserve the original floating coordinates while side-switching a docked window.
         // If a window is already docked, left/top are panel-relative (often 0/empty),
-        // so we only capture a new preDockState when docking from floating mode.
-        if (!isDocked) {
-          const rect = windowRef.current.getBoundingClientRect();
+        // so we only capture a new floating rect when docking from floating mode.
+        const rect = isDocked ? null : windowRef.current.getBoundingClientRect();
+        docking.dock(
+          id,
+          edge,
           // Floating windows are absolutely positioned within document.body, so store document coordinates
-          const nextPreDockState = {
+          rect && {
             x: rect.left + window.scrollX,
             y: rect.top + window.scrollY,
             width: rect.width,
             height: rect.height,
-          };
-          preDockStateRef.current = nextPreDockState;
-          setPreDockState(nextPreDockState);
-        }
-
-        docking.dock(id, edge, stackDirection);
+          },
+        );
       },
       [docking, id, isDocked],
     );
@@ -291,7 +277,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           return;
         }
 
-        const restoreState = preDockStateRef.current ?? preDockState;
+        const restoreState = docking.getPreDockRect(id);
         if (pointer) {
           // Drag-undock: centre the header under the pointer (resolved from the latest pointer
           // position when applied) so the drag continues seamlessly
@@ -329,9 +315,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Drag-undocks are left alone so the window stays attached to the pointer.
         undockViaActionRef.current = !pointer;
 
-        docking.undock(id);
+        docking.undock(id, { viaDrag: !!pointer });
       },
-      [id, docking, isDocked, preDockState, allowUndock],
+      [id, docking, isDocked, allowUndock],
     );
 
     const checkPosition = useCallback(() => {
@@ -340,55 +326,10 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       fitToViewport();
     }, [fitToViewport, move]);
 
-    const getRecalculatedMaxZIndex = useCallback(() => {
-      let maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
-      let resetApplied = false;
-
-      if (typeof maxZIndex === "number" && maxZIndexInUse >= maxZIndex) {
-        resetAllWindowZIndexes(minZIndex, id);
-        maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
-        resetApplied = true;
-      }
-
-      return { maxZIndexInUse, resetApplied };
-    }, [id, maxZIndex, minZIndex]);
-
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
-      const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
-      const nextZIndex = maxZIndexInUse + 1;
-      if (resetApplied && windowRef.current) {
-        windowRef.current.style.zIndex = `${nextZIndex}`;
-      }
-      setZIndex((currentZIndex) => {
-        return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
-      });
-    }, [getRecalculatedMaxZIndex]);
-
-    // DockPanels stack against floating windows using the z-index of their visible window
-    const dockedEdge = dockedWindow?.edge ?? null;
-    const activeDockedEdge = isDocked && isActiveDockedWindow ? dockedEdge : null;
-    const setPanelZIndex = docking?.setPanelZIndex;
-    const activationCount = docking?.getWindowActivationCount?.(id) ?? 0;
-    const lastActivationCountRef = useRef<number>(activationCount);
-
-    useEffect(() => {
-      // Bring to front when explicitly activated in a panel (dock, side change, tab click),
-      // but not when promoted automatically because another window left the panel
-      if (activationCount !== lastActivationCountRef.current) {
-        lastActivationCountRef.current = activationCount;
-        /* istanbul ignore else */
-        if (isDocked) {
-          pushToTop();
-        }
-      }
-    }, [activationCount, isDocked, pushToTop]);
-
-    useEffect(() => {
-      if (activeDockedEdge) {
-        setPanelZIndex?.(activeDockedEdge, zIndex);
-      }
-    }, [activeDockedEdge, setPanelZIndex, zIndex]);
+      raiseWindow?.(id);
+    }, [id, raiseWindow]);
 
     const parseTranslate = (transform?: string): { x: number; y: number } => {
       const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
@@ -411,7 +352,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         isInInteractionRef.current = true; // Mark that this window is now in an active interaction
         windowPos.current = parseTranslate(windowRef.current?.style.transform);
         setMoving(true);
-        setIsDraggingForDock(true);
+        docking?.startDockDrag(id);
         // If we're starting a drag, the window must be visible enough to interact with
         // Force windowVisible to true to enable onInteractionEnd firing
         /* istanbul ignore next */
@@ -444,8 +385,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Detect snap-to-dock (also after undocking earlier in this same drag)
         if (!isDockedRef.current && dockable) {
           const snapEdge = detectSnapEdge(e.clientX, e.clientY, targetSnapEdgeRef.current);
-          setTargetSnapEdge(snapEdge);
           targetSnapEdgeRef.current = snapEdge;
+          docking?.setDockDragEdge(snapEdge);
         }
 
         // Check for undock (if docked and dragged far from edge)
@@ -475,7 +416,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Mark that this interaction is complete (safety cleanup)
         isInInteractionRef.current = false;
         // Safety cleanup - ensure snap indicator clears even if onInteractionEnd doesn't fire
-        setTargetSnapEdge(null);
+        docking?.setDockDragEdge(null);
         // Restore normal scrollbar behavior after drag ends
         document.body.style.overflow = "";
       },
@@ -502,12 +443,11 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         const isDockedNow = isDockedRef.current;
         let isDocking = false;
         if (!isDockedNow && dockable && docking && targetSnapEdgeRef.current) {
-          handleDock(targetSnapEdgeRef.current, defaultStackDirection);
+          handleDock(targetSnapEdgeRef.current);
           isDocking = true;
         }
 
-        setIsDraggingForDock(false);
-        setTargetSnapEdge(null);
+        docking?.endDockDrag(id);
         targetSnapEdgeRef.current = null;
         // Mark that this interaction is complete
         isInInteractionRef.current = false;
@@ -528,8 +468,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       ref,
       () => ({
         pushToTop,
-        dock: (edge: DockEdge, stackDirection: StackDirection) => {
-          handleDock(edge, stackDirection);
+        dock: (edge: DockEdge) => {
+          handleDock(edge);
         },
         undock: () => {
           handleUndock();
@@ -582,14 +522,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     });
 
-    // Clear pre-dock state when undocking completes
-    useEffect(() => {
-      if (!isDocked && preDockState) {
-        setPreDockState(null);
-        preDockStateRef.current = null;
-      }
-    }, [isDocked, preDockState]);
-
     // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
     // This effect derives state from props, which is acceptable when there's no synchronous setState
     useEffect(() => {
@@ -609,10 +541,10 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         initialDockAppliedRef.current = true;
         /* istanbul ignore else */
         if (!isDockedRef.current) {
-          docking.dock(id, initialDockEdge, defaultStackDirection);
+          docking.dock(id, initialDockEdge);
         }
       }
-    }, [visible, initialDockEdge, docking, id, defaultStackDirection]);
+    }, [visible, initialDockEdge, docking, id]);
 
     useEffect(() => {
       if (visible && !windowInDOM) {
@@ -629,22 +561,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, [visible, windowInDOM, startTransition]);
 
-    useEffect(() => {
-      const handleResetZIndex = (): void => {
-        const sourceWindowId = document.body.getAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
-        if (sourceWindowId === id) {
-          return;
-        }
-        setZIndex(minZIndex);
-      };
-
-      document.addEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
-      return () => {
-        document.removeEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
-      };
-    }, [id, minZIndex]);
-
-    // Position and show window after it's added to DOM
     useEffect(() => {
       if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
         // Position the window (a window opened straight into a DockPanel is laid out by the panel)
@@ -670,21 +586,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           }
         }
 
-        // Update z-index and make visible - use startTransition
-        const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
+        // Bring to front and make visible - use startTransition
         onOpen?.();
+        pushToTop();
         startTransition(() => {
-          const nextZIndex = maxZIndexInUse + 1;
-          if (resetApplied && windowRef.current) {
-            windowRef.current.style.zIndex = `${nextZIndex}`;
-          }
-          setZIndex((currentZIndex) => {
-            return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
-          });
           setWindowVisible(true);
         });
       }
-    }, [getRecalculatedMaxZIndex, onOpen, startTransition, visible, windowInDOM, windowVisible]);
+    }, [onOpen, pushToTop, startTransition, visible, windowInDOM, windowVisible]);
 
     // When CSS resize handle is used, defer checkPosition until resize interaction ends.
     useEffect(() => {
@@ -713,9 +622,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         windowPos.current = { x: 0, y: 0 };
         // Also clear the snap edge ref since we've docked
         targetSnapEdgeRef.current = null;
-        setTargetSnapEdge(null);
       }
-    }, [id, isDocked, isDraggingForDock, moving]);
+    }, [id, isDocked, moving]);
 
     return (
       <div
@@ -724,66 +632,50 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       >
         {windowInDOM &&
           createPortal(
-            <>
-              <DockZoneIndicator
-                targetEdge={targetSnapEdge}
-                isDragging={isDraggingForDock}
+            <div
+              {...rest}
+              ref={windowRef}
+              id={id}
+              className={classNames(
+                styles.contextWindow,
+                isDocked && styles.docked,
+                isDocked && dockedWindow && dockedEdgeClassNames[dockedWindow.edge],
+                rest.className,
+              )}
+              style={{
+                ...(isDocked ? {} : rest.style),
+                opacity: moving ? 0.8 : windowVisible ? 1 : 0,
+                visibility: windowVisible ? "visible" : "hidden",
+                display: isDocked ? (isActiveDockedWindow ? "flex" : "none") : rest.style?.display,
+                zIndex: zIndex,
+                minHeight: isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
+                minWidth: isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
+                maxHeight: isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
+                maxWidth: isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
+                width: isDocked ? "100%" : rest.style?.width,
+                height: isDocked ? "100%" : rest.style?.height,
+              }}
+              onClickCapture={(e) => {
+                if (isDocked && dockedWindow && activeDockedWindowId !== id) {
+                  docking?.setActiveWindowOnEdge(dockedWindow.edge, id);
+                }
+                pushToTop();
+                rest.onClickCapture?.(e);
+              }}
+            >
+              <ContextWindowTitleBar
+                title={title}
+                titleElement={titleElement}
+                moving={moving}
+                onMouseDown={onMouseDown}
+                onDock={dockable && !isDocked ? () => handleDock("right") : undefined}
+                onUndock={dockable && isDocked && allowUndock ? () => handleUndock() : undefined}
+                onClose={onClose}
               />
-              <div
-                {...rest}
-                ref={windowRef}
-                id={id}
-                {...{ [CONTEXT_WINDOW_DATA_ATTR]: "true" }}
-                {...{ [CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR]: `${minZIndex}` }}
-                className={classNames(
-                  styles.contextWindow,
-                  isDocked && styles.docked,
-                  isDocked && dockedWindow && dockedEdgeClassNames[dockedWindow.edge],
-                  rest.className,
-                )}
-                style={{
-                  ...(isDocked ? {} : rest.style),
-                  opacity: moving ? 0.8 : windowVisible ? 1 : 0,
-                  visibility: windowVisible ? "visible" : "hidden",
-                  display: isDocked
-                    ? isActiveDockedWindow
-                      ? "flex"
-                      : "none"
-                    : rest.style?.display,
-                  zIndex: zIndex,
-                  minHeight: isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
-                  minWidth: isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
-                  maxHeight: isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
-                  maxWidth: isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
-                  width: isDocked ? "100%" : rest.style?.width,
-                  height: isDocked ? "100%" : rest.style?.height,
-                }}
-                onClickCapture={(e) => {
-                  if (isDocked && dockedWindow && activeDockedWindowId !== id) {
-                    docking?.setActiveWindowOnEdge?.(dockedWindow.edge, id);
-                  }
-                  pushToTop();
-                  rest.onClickCapture?.(e);
-                }}
-              >
-                <ContextWindowTitleBar
-                  title={title}
-                  titleElement={titleElement}
-                  moving={moving}
-                  onMouseDown={onMouseDown}
-                  onDock={
-                    dockable && !isDocked
-                      ? () => handleDock("right", defaultStackDirection)
-                      : undefined
-                  }
-                  onUndock={dockable && isDocked && allowUndock ? () => handleUndock() : undefined}
-                  onClose={onClose}
-                />
-                <div className={styles.contextWindowBody}>
-                  <div>{children}</div>
-                </div>
+              <div className={styles.contextWindowBody}>
+                <div>{children}</div>
               </div>
-            </>,
+            </div>,
             portalTarget,
           )}
       </div>

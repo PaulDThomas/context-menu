@@ -1,10 +1,12 @@
-import { ReactNode, createContext, useCallback, useState } from "react";
+import { ReactNode, createContext, useCallback, useMemo, useReducer } from "react";
+import { DockZoneIndicator } from "./DockZoneIndicator";
+import { dockingReducer, initialDockingState } from "./dockingReducer";
 import type {
   DockEdge,
   DockedWindow,
   DockingContextType,
-  DockingState,
-  StackDirection,
+  WindowRect,
+  WindowZRange,
 } from "./interface";
 
 export const DockingContext = createContext<DockingContextType | undefined>(undefined);
@@ -14,257 +16,127 @@ interface DockingProviderProps {
 }
 
 export const DockingProvider = ({ children }: DockingProviderProps): React.ReactElement => {
-  const [state, setState] = useState<DockingState>({
-    dockedWindows: new Map(),
-    collapsedEdges: new Set(),
-  });
-  const [activeWindowsByEdge, setActiveWindowsByEdge] = useState<Map<DockEdge, string>>(new Map());
-  const [panelContentHosts, setPanelContentHosts] = useState<Map<DockEdge, HTMLDivElement>>(
-    new Map(),
-  );
-  const [panelZIndexes, setPanelZIndexes] = useState<Map<DockEdge, number>>(new Map());
-  // Incremented whenever a window is explicitly activated so it can bring itself to the front
-  const [activationCounts, setActivationCounts] = useState<Map<string, number>>(new Map());
+  const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
 
-  const bumpActivation = useCallback((id: string): void => {
-    setActivationCounts((prevActivationCounts) => {
-      const nextActivationCounts = new Map(prevActivationCounts);
-      nextActivationCounts.set(id, (prevActivationCounts.get(id) ?? 0) + 1);
-      return nextActivationCounts;
-    });
+  const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
+    dispatch({ type: "dock", id, edge, preDockRect });
   }, []);
 
-  const dock = useCallback(
-    (id: string, edge: DockEdge, stackDirection: StackDirection): void => {
-      setState((prevState) => {
-        const newState = {
-          ...prevState,
-          dockedWindows: new Map(prevState.dockedWindows),
-        };
-
-        // Get the current order for this edge
-        const windowsOnEdge = Array.from(newState.dockedWindows.values()).filter(
-          (w) => w.edge === edge,
-        );
-        const nextOrder = Math.max(...windowsOnEdge.map((w) => w.order), -1) + 1;
-
-        newState.dockedWindows.set(id, {
-          id,
-          edge,
-          stackDirection,
-          isCollapsed: false,
-          order: nextOrder,
-        });
-
-        return newState;
-      });
-      setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
-        const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
-        nextActiveWindowsByEdge.set(edge, id);
-        return nextActiveWindowsByEdge;
-      });
-      // Docking a window shows it, so a pinned (contents hidden) edge is unpinned
-      setState((prevState) => {
-        if (!prevState.collapsedEdges.has(edge)) {
-          return prevState;
-        }
-        const nextCollapsedEdges = new Set(prevState.collapsedEdges);
-        nextCollapsedEdges.delete(edge);
-        return { ...prevState, collapsedEdges: nextCollapsedEdges };
-      });
-      bumpActivation(id);
-    },
-    [bumpActivation],
-  );
-
-  const undock = useCallback((id: string): void => {
-    setState((prevState): DockingState => {
-      const newState = {
-        ...prevState,
-        dockedWindows: new Map(prevState.dockedWindows),
-      };
-      const removedWindow = newState.dockedWindows.get(id);
-      newState.dockedWindows.delete(id);
-
-      if (!removedWindow) {
-        return prevState;
-      }
-      const edgeIsEmpty = !Array.from(newState.dockedWindows.values()).some(
-        (window) => window.edge === removedWindow.edge,
-      );
-      // An empty edge has no panel, so drop its pinned state
-      if (edgeIsEmpty && newState.collapsedEdges.has(removedWindow.edge)) {
-        const nextCollapsedEdges = new Set(newState.collapsedEdges);
-        nextCollapsedEdges.delete(removedWindow.edge);
-        return { ...newState, collapsedEdges: nextCollapsedEdges };
-      }
-
-      return newState;
-    });
+  const undock = useCallback((id: string, options?: { viaDrag?: boolean }): void => {
+    dispatch({ type: "undock", id, viaDrag: options?.viaDrag });
   }, []);
 
-  const toggleCollapse = useCallback((id: string): void => {
-    setState((prevState) => {
-      const newState = {
-        ...prevState,
-        dockedWindows: new Map(prevState.dockedWindows),
-      };
-
-      const window = newState.dockedWindows.get(id);
-      if (window) {
-        newState.dockedWindows.set(id, {
-          ...window,
-          isCollapsed: !window.isCollapsed,
-        });
-      }
-
-      return newState;
-    });
+  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
+    dispatch({ type: "setActiveWindowOnEdge", edge, id });
   }, []);
 
-  const getDockedWindow = useCallback(
-    (id: string): DockedWindow | undefined => state.dockedWindows.get(id),
-    [state.dockedWindows],
-  );
-
-  const getWindowsOnEdge = useCallback(
-    (edge: DockEdge): DockedWindow[] => {
-      return Array.from(state.dockedWindows.values())
-        .filter((w) => w.edge === edge)
-        .sort((a, b) => a.order - b.order);
-    },
-    [state.dockedWindows],
-  );
-
-  const isEdgeCollapsed = useCallback(
-    (edge: DockEdge): boolean => {
-      return state.collapsedEdges.has(edge);
-    },
-    [state.collapsedEdges],
-  );
+  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
+    dispatch({ type: "setPanelContentHost", edge, host });
+  }, []);
 
   const toggleEdgeCollapse = useCallback((edge: DockEdge): void => {
-    setState((prevState) => {
-      const newCollapsedEdges = new Set(prevState.collapsedEdges);
-      if (newCollapsedEdges.has(edge)) {
-        newCollapsedEdges.delete(edge);
-      } else {
-        newCollapsedEdges.add(edge);
-      }
-      return {
-        ...prevState,
-        collapsedEdges: newCollapsedEdges,
-      };
-    });
+    dispatch({ type: "toggleEdgeCollapse", edge });
   }, []);
 
-  const setActiveWindowOnEdge = useCallback(
-    (edge: DockEdge, id: string): void => {
-      setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
-        if (prevActiveWindowsByEdge.get(edge) === id) {
-          return prevActiveWindowsByEdge;
-        }
-        const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
-        nextActiveWindowsByEdge.set(edge, id);
-        return nextActiveWindowsByEdge;
-      });
-      bumpActivation(id);
-    },
-    [bumpActivation],
-  );
+  const registerWindow = useCallback((id: string, zRange: WindowZRange): void => {
+    dispatch({ type: "registerWindow", id, zRange });
+  }, []);
 
-  const getWindowActivationCount = useCallback(
-    (id: string): number => {
-      return activationCounts.get(id) ?? 0;
-    },
-    [activationCounts],
-  );
+  const unregisterWindow = useCallback((id: string): void => {
+    dispatch({ type: "unregisterWindow", id });
+  }, []);
 
-  const getActiveWindowOnEdge = useCallback(
-    (edge: DockEdge): string | null => {
-      const activeId = activeWindowsByEdge.get(edge);
+  const raiseWindow = useCallback((id: string): void => {
+    dispatch({ type: "raiseWindow", id });
+  }, []);
+
+  const startDockDrag = useCallback((id: string): void => {
+    dispatch({ type: "startDockDrag", id });
+  }, []);
+
+  const setDockDragEdge = useCallback((edge: DockEdge | null): void => {
+    dispatch({ type: "setDockDragEdge", edge });
+  }, []);
+
+  const endDockDrag = useCallback((id: string): void => {
+    dispatch({ type: "endDockDrag", id });
+  }, []);
+
+  const contextValue = useMemo<DockingContextType>(() => {
+    const getDockedWindow = (id: string): DockedWindow | undefined => state.dockedWindows.get(id);
+
+    const getWindowsOnEdge = (edge: DockEdge): DockedWindow[] =>
+      Array.from(state.dockedWindows.values())
+        .filter((window) => window.edge === edge)
+        .sort((a, b) => a.order - b.order);
+
+    const getActiveWindowOnEdge = (edge: DockEdge): string | null => {
+      const activeId = state.activeWindowsByEdge.get(edge);
       if (activeId && state.dockedWindows.get(activeId)?.edge === edge) {
         return activeId;
       }
-      // The active window has left this edge: the first remaining window takes over (without an
-      // activation bump, so it is not raised)
-      let first: DockedWindow | null = null;
-      state.dockedWindows.forEach((window) => {
-        if (window.edge === edge && (!first || window.order < first.order)) {
-          first = window;
-        }
-      });
-      return (first as DockedWindow | null)?.id ?? null;
-    },
-    [activeWindowsByEdge, state.dockedWindows],
-  );
+      // The active window has left this edge, so the first remaining window takes over
+      return getWindowsOnEdge(edge)[0]?.id ?? null;
+    };
 
-  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
-    setPanelContentHosts((prevPanelContentHosts) => {
-      const currentHost = prevPanelContentHosts.get(edge) ?? null;
-      if (currentHost === host) {
-        return prevPanelContentHosts;
+    const getWindowZIndex = (id: string): number | null => {
+      const index = state.zOrder.indexOf(id);
+      const zRange = state.zRanges.get(id);
+      if (index === -1 || !zRange) {
+        return null;
       }
+      // More windows than the available range simply share the top slot
+      return Math.min(zRange.maxZIndex, zRange.minZIndex + index);
+    };
 
-      const nextPanelContentHosts = new Map(prevPanelContentHosts);
-      if (host) {
-        nextPanelContentHosts.set(edge, host);
-      } else {
-        nextPanelContentHosts.delete(edge);
-      }
-      return nextPanelContentHosts;
-    });
-  }, []);
-
-  const getPanelContentHost = useCallback(
-    (edge: DockEdge): HTMLDivElement | null => {
-      return panelContentHosts.get(edge) ?? null;
-    },
-    [panelContentHosts],
-  );
-
-  const setPanelZIndex = useCallback((edge: DockEdge, zIndex: number | null): void => {
-    setPanelZIndexes((prevPanelZIndexes) => {
-      if ((prevPanelZIndexes.get(edge) ?? null) === zIndex) {
-        return prevPanelZIndexes;
-      }
-      const nextPanelZIndexes = new Map(prevPanelZIndexes);
-      if (zIndex === null) {
-        nextPanelZIndexes.delete(edge);
-      } else {
-        nextPanelZIndexes.set(edge, zIndex);
-      }
-      return nextPanelZIndexes;
-    });
-  }, []);
-
-  const getPanelZIndex = useCallback(
-    (edge: DockEdge): number | null => {
-      const edgeHasWindows = Array.from(state.dockedWindows.values()).some(
-        (window) => window.edge === edge,
-      );
-      return edgeHasWindows ? (panelZIndexes.get(edge) ?? null) : null;
-    },
-    [panelZIndexes, state.dockedWindows],
-  );
-
-  const contextValue: DockingContextType = {
+    return {
+      dock,
+      undock,
+      getDockedWindow,
+      getWindowsOnEdge,
+      setActiveWindowOnEdge,
+      getActiveWindowOnEdge,
+      setPanelContentHost,
+      getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
+        state.panelContentHosts.get(edge) ?? null,
+      isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
+      toggleEdgeCollapse,
+      registerWindow,
+      unregisterWindow,
+      raiseWindow,
+      getWindowZIndex,
+      getPanelZIndex: (edge: DockEdge): number | null => {
+        const activeId = getActiveWindowOnEdge(edge);
+        return activeId ? getWindowZIndex(activeId) : null;
+      },
+      getPreDockRect: (id: string): WindowRect | null => state.preDockRects.get(id) ?? null,
+      startDockDrag,
+      setDockDragEdge,
+      endDockDrag,
+    };
+  }, [
     state,
     dock,
     undock,
-    toggleCollapse,
     setActiveWindowOnEdge,
-    getActiveWindowOnEdge,
     setPanelContentHost,
-    getPanelContentHost,
-    setPanelZIndex,
-    getPanelZIndex,
-    getWindowActivationCount,
-    getDockedWindow,
-    getWindowsOnEdge,
-    isEdgeCollapsed,
     toggleEdgeCollapse,
-  };
+    registerWindow,
+    unregisterWindow,
+    raiseWindow,
+    startDockDrag,
+    setDockDragEdge,
+    endDockDrag,
+  ]);
 
-  return <DockingContext.Provider value={contextValue}>{children}</DockingContext.Provider>;
+  return (
+    <DockingContext.Provider value={contextValue}>
+      {children}
+      {/* One shared overlay: only a single window can be dragged towards an edge at a time */}
+      <DockZoneIndicator
+        targetEdge={state.dragSnapEdge}
+        isDragging={state.dragWindowId !== null}
+      />
+    </DockingContext.Provider>
+  );
 };

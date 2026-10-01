@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { ContextWindow, ContextWindowHandle } from "./ContextWindow";
 import { DockPanel } from "./DockPanel";
-import { DockingContext, DockingProvider } from "./DockingContext";
-import type { DockEdge, DockedWindow, DockingContextType, StackDirection } from "./interface";
+import { DockingProvider } from "./DockingContext";
+import { MockDockingProvider as MockDocking } from "./__mocks__/mockDocking";
+import type { DockedWindow } from "./interface";
 
 describe("Context window", () => {
   beforeEach(() => {
@@ -14,10 +15,6 @@ describe("Context window", () => {
       unobserve = jest.fn();
       disconnect = jest.fn();
     };
-  });
-  afterEach(() => {
-    document.body.removeAttribute("data-context-window-reset-counter");
-    document.body.removeAttribute("data-context-window-reset-source");
   });
 
   test("Not there", async () => {
@@ -195,7 +192,11 @@ describe("Context window", () => {
     };
 
     await act(async () => {
-      render(<MultiWindowTest />);
+      render(
+        <DockingProvider>
+          <MultiWindowTest />
+        </DockingProvider>,
+      );
     });
 
     // Open first window
@@ -212,19 +213,18 @@ describe("Context window", () => {
     expect(document.getElementById("window2")).toBeInTheDocument();
     const window2 = document.getElementById("window2") as HTMLElement;
     const zIndex2 = parseInt(window2.style.zIndex, 10);
-    expect(zIndex2).toBeGreaterThan(zIndex1);
+    expect(zIndex2).toBeGreaterThan(parseInt(window1.style.zIndex, 10));
 
     // Click on first window - should bring it to top
     await user.click(window1);
-    const zIndex1Updated = parseInt(window1.style.zIndex, 10);
-    expect(zIndex1Updated).toBeGreaterThan(zIndex2);
+    expect(parseInt(window1.style.zIndex, 10)).toBeGreaterThan(parseInt(window2.style.zIndex, 10));
   });
 
-  test("maxZIndex resets all windows to min before recalculating top z-index", async () => {
+  test("Stacking is capped at maxZIndex", async () => {
     let ref1: React.RefObject<ContextWindowHandle | null> | null = null;
     let ref2: React.RefObject<ContextWindowHandle | null> | null = null;
 
-    const MultiWindowWithMax = ({
+    const CappedWindows = ({
       onRefsReady,
     }: {
       onRefsReady: (
@@ -247,7 +247,7 @@ describe("Context window", () => {
             visible={true}
             title={"Max Window 1"}
             minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX + 2}
+            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 1</span>
           </ContextWindow>
@@ -257,7 +257,7 @@ describe("Context window", () => {
             visible={true}
             title={"Max Window 2"}
             minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX + 2}
+            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 2</span>
           </ContextWindow>
@@ -267,119 +267,30 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <MultiWindowWithMax
-          onRefsReady={(firstRef, secondRef) => {
-            ref1 = firstRef;
-            ref2 = secondRef;
-          }}
-        />,
+        <DockingProvider>
+          <CappedWindows
+            onRefsReady={(firstRef, secondRef) => {
+              ref1 = firstRef;
+              ref2 = secondRef;
+            }}
+          />
+        </DockingProvider>,
       );
     });
 
     const window1 = document.getElementById("max-window-1") as HTMLElement;
     const window2 = document.getElementById("max-window-2") as HTMLElement;
 
-    expect(window1).toBeInTheDocument();
-    expect(window2).toBeInTheDocument();
-
     await act(async () => {
       ref1?.current?.pushToTop();
     });
-    expect(parseInt(window1.style.zIndex, 10)).toBe(MIN_Z_INDEX + 2);
-
-    // Hitting the cap should reset both windows to min, then raise the requested window to min + 1.
     await act(async () => {
       ref2?.current?.pushToTop();
     });
 
+    // Both windows share the capped slot rather than exceeding maxZIndex
     expect(parseInt(window1.style.zIndex, 10)).toBe(MIN_Z_INDEX);
-    expect(parseInt(window2.style.zIndex, 10)).toBe(MIN_Z_INDEX + 1);
-  });
-
-  test("Reset without source id removes body reset source attribute", async () => {
-    // Seed the source attribute so this path must remove it.
-    document.body.setAttribute("data-context-window-reset-source", "seeded-source");
-
-    const existing = document.createElement("div");
-    existing.setAttribute("data-context-window", "true");
-    existing.setAttribute("data-context-window-min-z-index", `${MIN_Z_INDEX}`);
-    existing.style.zIndex = `${MIN_Z_INDEX + 5}`;
-    document.body.appendChild(existing);
-
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={""}
-          visible={true}
-          title={"No Source Id"}
-          minZIndex={MIN_Z_INDEX}
-          maxZIndex={MIN_Z_INDEX}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    expect(document.body.getAttribute("data-context-window-reset-source")).toBeNull();
-    existing.remove();
-  });
-
-  test("Initial open applies reset path and updates z-index when cap is already hit", async () => {
-    const existing = document.createElement("div");
-    existing.setAttribute("data-context-window", "true");
-    existing.setAttribute("data-context-window-min-z-index", `${MIN_Z_INDEX}`);
-    existing.style.zIndex = `${MIN_Z_INDEX + 4}`;
-    document.body.appendChild(existing);
-
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"open-reset-branch"}
-          visible={true}
-          title={"Open Reset Branch"}
-          minZIndex={MIN_Z_INDEX}
-          maxZIndex={MIN_Z_INDEX + 1}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    const opened = document.getElementById("open-reset-branch") as HTMLElement;
-    expect(opened).toBeInTheDocument();
-    expect(opened.style.zIndex).toBe(`${MIN_Z_INDEX + 1}`);
-    expect(existing.style.zIndex).toBe(`${MIN_Z_INDEX}`);
-
-    existing.remove();
-  });
-
-  test("Reset uses fallback min z-index and repairs invalid reset counter", async () => {
-    document.body.setAttribute("data-context-window-reset-counter", "not-a-number");
-
-    // Missing data-context-window-min-z-index forces fallback branch.
-    const existing = document.createElement("div");
-    existing.setAttribute("data-context-window", "true");
-    existing.style.zIndex = `${MIN_Z_INDEX + 8}`;
-    document.body.appendChild(existing);
-
-    await act(async () => {
-      render(
-        <ContextWindow
-          id={"counter-fallback"}
-          visible={true}
-          title={"Counter Fallback"}
-          minZIndex={MIN_Z_INDEX}
-          maxZIndex={MIN_Z_INDEX + 1}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    expect(existing.style.zIndex).toBe(`${MIN_Z_INDEX}`);
-    expect(document.body.getAttribute("data-context-window-reset-counter")).toBe("1");
-
-    existing.remove();
+    expect(parseInt(window2.style.zIndex, 10)).toBe(MIN_Z_INDEX);
   });
 
   test("Accepts minZIndex prop and applies it correctly", async () => {
@@ -436,16 +347,8 @@ describe("Context window", () => {
     expect(close2).toHaveAttribute("title", "Close window");
   });
 
-  test("Calls rest.onClickCapture and handles non-numeric existing z-index", async () => {
+  test("Calls rest.onClickCapture", async () => {
     const onClickCapture = jest.fn();
-
-    // Add a pre-existing element with a bad zIndex value
-    const bad = document.createElement("div");
-    bad.setAttribute("data-context-window", "true");
-    bad.id = "badwin";
-    // non-numeric z-index should be ignored
-    bad.style.zIndex = "not-a-number";
-    document.body.appendChild(bad);
 
     const user = userEvent.setup();
     await act(async () => {
@@ -471,9 +374,6 @@ describe("Context window", () => {
     // zIndex should be at least the default MIN_Z_INDEX (3000)
     const zIndex = parseInt(win.style.zIndex, 10);
     expect(zIndex).toBeGreaterThanOrEqual(MIN_Z_INDEX);
-
-    // cleanup added element
-    bad.remove();
   });
 
   test("Calls onOpen when window becomes visible", async () => {
@@ -550,11 +450,7 @@ describe("Context window", () => {
     const spyRect = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(function (this: HTMLElement) {
-        // window portal element has the data attribute
-        if (
-          (this as HTMLElement).hasAttribute &&
-          (this as HTMLElement).hasAttribute("data-context-window")
-        ) {
+        if (this.id === "posbelow" || this.id === "posabove") {
           // window rect: top/bottom such that windowHeight is small
           return {
             left: 50,
@@ -613,10 +509,7 @@ describe("Context window", () => {
     const spyRect = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(function (this: HTMLElement) {
-        if (
-          (this as HTMLElement).hasAttribute &&
-          (this as HTMLElement).hasAttribute("data-context-window")
-        ) {
+        if (this.id === "posbelow" || this.id === "posabove") {
           // window height large
           return {
             left: 10,
@@ -980,11 +873,13 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <CaptureRefs
-          onRefsReady={(ref1) => {
-            capturedRef1 = ref1;
-          }}
-        />,
+        <DockingProvider>
+          <CaptureRefs
+            onRefsReady={(ref1) => {
+              capturedRef1 = ref1;
+            }}
+          />
+        </DockingProvider>,
       );
     });
 
@@ -1188,25 +1083,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge, stackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -1234,7 +1113,7 @@ describe("Context window", () => {
     });
 
     await act(async () => {
-      _capturedRef?.current?.dock("right", "vertical");
+      _capturedRef?.current?.dock("right");
     });
 
     const window = document.getElementById("ref-dock-test") as HTMLElement;
@@ -1246,25 +1125,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -1293,7 +1156,7 @@ describe("Context window", () => {
 
     // First dock the window
     await act(async () => {
-      _capturedRef?.current?.dock("left", "horizontal");
+      _capturedRef?.current?.dock("left");
     });
 
     expect(dockingState.has("ref-undock-test")).toBe(true);
@@ -1314,7 +1177,7 @@ describe("Context window", () => {
       const ref = useRef<ContextWindowHandle>(null);
 
       useEffect(() => {
-        ref.current?.dock("right", "vertical");
+        ref.current?.dock("right");
       }, []);
 
       return (
@@ -1400,11 +1263,11 @@ describe("Context window", () => {
     } as DOMRect);
 
     await act(async () => {
-      capturedRef?.current?.dock("left", "vertical");
+      capturedRef?.current?.dock("left");
     });
 
     await act(async () => {
-      capturedRef?.current?.dock("right", "vertical");
+      capturedRef?.current?.dock("right");
     });
 
     await act(async () => {
@@ -1484,7 +1347,7 @@ describe("Context window", () => {
 
     try {
       await act(async () => {
-        capturedRef?.current?.dock("right", "vertical");
+        capturedRef?.current?.dock("right");
       });
 
       await act(async () => {
@@ -1551,10 +1414,10 @@ describe("Context window", () => {
     } as DOMRect);
 
     await act(async () => {
-      capturedRef?.current?.dock("left", "vertical");
+      capturedRef?.current?.dock("left");
     });
     await act(async () => {
-      capturedRef?.current?.dock("right", "vertical");
+      capturedRef?.current?.dock("right");
     });
 
     const undockButton = screen.getByLabelText("Undock");
@@ -1614,10 +1477,10 @@ describe("Context window", () => {
     });
 
     await act(async () => {
-      refs.bottom.current?.dock("bottom", "horizontal");
+      refs.bottom.current?.dock("bottom");
     });
     await act(async () => {
-      refs.top.current?.dock("top", "horizontal");
+      refs.top.current?.dock("top");
     });
 
     const getPanel = (windowId: string): HTMLElement =>
@@ -1668,7 +1531,7 @@ describe("Context window", () => {
       render(<TestComponent />);
     });
     await act(async () => {
-      capturedRef?.current?.dock("left", "vertical");
+      capturedRef?.current?.dock("left");
     });
 
     const isDockedOn = (edge: string): boolean => {
@@ -1706,25 +1569,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -1740,7 +1587,6 @@ describe("Context window", () => {
             visible={true}
             title="Dock Button Test"
             dockable={true}
-            defaultStackDirection="vertical"
           >
             <span>Content</span>
           </ContextWindow>
@@ -1766,25 +1612,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -1814,7 +1644,7 @@ describe("Context window", () => {
 
     // First dock the window via ref
     await act(async () => {
-      _capturedRef?.current?.dock("top", "horizontal");
+      _capturedRef?.current?.dock("top");
     });
 
     expect(dockingState.has("undock-button-test")).toBe(true);
@@ -1829,23 +1659,14 @@ describe("Context window", () => {
   test("Dock button with blank title shows generic label", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: () => {},
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking
+        dockedWindows={dockingState}
+        overrides={{ undock: () => {} }}
+      >
+        {children}
+      </MockDocking>
+    );
 
     await act(async () => {
       render(
@@ -1869,23 +1690,14 @@ describe("Context window", () => {
   test("Undock button with whitespace title shows generic label", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: () => {},
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking
+        dockedWindows={dockingState}
+        overrides={{ undock: () => {} }}
+      >
+        {children}
+      </MockDocking>
+    );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -1916,7 +1728,7 @@ describe("Context window", () => {
 
     // Dock first
     await act(async () => {
-      _capturedRef?.current?.dock("bottom", "horizontal");
+      _capturedRef?.current?.dock("bottom");
     });
 
     const undockButton = screen.getByLabelText("Undock");
@@ -1926,25 +1738,9 @@ describe("Context window", () => {
   test("Undock from top edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -1975,7 +1771,7 @@ describe("Context window", () => {
 
     // Dock to top
     await act(async () => {
-      _capturedRef?.current?.dock("top", "horizontal");
+      _capturedRef?.current?.dock("top");
     });
     expect(dockingState.has("undock-from-top")).toBe(true);
 
@@ -1991,25 +1787,9 @@ describe("Context window", () => {
   test("Undock from bottom edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -2044,7 +1824,7 @@ describe("Context window", () => {
 
       // Dock to bottom
       await act(async () => {
-        _capturedRef?.current?.dock("bottom", "horizontal");
+        _capturedRef?.current?.dock("bottom");
       });
       expect(dockingState.has("undock-from-bottom")).toBe(true);
 
@@ -2063,25 +1843,9 @@ describe("Context window", () => {
   test("Undock from left edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -2112,7 +1876,7 @@ describe("Context window", () => {
 
     // Dock to left
     await act(async () => {
-      _capturedRef?.current?.dock("left", "vertical");
+      _capturedRef?.current?.dock("left");
     });
     expect(dockingState.has("undock-from-left")).toBe(true);
 
@@ -2128,25 +1892,9 @@ describe("Context window", () => {
   test("Undock from right edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -2181,7 +1929,7 @@ describe("Context window", () => {
 
       // Dock to right
       await act(async () => {
-        _capturedRef?.current?.dock("right", "vertical");
+        _capturedRef?.current?.dock("right");
       });
       expect(dockingState.has("undock-from-right")).toBe(true);
 
@@ -2200,20 +1948,18 @@ describe("Context window", () => {
   test("Dockable window displays dock button when floating", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: () => {},
-        undock: () => {},
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: () => [],
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking
+        dockedWindows={dockingState}
+        overrides={{
+          dock: () => {},
+          undock: () => {},
+          getWindowsOnEdge: () => [],
+        }}
+      >
+        {children}
+      </MockDocking>
+    );
 
     await act(async () => {
       render(
@@ -2256,25 +2002,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2307,7 +2037,7 @@ describe("Context window", () => {
 
     // Dock the window
     await act(async () => {
-      _capturedRef?.current?.dock("left", "vertical");
+      _capturedRef?.current?.dock("left");
     });
 
     // After docking, undock button should be visible
@@ -2323,25 +2053,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2357,7 +2071,6 @@ describe("Context window", () => {
             visible={true}
             title="Snap Left Test"
             dockable={true}
-            defaultStackDirection="vertical"
           >
             <span>Content</span>
           </ContextWindow>
@@ -2389,25 +2102,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2423,7 +2120,6 @@ describe("Context window", () => {
             visible={true}
             title="Snap Right Test"
             dockable={true}
-            defaultStackDirection="vertical"
           >
             <span>Content</span>
           </ContextWindow>
@@ -2460,25 +2156,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2494,7 +2174,6 @@ describe("Context window", () => {
             visible={true}
             title="Snap Top Test"
             dockable={true}
-            defaultStackDirection="horizontal"
           >
             <span>Content</span>
           </ContextWindow>
@@ -2526,25 +2205,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2560,7 +2223,6 @@ describe("Context window", () => {
             visible={true}
             title="Snap Bottom Test"
             dockable={true}
-            defaultStackDirection="horizontal"
           >
             <span>Content</span>
           </ContextWindow>
@@ -2597,25 +2259,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2644,7 +2290,7 @@ describe("Context window", () => {
 
     // Dock the window to left
     await act(async () => {
-      _capturedRef?.current?.dock("left", "vertical");
+      _capturedRef?.current?.dock("left");
     });
 
     expect(dockingState.has("undock-by-drag-test")).toBe(true);
@@ -2703,25 +2349,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2770,25 +2400,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2804,7 +2418,6 @@ describe("Context window", () => {
             visible={true}
             title="Snap Hysteresis Test"
             dockable={true}
-            defaultStackDirection="vertical"
           >
             <span>Content</span>
           </ContextWindow>
@@ -2836,25 +2449,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -2940,25 +2537,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -3052,25 +2633,9 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((w) => w.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
@@ -3099,7 +2664,7 @@ describe("Context window", () => {
 
     // Dock to right
     await act(async () => {
-      _capturedRef?.current?.dock("right", "horizontal");
+      _capturedRef?.current?.dock("right");
     });
     expect(dockingState.get("dock-undock-ref-test")?.edge).toBe("right");
 
@@ -3111,7 +2676,7 @@ describe("Context window", () => {
 
     // Dock to bottom
     await act(async () => {
-      _capturedRef?.current?.dock("bottom", "horizontal");
+      _capturedRef?.current?.dock("bottom");
     });
     expect(dockingState.get("dock-undock-ref-test")?.edge).toBe("bottom");
   });
@@ -3150,7 +2715,7 @@ describe("Context window", () => {
       render(<TestComponent />);
     });
     await act(async () => {
-      windowRef?.current?.dock("left", "vertical");
+      windowRef?.current?.dock("left");
     });
     expect(screen.getByRole("button", { name: "unmount-docked-test" })).toBeInTheDocument();
 
@@ -3167,8 +2732,8 @@ describe("Context window", () => {
       const refA = useRef<ContextWindowHandle>(null);
       const refB = useRef<ContextWindowHandle>(null);
       useEffect(() => {
-        refA.current?.dock("left", "vertical");
-        refB.current?.dock("left", "vertical");
+        refA.current?.dock("left");
+        refB.current?.dock("left");
       }, []);
       return (
         <DockingProvider>
@@ -3356,7 +2921,7 @@ describe("Context window", () => {
 
     // Moving to another edge is still allowed
     await act(async () => {
-      windowRef?.current?.dock("bottom", "horizontal");
+      windowRef?.current?.dock("bottom");
     });
     expect(screen.getByRole("button", { name: /Pin bottom dock panel/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Pin left dock panel/ })).not.toBeInTheDocument();
@@ -3441,30 +3006,9 @@ describe("Context window", () => {
   test("Snap detection covers hysteresis and edge clearing paths", async () => {
     const renderWindow = (id: string, title: string, dockable = true) => {
       const dockingState = new Map<string, DockedWindow>();
-      const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-        const mockDocking: DockingContextType = {
-          state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-          dock: (dockId: string, edge: DockEdge, stackDirection: StackDirection) => {
-            dockingState.set(dockId, {
-              id: dockId,
-              edge,
-              stackDirection,
-              isCollapsed: false,
-              order: 0,
-            });
-          },
-          undock: (dockId: string) => {
-            dockingState.delete(dockId);
-          },
-          getDockedWindow: (dockId: string) => dockingState.get(dockId),
-          getWindowsOnEdge: (edge: DockEdge) =>
-            Array.from(dockingState.values()).filter((win) => win.edge === edge),
-          toggleCollapse: () => {},
-          isEdgeCollapsed: () => false,
-          toggleEdgeCollapse: () => {},
-        };
-        return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-      };
+      const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+        <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+      );
 
       return render(
         <MockDockingProvider>
@@ -3555,30 +3099,13 @@ describe("Context window", () => {
 
   test("Undocking from a docked edge applies the header offset while dragging", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((win) => win.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     dockingState.set("undock-header-offset", {
       id: "undock-header-offset",
       edge: "left",
-      stackDirection: "vertical",
-      isCollapsed: false,
       order: 0,
     });
 
@@ -3616,30 +3143,13 @@ describe("Context window", () => {
 
   test("Undocking from top edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((win) => win.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     dockingState.set("undock-top-edge", {
       id: "undock-top-edge",
       edge: "top",
-      stackDirection: "horizontal",
-      isCollapsed: false,
       order: 0,
     });
 
@@ -3674,24 +3184,9 @@ describe("Context window", () => {
 
   test("Undocking from bottom edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((win) => win.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const originalHeight = window.innerHeight;
     Object.defineProperty(window, "innerHeight", { value: 800, configurable: true });
@@ -3700,8 +3195,6 @@ describe("Context window", () => {
       dockingState.set("undock-bottom-edge", {
         id: "undock-bottom-edge",
         edge: "bottom",
-        stackDirection: "horizontal",
-        isCollapsed: false,
         order: 0,
       });
 
@@ -3744,24 +3237,9 @@ describe("Context window", () => {
 
   test("Undocking from right edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((win) => win.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", { value: 1000, configurable: true });
@@ -3770,8 +3248,6 @@ describe("Context window", () => {
       dockingState.set("undock-right-edge", {
         id: "undock-right-edge",
         edge: "right",
-        stackDirection: "vertical",
-        isCollapsed: false,
         order: 0,
       });
 
@@ -3814,30 +3290,13 @@ describe("Context window", () => {
 
   test("Docked window drag without exceeding undock threshold does not undock", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => {
-      const mockDocking: DockingContextType = {
-        state: { dockedWindows: dockingState, collapsedEdges: new Set() },
-        dock: (id: string, edge: DockEdge, stackDirection: StackDirection) => {
-          dockingState.set(id, { id, edge, stackDirection, isCollapsed: false, order: 0 });
-        },
-        undock: (id: string) => {
-          dockingState.delete(id);
-        },
-        getDockedWindow: (id: string) => dockingState.get(id),
-        getWindowsOnEdge: (edge: DockEdge) =>
-          Array.from(dockingState.values()).filter((win) => win.edge === edge),
-        toggleCollapse: () => {},
-        isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
-      };
-      return <DockingContext.Provider value={mockDocking}>{children}</DockingContext.Provider>;
-    };
+    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
+      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    );
 
     dockingState.set("no-undock-left", {
       id: "no-undock-left",
       edge: "left",
-      stackDirection: "vertical",
-      isCollapsed: false,
       order: 0,
     });
 

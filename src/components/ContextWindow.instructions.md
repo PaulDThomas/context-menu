@@ -43,7 +43,7 @@
 ### Docking Context
 
 - **`dockedWindow: DockedWindow | undefined`** - Current docking state from context
-  - Contains: `{ id, edge, stackDirection, isCollapsed, order }`
+  - Contains: `{ id, edge, order }`
 - **`docking: DockingContext | null`** - Reference to docking context manager
 
 ---
@@ -77,7 +77,7 @@ Detects if mouse is within SNAP_THRESHOLD (24px) of viewport edge.
 
 ---
 
-### `handleDock(edge: DockEdge, stackDirection: StackDirection)`
+### `handleDock(edge: DockEdge)`
 
 Saves window's current position and docks it to specified edge.
 
