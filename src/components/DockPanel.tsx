@@ -31,9 +31,14 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
 
   const containerClass = `${styles.dockPanel} ${styles[`edge-${edge}`]}`;
   const activeWindowId = docking.getActiveWindowOnEdge?.(edge) ?? windows[0]?.id ?? null;
+  // Panels stack with floating windows using the z-index of their visible (active) window
+  const panelZIndex = docking.getPanelZIndex?.(edge) ?? undefined;
 
   return (
-    <div className={containerClass}>
+    <div
+      className={containerClass}
+      style={{ zIndex: panelZIndex }}
+    >
       <div
         ref={contentHostRef}
         className={styles.dockPanelContent}

@@ -1488,6 +1488,72 @@ describe("Context window", () => {
     expect(undockedElement.style.top).toBe("140px");
   });
 
+  test("DockPanels take the z-index of their visible window and come to front when activated", async () => {
+    const refs: Record<string, React.RefObject<ContextWindowHandle | null>> = {};
+
+    const TestComponent = (): React.ReactElement => {
+      const topRef = useRef<ContextWindowHandle>(null);
+      const bottomRef = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        refs.top = topRef;
+        refs.bottom = bottomRef;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="top" />
+          <DockPanel edge="bottom" />
+          <ContextWindow
+            ref={topRef}
+            id="z-top"
+            visible={true}
+            title="Z Top"
+            dockable={true}
+          >
+            <span>Top body</span>
+          </ContextWindow>
+          <ContextWindow
+            ref={bottomRef}
+            id="z-bottom"
+            visible={true}
+            title="Z Bottom"
+            dockable={true}
+          >
+            <span>Bottom body</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    await act(async () => {
+      refs.bottom.current?.dock("bottom", "horizontal");
+    });
+    await act(async () => {
+      refs.top.current?.dock("top", "horizontal");
+    });
+
+    const getPanel = (windowId: string): HTMLElement =>
+      document.getElementById(windowId)!.parentElement!.parentElement as HTMLElement;
+    const panelZ = (windowId: string): number => parseInt(getPanel(windowId).style.zIndex, 10);
+
+    // Most recently docked panel is in front, and matches its window z-index
+    expect(panelZ("z-top")).toBeGreaterThan(panelZ("z-bottom"));
+    expect(getPanel("z-top").style.zIndex).toBe(document.getElementById("z-top")!.style.zIndex);
+
+    // Interacting with the bottom window brings its panel to the front
+    await act(async () => {
+      fireEvent.click(screen.getByText("Bottom body"));
+    });
+    expect(panelZ("z-bottom")).toBeGreaterThan(panelZ("z-top"));
+    expect(getPanel("z-bottom").style.zIndex).toBe(
+      document.getElementById("z-bottom")!.style.zIndex,
+    );
+  });
+
   test("Dock button triggers docking when not docked", async () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();

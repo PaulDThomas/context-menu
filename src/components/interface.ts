@@ -35,6 +35,9 @@ export interface DockingContextType {
   getActiveWindowOnEdge?: (edge: DockEdge) => string | null;
   setPanelContentHost?: (edge: DockEdge, host: HTMLDivElement | null) => void;
   getPanelContentHost?: (edge: DockEdge) => HTMLDivElement | null;
+  setPanelZIndex?: (edge: DockEdge, zIndex: number | null) => void;
+  getPanelZIndex?: (edge: DockEdge) => number | null;
+  getWindowActivationCount?: (id: string) => number;
   getDockedWindow: (id: string) => DockedWindow | undefined;
   getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
   isEdgeCollapsed: (edge: DockEdge) => boolean;

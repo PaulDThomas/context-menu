@@ -83,4 +83,32 @@ describe("DockPanel", () => {
 
     expect(setActiveWindowOnEdge).toHaveBeenCalledWith("right", "window-b");
   });
+
+  test("applies the z-index of the visible window to the panel", () => {
+    const windows = [buildDockedWindow("window-a", "top", 0)];
+    const contextValue: DockingContextType = {
+      state: {
+        dockedWindows: new Map(
+          windows.map((window): [string, DockedWindow] => [window.id, window]),
+        ),
+        collapsedEdges: new Set(),
+      },
+      dock: () => {},
+      undock: () => {},
+      toggleCollapse: () => {},
+      getPanelZIndex: (edge) => (edge === "top" ? 3005 : null),
+      getDockedWindow: (id) => windows.find((window) => window.id === id),
+      getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      isEdgeCollapsed: () => false,
+      toggleEdgeCollapse: () => {},
+    };
+
+    const { container } = render(
+      <DockingContext.Provider value={contextValue}>
+        <DockPanel edge="top" />
+      </DockingContext.Provider>,
+    );
+
+    expect((container.firstChild as HTMLElement).style.zIndex).toBe("3005");
+  });
 });

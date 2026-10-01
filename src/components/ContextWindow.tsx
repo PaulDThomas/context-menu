@@ -396,6 +396,30 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       });
     }, [getRecalculatedMaxZIndex]);
 
+    // DockPanels stack against floating windows using the z-index of their visible window
+    const dockedEdge = dockedWindow?.edge ?? null;
+    const activeDockedEdge = isDocked && isActiveDockedWindow ? dockedEdge : null;
+    const setPanelZIndex = docking?.setPanelZIndex;
+    const activationCount = docking?.getWindowActivationCount?.(id) ?? 0;
+    const lastActivationCountRef = useRef<number>(activationCount);
+
+    useEffect(() => {
+      // Bring to front when explicitly activated in a panel (dock, side change, tab click),
+      // but not when promoted automatically because another window left the panel
+      if (activationCount !== lastActivationCountRef.current) {
+        lastActivationCountRef.current = activationCount;
+        if (isDocked) {
+          pushToTop();
+        }
+      }
+    }, [activationCount, isDocked, pushToTop]);
+
+    useEffect(() => {
+      if (activeDockedEdge) {
+        setPanelZIndex?.(activeDockedEdge, zIndex);
+      }
+    }, [activeDockedEdge, setPanelZIndex, zIndex]);
+
     const parseTranslate = (transform?: string): { x: number; y: number } => {
       const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
       if (match) {
@@ -805,7 +829,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                   // transform: isDocked ? undefined : (rest.style?.transform as any),
                 }}
                 onClickCapture={(e) => {
-                  if (isDocked && dockedWindow) {
+                  if (isDocked && dockedWindow && activeDockedWindowId !== id) {
                     docking?.setActiveWindowOnEdge?.(dockedWindow.edge, id);
                   }
                   pushToTop();

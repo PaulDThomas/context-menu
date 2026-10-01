@@ -22,42 +22,57 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   const [panelContentHosts, setPanelContentHosts] = useState<Map<DockEdge, HTMLDivElement>>(
     new Map(),
   );
+  const [panelZIndexes, setPanelZIndexes] = useState<Map<DockEdge, number>>(new Map());
+  // Incremented whenever a window is explicitly activated so it can bring itself to the front
+  const [activationCounts, setActivationCounts] = useState<Map<string, number>>(new Map());
 
-  const dock = useCallback((id: string, edge: DockEdge, stackDirection: StackDirection): void => {
-    console.log("🔵 DockingContext.dock called:", { id, edge, stackDirection });
-    setState((prevState) => {
-      const newState = {
-        ...prevState,
-        dockedWindows: new Map(prevState.dockedWindows),
-      };
-
-      // Get the current order for this edge
-      const windowsOnEdge = Array.from(newState.dockedWindows.values()).filter(
-        (w) => w.edge === edge,
-      );
-      const nextOrder = Math.max(...windowsOnEdge.map((w) => w.order), -1) + 1;
-
-      newState.dockedWindows.set(id, {
-        id,
-        edge,
-        stackDirection,
-        isCollapsed: false,
-        order: nextOrder,
-      });
-
-      console.log("🔵 DockingContext.dock - state updated:", {
-        id,
-        allDockedWindows: Array.from(newState.dockedWindows.keys()),
-      });
-
-      return newState;
-    });
-    setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
-      const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
-      nextActiveWindowsByEdge.set(edge, id);
-      return nextActiveWindowsByEdge;
+  const bumpActivation = useCallback((id: string): void => {
+    setActivationCounts((prevActivationCounts) => {
+      const nextActivationCounts = new Map(prevActivationCounts);
+      nextActivationCounts.set(id, (prevActivationCounts.get(id) ?? 0) + 1);
+      return nextActivationCounts;
     });
   }, []);
+
+  const dock = useCallback(
+    (id: string, edge: DockEdge, stackDirection: StackDirection): void => {
+      console.log("🔵 DockingContext.dock called:", { id, edge, stackDirection });
+      setState((prevState) => {
+        const newState = {
+          ...prevState,
+          dockedWindows: new Map(prevState.dockedWindows),
+        };
+
+        // Get the current order for this edge
+        const windowsOnEdge = Array.from(newState.dockedWindows.values()).filter(
+          (w) => w.edge === edge,
+        );
+        const nextOrder = Math.max(...windowsOnEdge.map((w) => w.order), -1) + 1;
+
+        newState.dockedWindows.set(id, {
+          id,
+          edge,
+          stackDirection,
+          isCollapsed: false,
+          order: nextOrder,
+        });
+
+        console.log("🔵 DockingContext.dock - state updated:", {
+          id,
+          allDockedWindows: Array.from(newState.dockedWindows.keys()),
+        });
+
+        return newState;
+      });
+      setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
+        const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
+        nextActiveWindowsByEdge.set(edge, id);
+        return nextActiveWindowsByEdge;
+      });
+      bumpActivation(id);
+    },
+    [bumpActivation],
+  );
 
   const undock = useCallback(
     (id: string): void => {
@@ -98,6 +113,16 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
             nextActiveWindowsByEdge.delete(removedEdge!);
           }
           return nextActiveWindowsByEdge;
+        });
+      }
+      if (removedEdge !== null && nextWindowOnEdgeId === null) {
+        setPanelZIndexes((prevPanelZIndexes) => {
+          if (!prevPanelZIndexes.has(removedEdge!)) {
+            return prevPanelZIndexes;
+          }
+          const nextPanelZIndexes = new Map(prevPanelZIndexes);
+          nextPanelZIndexes.delete(removedEdge!);
+          return nextPanelZIndexes;
         });
       }
     },
@@ -165,16 +190,27 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     });
   }, []);
 
-  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
-    setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
-      if (prevActiveWindowsByEdge.get(edge) === id) {
-        return prevActiveWindowsByEdge;
-      }
-      const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
-      nextActiveWindowsByEdge.set(edge, id);
-      return nextActiveWindowsByEdge;
-    });
-  }, []);
+  const setActiveWindowOnEdge = useCallback(
+    (edge: DockEdge, id: string): void => {
+      setActiveWindowsByEdge((prevActiveWindowsByEdge) => {
+        if (prevActiveWindowsByEdge.get(edge) === id) {
+          return prevActiveWindowsByEdge;
+        }
+        const nextActiveWindowsByEdge = new Map(prevActiveWindowsByEdge);
+        nextActiveWindowsByEdge.set(edge, id);
+        return nextActiveWindowsByEdge;
+      });
+      bumpActivation(id);
+    },
+    [bumpActivation],
+  );
+
+  const getWindowActivationCount = useCallback(
+    (id: string): number => {
+      return activationCounts.get(id) ?? 0;
+    },
+    [activationCounts],
+  );
 
   const getActiveWindowOnEdge = useCallback(
     (edge: DockEdge): string | null => {
@@ -207,6 +243,28 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     [panelContentHosts],
   );
 
+  const setPanelZIndex = useCallback((edge: DockEdge, zIndex: number | null): void => {
+    setPanelZIndexes((prevPanelZIndexes) => {
+      if ((prevPanelZIndexes.get(edge) ?? null) === zIndex) {
+        return prevPanelZIndexes;
+      }
+      const nextPanelZIndexes = new Map(prevPanelZIndexes);
+      if (zIndex === null) {
+        nextPanelZIndexes.delete(edge);
+      } else {
+        nextPanelZIndexes.set(edge, zIndex);
+      }
+      return nextPanelZIndexes;
+    });
+  }, []);
+
+  const getPanelZIndex = useCallback(
+    (edge: DockEdge): number | null => {
+      return panelZIndexes.get(edge) ?? null;
+    },
+    [panelZIndexes],
+  );
+
   const contextValue: DockingContextType = {
     state,
     dock,
@@ -216,6 +274,9 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     getActiveWindowOnEdge,
     setPanelContentHost,
     getPanelContentHost,
+    setPanelZIndex,
+    getPanelZIndex,
+    getWindowActivationCount,
     getDockedWindow,
     getWindowsOnEdge,
     isEdgeCollapsed,
