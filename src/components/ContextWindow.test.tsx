@@ -1554,6 +1554,70 @@ describe("Context window", () => {
     );
   });
 
+  test("A docked window can be drag-undocked and re-docked on another edge in a single drag", async () => {
+    let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = (): React.ReactElement => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        capturedRef = ref;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          <DockPanel edge="right" />
+          <ContextWindow
+            ref={ref}
+            id="single-drag-redock"
+            visible={true}
+            title="Single Drag Redock"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+    await act(async () => {
+      capturedRef?.current?.dock("left", "vertical");
+    });
+
+    const isDockedOn = (edge: string): boolean => {
+      const el = document.getElementById("single-drag-redock") as HTMLElement;
+      return el.className.includes(`docked${edge}`);
+    };
+    expect(isDockedOn("Left")).toBe(true);
+
+    await act(async () => {
+      fireEvent.mouseDown(screen.getByTitle("Single Drag Redock"), { clientX: 10, clientY: 100 });
+    });
+    // Drag away from the left edge - undocks mid-drag
+    await act(async () => {
+      fireEvent.mouseMove(document, { clientX: 300, clientY: 100, movementX: 290, movementY: 0 });
+    });
+    const floatingElement = document.getElementById("single-drag-redock") as HTMLElement;
+    expect(floatingElement.className).not.toContain("docked");
+    // Continue the same drag to the right edge
+    await act(async () => {
+      fireEvent.mouseMove(document, {
+        clientX: window.innerWidth - 5,
+        clientY: 100,
+        movementX: window.innerWidth - 305,
+        movementY: 0,
+      });
+    });
+    await act(async () => {
+      fireEvent.mouseUp(document);
+    });
+
+    expect(isDockedOn("Right")).toBe(true);
+  });
+
   test("Dock button triggers docking when not docked", async () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();

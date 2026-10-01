@@ -1,4 +1,10 @@
-import { type MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 
 interface UseMouseMoveProps {
   onMouseDown?: (e: ReactMouseEvent<HTMLElement | SVGElement>) => void;
@@ -34,6 +40,18 @@ export const useMouseMove = ({
   const interactionEndRef = useRef<((e: MouseEvent | PointerEvent) => void) | null>(null);
   const interactionEndCallbackRef = useRef(onInteractionEndCallback);
   const viewportResizeCallbackRef = useRef(onViewportResizeCallback);
+  // Document listeners are attached once per interaction, so route them through refs
+  // to always invoke the latest callbacks (state can change mid-drag, e.g. undocking)
+  const mouseMoveCallbackRef = useRef(onMouseMoveCallback);
+  const mouseUpCallbackRef = useRef(onMouseUpCallback);
+
+  useLayoutEffect(() => {
+    mouseMoveCallbackRef.current = onMouseMoveCallback;
+  }, [onMouseMoveCallback]);
+
+  useLayoutEffect(() => {
+    mouseUpCallbackRef.current = onMouseUpCallback;
+  }, [onMouseUpCallback]);
 
   useEffect(() => {
     interactionEndCallbackRef.current = onInteractionEndCallback;
@@ -74,14 +92,11 @@ export const useMouseMove = ({
     }
   }, []);
 
-  const onMouseMove = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onMouseMoveCallback?.(e);
-    },
-    [onMouseMoveCallback],
-  );
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mouseMoveCallbackRef.current?.(e);
+  }, []);
 
   const onMouseUp = useCallback(
     (e: MouseEvent) => {
@@ -89,9 +104,9 @@ export const useMouseMove = ({
       e.stopPropagation();
       removeMouseListeners();
       restoreMouseDownUserSelect();
-      onMouseUpCallback?.(e);
+      mouseUpCallbackRef.current?.(e);
     },
-    [onMouseUpCallback, removeMouseListeners, restoreMouseDownUserSelect],
+    [removeMouseListeners, restoreMouseDownUserSelect],
   );
 
   const onMouseDown = useCallback(

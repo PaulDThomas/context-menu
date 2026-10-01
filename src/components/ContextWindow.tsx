@@ -151,6 +151,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     // Capture isDocked state at interaction start to prevent stale closures during re-renders
     const isDockedAtStartRef = useRef<boolean>(false);
+    // Live docked state for document-level drag handlers; set eagerly on drag-undock so a
+    // single drag can undock and then re-dock without releasing the mouse
+    const isDockedRef = useRef<boolean>(isDocked);
+    useLayoutEffect(() => {
+      isDockedRef.current = isDocked;
+    }, [isDocked]);
     // Track if this interaction cycle has already been processed to prevent duplicate onInteractionEnd fires
     const interactionProcessedRef = useRef<boolean>(false);
     // Track if this window is currently in an active interaction (needed because useMouseMove fires globally)
@@ -183,24 +189,24 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       top: number;
       width?: number;
       height?: number;
+      anchorToPointer?: boolean;
     } | null>(null);
 
-    const move = useCallback(
-      (x: number, y: number) => {
-        if (windowRef.current && !isDocked) {
-          windowPos.current.x += x;
-          windowPos.current.y += y;
-          windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
-        }
-      },
-      [isDocked],
-    );
+    const move = useCallback((x: number, y: number) => {
+      // Read the live docked state: this runs from document listeners that may fire
+      // before React has re-rendered after a drag-undock
+      if (windowRef.current && !isDockedRef.current) {
+        windowPos.current.x += x;
+        windowPos.current.y += y;
+        windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
+      }
+    }, []);
 
     // Snap-to-dock detection
     const detectSnapEdge = useCallback(
       (mouseX: number, mouseY: number, currentSnap: DockEdge | null): DockEdge | null => {
         /* istanbul ignore next */
-        if (!dockable || !docking || isDocked) {
+        if (!dockable || !docking || isDockedRef.current) {
           return null;
         }
 
@@ -337,13 +343,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
         const restoreState = preDockStateRef.current ?? preDockState;
         if (pointer) {
-          // Drag-undock: centre the header under the pointer so the drag continues seamlessly
-          const width = restoreState?.width ?? 200;
+          // Drag-undock: centre the header under the pointer (resolved from the latest pointer
+          // position when applied) so the drag continues seamlessly
           pendingFloatingStyleRef.current = {
-            left: Math.max(0, pointer.x - width / 2) + window.scrollX,
-            top: Math.max(0, pointer.y - 14) + window.scrollY,
+            left: pointer.x,
+            top: pointer.y,
             width: restoreState?.width,
             height: restoreState?.height,
+            anchorToPointer: true,
           };
         } else if (restoreState) {
           pendingFloatingStyleRef.current = {
@@ -480,15 +487,15 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           }
         }
 
-        // Detect snap-to-dock
-        if (!isDocked && dockable) {
+        // Detect snap-to-dock (also after undocking earlier in this same drag)
+        if (!isDockedRef.current && dockable) {
           const snapEdge = detectSnapEdge(e.clientX, e.clientY, targetSnapEdgeRef.current);
           setTargetSnapEdge(snapEdge);
           targetSnapEdgeRef.current = snapEdge;
         }
 
         // Check for undock (if docked and dragged far from edge)
-        if (isDocked && dockable && docking) {
+        if (isDockedRef.current && dockable && docking) {
           const edge = dockedWindow?.edge;
           let shouldUndock = false;
 
@@ -502,6 +509,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           if (shouldUndock) {
             // Positioning is applied after the floating node remounts (see useLayoutEffect)
             handleUndock(false, { x: e.clientX, y: e.clientY });
+            isDockedRef.current = false;
             return;
           }
         }
@@ -559,20 +567,23 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           targetSnapEdgeRef: targetSnapEdgeRef.current,
         });
 
+        // Dock if the window is floating at release (including a window that was undocked
+        // earlier in this same drag) and the pointer is over a snap zone
+        const isDockedNow = isDockedRef.current;
         let isDocking = false;
-        if (!isDockedAtStartRef.current && dockable && docking && targetSnapEdgeRef.current) {
+        if (!isDockedNow && dockable && docking && targetSnapEdgeRef.current) {
           console.log("✓ All conditions met - docking", {
             id,
             edge: targetSnapEdgeRef.current,
           });
           handleDock(targetSnapEdgeRef.current, defaultStackDirection);
           isDocking = true;
-        } else if (!isDockedAtStartRef.current && dockable && docking) {
+        } else if (!isDockedNow && dockable && docking) {
           console.log("✗ Docking blocked - no snap", {
             id,
             refIsNull: targetSnapEdgeRef.current === null,
           });
-        } else if (isDockedAtStartRef.current) {
+        } else if (isDockedNow) {
           console.log("✗ Interaction on docked window - skipping dock logic", {
             id,
             isDockedAtStart: isDockedAtStartRef.current,
@@ -584,8 +595,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         targetSnapEdgeRef.current = null;
         // Mark that this interaction is complete
         isInInteractionRef.current = false;
-        // Don't check position if we just docked, as the CSS classes will handle positioning
-        if (!isDocking) {
+        // Don't check position if docked, as the DockPanel handles layout
+        if (!isDocking && !isDockedNow) {
           checkPosition();
         }
       },
@@ -636,8 +647,16 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
       pendingFloatingStyleRef.current = null;
       const el = windowRef.current;
-      el.style.left = `${pending.left}px`;
-      el.style.top = `${pending.top}px`;
+      let { left, top } = pending;
+      if (pending.anchorToPointer) {
+        // Use the latest pointer position - moves may have arrived before this re-render
+        const pointer = lastMousePosRef.current;
+        const width = pending.width ?? 200;
+        left = Math.max(0, pointer.x - width / 2) + window.scrollX;
+        top = Math.max(0, pointer.y - 14) + window.scrollY;
+      }
+      el.style.left = `${left}px`;
+      el.style.top = `${top}px`;
       el.style.transform = "";
       if (pending.width !== undefined) el.style.width = `${pending.width}px`;
       if (pending.height !== undefined) el.style.height = `${pending.height}px`;

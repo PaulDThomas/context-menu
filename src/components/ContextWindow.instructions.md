@@ -775,11 +775,11 @@ The component uses three complementary refs to handle complex re-render scenario
    - **Purpose:** Prevents other windows' global mouseup events from being processed
    - **Problem it solves:** When dragging window-4, the global `mouseup` fires `onInteractionEnd` for windows 1-5. This guard blocks 1-3 immediately.
 
-2. **`isDockedAtStartRef`** - **STATE FREEZING GUARD**
-   - Captured in `onMouseDown`: `isDockedAtStartRef.current = isDocked`
-   - Read in `onInteractionEnd` instead of closure `isDocked`
-   - **Purpose:** Freezes the `isDocked` value at interaction start
-   - **Problem it solves:** If component re-renders during drag (e.g., when docking a window causes context update), new handler closures capture updated `isDocked` value. Using the frozen ref ensures we always see the original value.
+2. **`isDockedAtStartRef` / `isDockedRef`** - **DOCKED STATE TRACKING**
+   - `isDockedAtStartRef` is captured in `onMouseDown` (used for diagnostics only)
+   - `isDockedRef` holds the live docked state: synced from `isDocked` in a layout effect, and set to `false` immediately when a drag undocks the window
+   - `onMouseMove` and `onInteractionEnd` read `isDockedRef`, so a single drag can undock, show the snap indicator and re-dock on release without releasing the mouse in between
+   - `useMouseMove` routes document listeners through refs to the latest `onMouseMove`/`onMouseUp` callbacks, so state changes mid-drag are visible to the handlers
 
 3. **`interactionProcessedRef`** - **DUPLICATE PROCESSING GUARD**
    - Set to `false` in `onMouseDown`
@@ -1056,7 +1056,9 @@ stateDiagram-v2
         - Subsequent move() calls\n  continue drag naturally
     end
 
-    Undocking --> Floating: onMouseUp→onInteractionEnd\nor when mouse released\n→ checkPosition() if needed\n→ Ready for next interaction
+    Undocking --> Floating: onMouseUp→onInteractionEnd\naway from edge\n→ checkPosition()\n→ Ready for next interaction
+
+    Undocking --> Docked: onMouseUp→onInteractionEnd\nnear an edge (same drag)\n→ handleDock(targetSnapEdge)
 
     Floating --> Floating: hover / idle
 ```
@@ -1070,10 +1072,10 @@ The system uses **three complementary guards** to prevent stale closures and cro
    - Set to `false` in THIS window's `onMouseUp`
    - Purpose: Blocks other windows' global mouseup events
 
-2. **isDockedAtStartRef Guard** - State Freezing
-   - Captured at interaction start in `onMouseDown`
-   - Frozen value used in `onInteractionEnd` (not closure value)
-   - Purpose: Prevents stale isDocked closure after component re-renders
+2. **isDockedRef Guard** - Live Docked State
+   - Synced from `isDocked`, set to `false` immediately on drag-undock
+   - Read in `onMouseMove` and `onInteractionEnd` (not the closure value)
+   - Purpose: Allows undock → snap → re-dock within one drag
 
 3. **interactionProcessedRef Guard** - Duplicate Prevention
    - Reset in `onMouseDown`
