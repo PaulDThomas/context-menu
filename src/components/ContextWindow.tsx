@@ -42,6 +42,10 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
   maxZIndex?: number;
   dockable?: boolean;
   defaultStackDirection?: StackDirection;
+  /** Dock into this edge's DockPanel whenever the window opens (requires `dockable`) */
+  initialDockEdge?: DockEdge;
+  /** When false, a docked window stays docked: no undock button, drag-undock or `undock()` */
+  allowUndock?: boolean;
 }
 
 export interface ContextWindowHandle {
@@ -117,6 +121,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       maxZIndex = MAX_Z_INDEX,
       dockable = false,
       defaultStackDirection = "vertical",
+      initialDockEdge,
+      allowUndock = true,
       ...rest
     },
     ref,
@@ -352,6 +358,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           console.log("handleUndock returning early - docking:", !!docking, "isDocked:", isDocked);
           return;
         }
+        if (!allowUndock) {
+          return;
+        }
 
         const restoreState = preDockStateRef.current ?? preDockState;
         if (pointer) {
@@ -372,8 +381,13 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
             height: restoreState.height,
           };
         } else {
-          // No saved floating position (e.g. docked before ever floating) - place on-screen
-          pendingFloatingStyleRef.current = { left: 16 + window.scrollX, top: 16 + window.scrollY };
+          // No saved floating position (e.g. opened docked) - open below the anchor like a
+          // normal open; the on-screen clamp after remount keeps it visible
+          const anchor = divRef.current?.getBoundingClientRect();
+          pendingFloatingStyleRef.current = {
+            left: (anchor?.left ?? 16) + window.scrollX,
+            top: (anchor?.bottom ?? 16) + window.scrollY,
+          };
         }
 
         // Any non-drag undock (header button, imperative ref.undock(), etc.) must land fully on-screen.
@@ -383,7 +397,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         docking.undock(id);
         console.log("handleUndock completed - undock() called");
       },
-      [id, docking, isDocked, preDockState],
+      [id, docking, isDocked, preDockState, allowUndock],
     );
 
     const checkPosition = useCallback(() => {
@@ -509,7 +523,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         }
 
         // Check for undock (if docked and dragged far from edge)
-        if (isDockedRef.current && dockable && docking) {
+        if (isDockedRef.current && dockable && docking && allowUndock) {
           const edge = dockedWindow?.edge;
           let shouldUndock = false;
 
@@ -712,6 +726,21 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, [visible, isDocked, docking, id]);
 
+    // Open straight into a DockPanel; a layout effect so it never paints as a floating window
+    const initialDockAppliedRef = useRef<boolean>(false);
+    useLayoutEffect(() => {
+      if (!visible) {
+        initialDockAppliedRef.current = false;
+        return;
+      }
+      if (initialDockEdge && docking && !initialDockAppliedRef.current) {
+        initialDockAppliedRef.current = true;
+        if (!isDockedRef.current) {
+          docking.dock(id, initialDockEdge, defaultStackDirection);
+        }
+      }
+    }, [visible, initialDockEdge, docking, id, defaultStackDirection]);
+
     useEffect(() => {
       if (visible && !windowInDOM) {
         // Window should be in DOM when visible becomes true
@@ -745,25 +774,27 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Position and show window after it's added to DOM
     useEffect(() => {
       if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
-        // Position the window
-        const parentPos = divRef.current.getBoundingClientRect();
-        const pos = windowRef.current.getBoundingClientRect();
-        const windowHeight = pos.bottom - pos.top;
-        windowRef.current.style.left = `${parentPos.left}px`;
-        windowRef.current.style.top = `${
-          parentPos.bottom + windowHeight < window.innerHeight
-            ? parentPos.bottom
-            : Math.max(0, parentPos.top - windowHeight)
-        }px`;
-        windowRef.current.style.transform = "";
-        const checkedPosition = chkPosition(windowRef);
-        windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
-        /* istanbul ignore else */
-        if (windowPos && windowPos.current) {
-          windowPos.current = {
-            x: checkedPosition.translateX,
-            y: checkedPosition.translateY,
-          };
+        // Position the window (a window opened straight into a DockPanel is laid out by the panel)
+        if (!isDockedRef.current) {
+          const parentPos = divRef.current.getBoundingClientRect();
+          const pos = windowRef.current.getBoundingClientRect();
+          const windowHeight = pos.bottom - pos.top;
+          windowRef.current.style.left = `${parentPos.left}px`;
+          windowRef.current.style.top = `${
+            parentPos.bottom + windowHeight < window.innerHeight
+              ? parentPos.bottom
+              : Math.max(0, parentPos.top - windowHeight)
+          }px`;
+          windowRef.current.style.transform = "";
+          const checkedPosition = chkPosition(windowRef);
+          windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
+          /* istanbul ignore else */
+          if (windowPos && windowPos.current) {
+            windowPos.current = {
+              x: checkedPosition.translateX,
+              y: checkedPosition.translateY,
+            };
+          }
         }
 
         // Update z-index and make visible - use startTransition
@@ -914,7 +945,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                       </svg>
                     </div>
                   )}
-                  {dockable && isDocked && (
+                  {dockable && isDocked && allowUndock && (
                     <div
                       className={styles.undockButton}
                       role="button"

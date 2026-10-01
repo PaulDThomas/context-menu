@@ -3159,6 +3159,151 @@ describe("Context window", () => {
     expect(screen.queryByRole("button", { name: /left dock panel/ })).not.toBeInTheDocument();
   });
 
+  test("initialDockEdge opens the window inside its DockPanel and re-docks on reopen", async () => {
+    let setVisible: (visible: boolean) => void = () => {};
+
+    const TestComponent = () => {
+      const [visible, setVisibleState] = useState(true);
+      useEffect(() => {
+        setVisible = setVisibleState;
+      }, []);
+      return (
+        <DockingProvider>
+          <DockPanel edge="right" />
+          <ContextWindow
+            id="initial-dock-test"
+            visible={visible}
+            title="Initial Dock Test"
+            dockable={true}
+            initialDockEdge="right"
+          >
+            <span>Initial content</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+    expect(screen.getByRole("button", { name: "initial-dock-test" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Undock")).toBeInTheDocument();
+    const docked = document.getElementById("initial-dock-test") as HTMLDivElement;
+    expect(docked.parentElement).not.toBe(document.body);
+    expect(docked.style.left).toBe("");
+    expect(docked.style.transform).toBe("");
+
+    // Undocking a window that never floated lands on-screen
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Undock"));
+    });
+    expect(screen.queryByRole("button", { name: "initial-dock-test" })).not.toBeInTheDocument();
+    const floating = document.getElementById("initial-dock-test") as HTMLDivElement;
+    expect(floating.parentElement).toBe(document.body);
+    expect(Number.parseFloat(floating.style.left)).toBeGreaterThanOrEqual(0);
+    expect(Number.parseFloat(floating.style.top)).toBeGreaterThanOrEqual(0);
+
+    await act(async () => {
+      setVisible(false);
+    });
+    await act(async () => {
+      setVisible(true);
+    });
+    expect(screen.getByRole("button", { name: "initial-dock-test" })).toBeInTheDocument();
+  });
+
+  test("initialDockEdge is ignored when the window is not dockable", async () => {
+    await act(async () => {
+      render(
+        <DockingProvider>
+          <DockPanel edge="left" />
+          <ContextWindow
+            id="initial-dock-not-dockable"
+            visible={true}
+            title="Not Dockable"
+            initialDockEdge="left"
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </DockingProvider>,
+      );
+    });
+    expect(
+      screen.queryByRole("button", { name: "initial-dock-not-dockable" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("allowUndock={false} keeps a docked window docked but allows side changes and closing", async () => {
+    let windowRef: React.RefObject<ContextWindowHandle | null> | null = null;
+    let setVisible: (visible: boolean) => void = () => {};
+
+    const TestComponent = () => {
+      const ref = useRef<ContextWindowHandle>(null);
+      const [visible, setVisibleState] = useState(true);
+      useEffect(() => {
+        windowRef = ref;
+        setVisible = setVisibleState;
+      }, []);
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          <DockPanel edge="bottom" />
+          <ContextWindow
+            ref={ref}
+            id="locked-dock-test"
+            visible={visible}
+            title="Locked Dock Test"
+            dockable={true}
+            initialDockEdge="left"
+            allowUndock={false}
+          >
+            <span>Locked content</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+    expect(screen.getByRole("button", { name: "locked-dock-test" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Undock")).not.toBeInTheDocument();
+
+    // Imperative undock is a no-op
+    await act(async () => {
+      windowRef?.current?.undock();
+    });
+    expect(screen.getByRole("button", { name: "locked-dock-test" })).toBeInTheDocument();
+
+    // Dragging far from the edge does not undock
+    const title = screen.getByText("Locked Dock Test");
+    await act(async () => {
+      fireEvent.mouseDown(title, { clientX: 10, clientY: 10 });
+    });
+    await act(async () => {
+      fireEvent.mouseMove(document, { clientX: 600, clientY: 400, movementX: 590, movementY: 390 });
+    });
+    await act(async () => {
+      fireEvent.mouseUp(document, { clientX: 600, clientY: 400 });
+    });
+    expect(screen.getByRole("button", { name: "locked-dock-test" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Pin left dock panel/ })).toBeInTheDocument();
+
+    // Moving to another edge is still allowed
+    await act(async () => {
+      windowRef?.current?.dock("bottom", "horizontal");
+    });
+    expect(screen.getByRole("button", { name: /Pin bottom dock panel/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Pin left dock panel/ })).not.toBeInTheDocument();
+
+    // Closing still removes it (and the panel)
+    await act(async () => {
+      setVisible(false);
+    });
+    expect(screen.queryByRole("button", { name: "locked-dock-test" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dock panel/ })).not.toBeInTheDocument();
+  });
+
   test("Guard branches exit early without a docking provider", async () => {
     const user = userEvent.setup();
 

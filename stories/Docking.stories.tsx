@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useRef, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import type { DockEdge, StackDirection } from "../src/components";
 import { ContextWindow, ContextWindowHandle, DockingProvider, DockPanel } from "../src/components";
 
@@ -37,6 +37,8 @@ export const KitchenSink: Story = {
         "window-3": true,
         "window-4": true,
         "window-5": false,
+        "window-6": true,
+        "window-7": true,
       });
 
       const windowRefs = useRef<Record<string, ContextWindowHandle | null>>({});
@@ -115,6 +117,8 @@ export const KitchenSink: Story = {
                     { id: "window-3", label: "Window 3 (Left)" },
                     { id: "window-4", label: "Window 4 (Top)" },
                     { id: "window-5", label: "Window 5 (Free)" },
+                    { id: "window-6", label: "Window 6 (Starts docked left)" },
+                    { id: "window-7", label: "Window 7 (Locked to bottom)" },
                   ].map(({ id, label }) => (
                     <label
                       key={id}
@@ -283,6 +287,47 @@ export const KitchenSink: Story = {
                       This window is not dockable. Notice there's no dock button in the title bar.
                       You can still drag it around normally.
                     </p>
+                  </div>
+                </ContextWindow>
+
+                {/* Window 6: Opens docked to the left, can be undocked */}
+                <ContextWindow
+                  id="window-6"
+                  visible={visibleWindows["window-6"] ?? false}
+                  title="Window 6 - Starts Docked"
+                  dockable={true}
+                  initialDockEdge="left"
+                  defaultStackDirection="vertical"
+                  onClose={() => toggleWindow("window-6")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  <div style={{ padding: "15px", fontSize: "12px", color: "#666" }}>
+                    <h3 style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#000" }}>
+                      Window 6 - Starts Docked
+                    </h3>
+                    This window opens inside the left DockPanel. Undock it with the title bar button
+                    or by dragging it away from the edge.
+                  </div>
+                </ContextWindow>
+
+                {/* Window 7: Opens docked to the bottom and cannot be undocked */}
+                <ContextWindow
+                  id="window-7"
+                  visible={visibleWindows["window-7"] ?? false}
+                  title="Window 7 - Locked"
+                  dockable={true}
+                  initialDockEdge="bottom"
+                  allowUndock={false}
+                  defaultStackDirection="horizontal"
+                  onClose={() => toggleWindow("window-7")}
+                  style={{ width: "350px", minHeight: "200px" }}
+                >
+                  <div style={{ padding: "15px", fontSize: "12px", color: "#666" }}>
+                    <h3 style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#000" }}>
+                      Window 7 - Locked
+                    </h3>
+                    This window opens in the bottom DockPanel and cannot be undocked: there is no
+                    undock button and dragging it does not pull it out of the panel.
                   </div>
                 </ContextWindow>
 
@@ -586,6 +631,137 @@ export const MultipleDockedWindows: Story = {
           </div>
         </div>
       </DockingProvider>
+    );
+  },
+};
+
+const DockLayout = ({ children }: { children: ReactNode }) => (
+  <DockingProvider>
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "#f5f5f5",
+        display: "grid",
+        gridTemplateColumns: "160px 1fr 160px",
+        gridTemplateRows: "48px 1fr 48px",
+        gap: 0,
+        overflow: "hidden",
+      }}
+    >
+      <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
+        <DockPanel edge="top" />
+      </div>
+      <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
+        <DockPanel edge="left" />
+      </div>
+      <div
+        style={{
+          gridColumn: 2,
+          gridRow: 2,
+          position: "relative",
+          overflow: "auto",
+          padding: "20px",
+        }}
+      >
+        {children}
+      </div>
+      <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
+        <DockPanel edge="right" />
+      </div>
+      <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
+        <DockPanel edge="bottom" />
+      </div>
+    </div>
+  </DockingProvider>
+);
+
+export const InitiallyDockedWindow: Story = {
+  render: () => {
+    const [visible, setVisible] = useState(true);
+
+    return (
+      <DockLayout>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+          <input
+            type="checkbox"
+            checked={visible}
+            onChange={() => setVisible((v) => !v)}
+          />
+          Show window (re-opens docked to the right)
+        </label>
+        <ContextWindow
+          id="initially-docked"
+          visible={visible}
+          title="Initially Docked Window"
+          dockable={true}
+          initialDockEdge="right"
+          defaultStackDirection="vertical"
+          onClose={() => setVisible(false)}
+          style={{ width: "350px", minHeight: "200px" }}
+        >
+          <div style={{ padding: "15px", fontSize: "12px" }}>
+            This window opens inside the right DockPanel via{" "}
+            <code>initialDockEdge=&quot;right&quot;</code>. Undock it with the title bar button or
+            by dragging it away from the edge.
+          </div>
+        </ContextWindow>
+      </DockLayout>
+    );
+  },
+};
+
+export const LockedDockedWindow: Story = {
+  render: () => {
+    const [visible, setVisible] = useState(true);
+    const windowRef = useRef<ContextWindowHandle>(null);
+    const edges: DockEdge[] = ["top", "right", "bottom", "left"];
+
+    return (
+      <DockLayout>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+          <input
+            type="checkbox"
+            checked={visible}
+            onChange={() => setVisible((v) => !v)}
+          />
+          Show window
+        </label>
+        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+          {edges.map((edge) => (
+            <button
+              key={edge}
+              onClick={() =>
+                windowRef.current?.dock(
+                  edge,
+                  edge === "left" || edge === "right" ? "vertical" : "horizontal",
+                )
+              }
+            >
+              Move to {edge}
+            </button>
+          ))}
+          <button onClick={() => windowRef.current?.undock()}>Try ref.undock()</button>
+        </div>
+        <ContextWindow
+          ref={windowRef}
+          id="locked-docked"
+          visible={visible}
+          title="Locked Docked Window"
+          dockable={true}
+          initialDockEdge="left"
+          allowUndock={false}
+          defaultStackDirection="vertical"
+          onClose={() => setVisible(false)}
+          style={{ width: "350px", minHeight: "200px" }}
+        >
+          <div style={{ padding: "15px", fontSize: "12px" }}>
+            This window uses <code>allowUndock=&#123;false&#125;</code>. It has no undock button,
+            dragging does not pull it out of the panel and <code>ref.undock()</code> does nothing.
+            It can still be moved to another edge with <code>ref.dock()</code>, pinned, or closed.
+          </div>
+        </ContextWindow>
+      </DockLayout>
     );
   },
 };
