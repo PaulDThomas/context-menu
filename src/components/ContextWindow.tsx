@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
   useTransition,
@@ -168,7 +169,21 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       width: number;
       height: number;
     } | null>(null);
+    const preDockStateRef = useRef<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null>(null);
     const undockViaActionRef = useRef<boolean>(false);
+    // Docking re-portals the window between document.body and the DockPanel, which remounts
+    // the DOM node. Floating styles must be applied to the new node after it mounts.
+    const pendingFloatingStyleRef = useRef<{
+      left: number;
+      top: number;
+      width?: number;
+      height?: number;
+    } | null>(null);
 
     const move = useCallback(
       (x: number, y: number) => {
@@ -270,16 +285,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         /* istanbul ignore next */
         if (!docking || !windowRef.current) return;
 
-        // Save current position and dimensions before docking
-        const rect = windowRef.current.getBoundingClientRect();
         const currentStyle = windowRef.current.style;
         console.log("handleDock - DETAILED POSITION INFO:", {
-          rectLeft: rect.left,
-          rectTop: rect.top,
-          rectRight: rect.right,
-          rectBottom: rect.bottom,
-          rectWidth: rect.width,
-          rectHeight: rect.height,
+          rectLeft: windowRef.current.getBoundingClientRect().left,
+          rectTop: windowRef.current.getBoundingClientRect().top,
+          rectRight: windowRef.current.getBoundingClientRect().right,
+          rectBottom: windowRef.current.getBoundingClientRect().bottom,
+          rectWidth: windowRef.current.getBoundingClientRect().width,
+          rectHeight: windowRef.current.getBoundingClientRect().height,
           styleLeft: currentStyle.left,
           styleTop: currentStyle.top,
           styleTransform: currentStyle.transform,
@@ -292,27 +305,21 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           elementPosition: window.getComputedStyle(windowRef.current).position,
         });
 
-        // Use the already-set DOM left/top values since they're more reliable than getBoundingClientRect during transforms
-        const leftStyle =
-          currentStyle.left ||
-          // istanbul ignore next
-          "0px";
-        const topStyle =
-          currentStyle.top ||
-          // istanbul ignore next
-          "0px";
-        const leftValue = parseFloat(leftStyle);
-        const topValue = parseFloat(topStyle);
-
-        console.log("handleDock - PARSED STYLES:", { leftValue, topValue, leftStyle, topStyle });
-
-        // Save the position using DOM values + transform offset
-        setPreDockState({
-          x: leftValue + windowPos.current.x,
-          y: topValue + windowPos.current.y,
-          width: rect.width,
-          height: rect.height,
-        });
+        // Preserve the original floating coordinates while side-switching a docked window.
+        // If a window is already docked, left/top are panel-relative (often 0/empty),
+        // so we only capture a new preDockState when docking from floating mode.
+        if (!isDocked) {
+          const rect = windowRef.current.getBoundingClientRect();
+          // Floating windows are absolutely positioned within document.body, so store document coordinates
+          const nextPreDockState = {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+          };
+          preDockStateRef.current = nextPreDockState;
+          setPreDockState(nextPreDockState);
+        }
 
         docking.dock(id, edge, stackDirection);
       },
@@ -320,7 +327,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     );
 
     const handleUndock = useCallback(
-      (fromAction: boolean = false) => {
+      (fromAction: boolean = false, pointer?: { x: number; y: number }) => {
         console.log("handleUndock called", { isDocked, id, preDockState, fromAction });
         /* istanbul ignore next */
         if (!docking || !isDocked) {
@@ -328,30 +335,28 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           return;
         }
 
-        // Restore pre-dock position and dimensions
-        if (preDockState && windowRef.current) {
-          console.log("Restoring pre-dock state:", {
-            preDockState,
-            windowPosCurrent: windowPos.current,
-          });
-          // preDockState.x and preDockState.y already include the transform offset
-          // So we can set them directly as left/top with no transform
-          windowRef.current.style.left = `${preDockState.x}px`;
-          windowRef.current.style.top = `${preDockState.y}px`;
-          windowRef.current.style.transform = ""; // Clear transform
-          windowRef.current.style.width = `${preDockState.width}px`;
-          windowRef.current.style.height = `${preDockState.height}px`;
-          windowPos.current = { x: 0, y: 0 };
-          console.log("Restored styles:", {
-            left: windowRef.current.style.left,
-            top: windowRef.current.style.top,
-            transform: windowRef.current.style.transform,
-            width: windowRef.current.style.width,
-            height: windowRef.current.style.height,
-          });
+        const restoreState = preDockStateRef.current ?? preDockState;
+        if (pointer) {
+          // Drag-undock: centre the header under the pointer so the drag continues seamlessly
+          const width = restoreState?.width ?? 200;
+          pendingFloatingStyleRef.current = {
+            left: Math.max(0, pointer.x - width / 2) + window.scrollX,
+            top: Math.max(0, pointer.y - 14) + window.scrollY,
+            width: restoreState?.width,
+            height: restoreState?.height,
+          };
+        } else if (restoreState) {
+          pendingFloatingStyleRef.current = {
+            left: restoreState.x,
+            top: restoreState.y,
+            width: restoreState.width,
+            height: restoreState.height,
+          };
+        } else {
+          // No saved floating position (e.g. docked before ever floating) - place on-screen
+          pendingFloatingStyleRef.current = { left: 16 + window.scrollX, top: 16 + window.scrollY };
         }
 
-        // Mark if this was an action-based undock so useEffect can run checkPosition
         undockViaActionRef.current = fromAction;
 
         docking.undock(id);
@@ -471,34 +476,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
             shouldUndock = true;
 
           if (shouldUndock) {
-            handleUndock();
-
-            // CRITICAL: Position window header center under mouse cursor for seamless drag continuation
-            // After undocking, the window is at its pre-dock DOM position with transform cleared
-            // We need to adjust the transform so the header center aligns with the current mouse position
-            /* istanbul ignore else */
-            if (windowRef.current) {
-              // Find the header element (has contextWindowTitle class)
-              const headerElement = windowRef.current.querySelector(
-                '[class*="contextWindowTitle"]',
-              );
-
-              /* c8 ignore next */ /* istanbul ignore else */ /* babel ignore next */
-              if (headerElement) {
-                const headerRect = headerElement.getBoundingClientRect();
-                const headerCenterX = headerRect.left + headerRect.width / 2;
-                const headerCenterY = headerRect.top + headerRect.height / 2;
-
-                // Calculate offset from mouse to header center
-                const offsetX = e.clientX - headerCenterX;
-                const offsetY = e.clientY - headerCenterY;
-
-                // Apply this offset to windowPos so the drag continues naturally from the mouse position
-                windowPos.current.x = offsetX;
-                windowPos.current.y = offsetY;
-                windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
-              }
-            }
+            // Positioning is applied after the floating node remounts (see useLayoutEffect)
+            handleUndock(false, { x: e.clientX, y: e.clientY });
+            return;
           }
         }
 
@@ -624,22 +604,34 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, [isDocked, dockedWindow, id]);
 
+    // Apply restored floating position to the newly mounted (re-portaled) window node after undock
+    useLayoutEffect(() => {
+      const pending = pendingFloatingStyleRef.current;
+      if (isDocked || !pending || !windowRef.current) {
+        return;
+      }
+      pendingFloatingStyleRef.current = null;
+      const el = windowRef.current;
+      el.style.left = `${pending.left}px`;
+      el.style.top = `${pending.top}px`;
+      el.style.transform = "";
+      if (pending.width !== undefined) el.style.width = `${pending.width}px`;
+      if (pending.height !== undefined) el.style.height = `${pending.height}px`;
+      windowPos.current = { x: 0, y: 0 };
+      if (undockViaActionRef.current) {
+        undockViaActionRef.current = false;
+        // Keep the window on-screen if the viewport changed while it was docked
+        checkPosition();
+      }
+    });
+
     // Clear pre-dock state when undocking completes
     useEffect(() => {
       if (!isDocked && preDockState) {
-        console.log("Undocking completed, clearing preDockState");
-        // If undocking was triggered via action, run checkPosition to ensure window is on-screen
-        /* c8 ignore next 3 */
-        /* istanbul ignore next */
-        /* babel ignore next */
-        if (undockViaActionRef.current) {
-          console.log("Action-based undock completed - running checkPosition to fit to viewport");
-          checkPosition();
-          undockViaActionRef.current = false;
-        }
         setPreDockState(null);
+        preDockStateRef.current = null;
       }
-    }, [isDocked, preDockState, checkPosition]);
+    }, [isDocked, preDockState]);
 
     // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
     // This effect derives state from props, which is acceptable when there's no synchronous setState

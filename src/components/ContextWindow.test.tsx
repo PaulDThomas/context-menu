@@ -1290,54 +1290,6 @@ describe("Context window", () => {
       render(<TestComponent />);
     });
 
-    test("Closing the only docked window removes the edge DockPanel and tab button", async () => {
-      const user = userEvent.setup();
-
-      const TestComponent = (): React.ReactElement => {
-        const [visible, setVisible] = useState<boolean>(true);
-        const ref = useRef<ContextWindowHandle>(null);
-
-        useEffect(() => {
-          ref.current?.dock("right", "vertical");
-        }, []);
-
-        return (
-          <DockingProvider>
-            <DockPanel edge="right" />
-            <ContextWindow
-              ref={ref}
-              id="single-docked-window"
-              visible={visible}
-              title="Single Docked Window"
-              dockable={true}
-              onClose={() => setVisible(false)}
-            >
-              <span>Docked content</span>
-            </ContextWindow>
-          </DockingProvider>
-        );
-      };
-
-      await act(async () => {
-        render(<TestComponent />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: "single-docked-window" })).toBeInTheDocument();
-      });
-
-      const closeButton = screen.getByLabelText("Close");
-      await act(async () => {
-        await user.click(closeButton);
-      });
-
-      await waitFor(() => {
-        expect(
-          screen.queryByRole("button", { name: "single-docked-window" }),
-        ).not.toBeInTheDocument();
-      });
-    });
-
     // First dock the window
     await act(async () => {
       _capturedRef?.current?.dock("left", "horizontal");
@@ -1351,6 +1303,189 @@ describe("Context window", () => {
     });
 
     expect(dockingState.has("ref-undock-test")).toBe(false);
+  });
+
+  test("Closing the only docked window removes the edge DockPanel and tab button", async () => {
+    const user = userEvent.setup();
+
+    const TestComponent = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(true);
+      const ref = useRef<ContextWindowHandle>(null);
+
+      useEffect(() => {
+        ref.current?.dock("right", "vertical");
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="right" />
+          <ContextWindow
+            ref={ref}
+            id="single-docked-window"
+            visible={visible}
+            title="Single Docked Window"
+            dockable={true}
+            onClose={() => setVisible(false)}
+          >
+            <span>Docked content</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "single-docked-window" })).toBeInTheDocument();
+    });
+
+    const closeButton = screen.getByLabelText("Close");
+    await act(async () => {
+      await user.click(closeButton);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "single-docked-window" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  test("Undock restores original floating position after side changes while docked", async () => {
+    let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = (): React.ReactElement => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        capturedRef = ref;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          <DockPanel edge="right" />
+          <ContextWindow
+            ref={ref}
+            id="restore-after-redock"
+            visible={true}
+            title="Restore After Re-Dock"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const windowElement = document.getElementById("restore-after-redock") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+
+    jest.spyOn(windowElement, "getBoundingClientRect").mockReturnValue({
+      left: 123,
+      top: 77,
+      right: 423,
+      bottom: 277,
+      width: 300,
+      height: 200,
+      x: 123,
+      y: 77,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    await act(async () => {
+      capturedRef?.current?.dock("left", "vertical");
+    });
+
+    await act(async () => {
+      capturedRef?.current?.dock("right", "vertical");
+    });
+
+    await act(async () => {
+      capturedRef?.current?.undock();
+    });
+
+    // The window node is remounted when it moves between the DockPanel and document.body
+    const undockedElement = document.getElementById("restore-after-redock") as HTMLElement;
+    expect(undockedElement.classList.contains("docked")).toBe(false);
+    expect(undockedElement.parentElement).toBe(document.body);
+    expect(undockedElement.style.left).toBe("123px");
+    expect(undockedElement.style.top).toBe("77px");
+    expect(undockedElement.style.width).toBe("300px");
+    expect(undockedElement.style.height).toBe("200px");
+  });
+
+  test("Undock button restores floating position after non-drag side change", async () => {
+    let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
+
+    const TestComponent = (): React.ReactElement => {
+      const ref = useRef<ContextWindowHandle>(null);
+      useEffect(() => {
+        capturedRef = ref;
+      }, []);
+
+      return (
+        <DockingProvider>
+          <DockPanel edge="left" />
+          <DockPanel edge="right" />
+          <ContextWindow
+            ref={ref}
+            id="undock-button-restore"
+            visible={true}
+            title="Undock Button Restore"
+            dockable={true}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingProvider>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(<TestComponent />);
+    });
+
+    const windowElement = document.getElementById("undock-button-restore") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+
+    jest.spyOn(windowElement, "getBoundingClientRect").mockReturnValue({
+      left: 210,
+      top: 140,
+      right: 510,
+      bottom: 340,
+      width: 300,
+      height: 200,
+      x: 210,
+      y: 140,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    await act(async () => {
+      capturedRef?.current?.dock("left", "vertical");
+    });
+    await act(async () => {
+      capturedRef?.current?.dock("right", "vertical");
+    });
+
+    const undockButton = screen.getByLabelText("Undock");
+    await act(async () => {
+      await user.click(undockButton);
+    });
+
+    await waitFor(() => {
+      const el = document.getElementById("undock-button-restore") as HTMLElement;
+      expect(el.classList.contains("docked")).toBe(false);
+    });
+    const undockedElement = document.getElementById("undock-button-restore") as HTMLElement;
+    expect(undockedElement.parentElement).toBe(document.body);
+    expect(undockedElement.style.left).toBe("210px");
+    expect(undockedElement.style.top).toBe("140px");
   });
 
   test("Dock button triggers docking when not docked", async () => {
@@ -3004,7 +3139,9 @@ describe("Context window", () => {
 
     const windowElement = document.getElementById("undock-header-offset") as HTMLElement;
     expect(windowElement).toBeInTheDocument();
-    expect(windowElement.style.transform).toMatch(/translate\(-?\d+px, -?\d+px\)/);
+    // Header is centred under the pointer (default width 200 => left clamped to 0, top = y - 14)
+    expect(windowElement.style.left).toBe("0px");
+    expect(windowElement.style.top).toBe("86px");
   });
 
   test("Undocking from top edge applies correct undock logic", async () => {
