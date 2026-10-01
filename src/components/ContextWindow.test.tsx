@@ -1367,6 +1367,78 @@ describe("Context window", () => {
     }
   });
 
+  test("Context-menu undock bounces a partially off-screen restored position back on-screen", async () => {
+    const rectSpy = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.id === "context-menu-undock") {
+          const left = this.parentElement === document.body ? 900 : 0;
+          const top = this.parentElement === document.body ? 700 : 0;
+          return {
+            left,
+            top,
+            right: left + 300,
+            bottom: top + 200,
+            width: 300,
+            height: 200,
+            x: left,
+            y: top,
+            toJSON: () => ({}),
+          } as DOMRect;
+        }
+        return {
+          left: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 0,
+          height: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        } as DOMRect;
+      });
+
+    try {
+      const ref = { current: null } as React.RefObject<ContextWindowHandle | null>;
+      await act(async () => {
+        render(
+          <DockingProvider>
+            <DockPanel edge="right" />
+            <ContextWindow
+              ref={ref}
+              id="context-menu-undock"
+              visible={true}
+              title="Context Menu Undock"
+              dockable={true}
+            >
+              <span>Body</span>
+            </ContextWindow>
+          </DockingProvider>,
+        );
+      });
+
+      await act(async () => {
+        ref.current?.dock("right");
+      });
+
+      fireEvent.contextMenu(screen.getByRole("button", { name: "context-menu-undock" }), {
+        pageX: 10,
+        pageY: 10,
+      });
+      expect(await screen.findByText("Undock")).toBeVisible();
+
+      fireEvent.mouseDown(screen.getByText("Undock"));
+
+      const undockedElement = document.getElementById("context-menu-undock") as HTMLElement;
+      expect(undockedElement.parentElement).toBe(document.body);
+      expect(undockedElement.style.left).toBe("708px");
+      expect(undockedElement.style.top).toBe("552px");
+    } finally {
+      rectSpy.mockRestore();
+    }
+  });
+
   test("Undock button restores floating position after non-drag side change", async () => {
     let capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 

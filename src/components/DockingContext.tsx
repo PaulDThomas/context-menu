@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useCallback, useMemo, useReducer } from "react";
+import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import { dockingReducer, initialDockingState } from "./dockingReducer";
 import type {
@@ -17,6 +17,7 @@ interface DockingProviderProps {
 
 export const DockingProvider = ({ children }: DockingProviderProps): React.ReactElement => {
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
+  const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
 
   const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
     dispatch({ type: "dock", id, edge, preDockRect });
@@ -44,6 +45,22 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const unregisterWindow = useCallback((id: string): void => {
     dispatch({ type: "unregisterWindow", id });
+  }, []);
+
+  const registerWindowActions = useCallback(
+    (id: string, actions?: { onClose?: () => void; onUndock?: () => void }): void => {
+      windowActions.current.set(id, actions ?? {});
+    },
+    [],
+  );
+  const unregisterWindowActions = useCallback((id: string): void => {
+    windowActions.current.delete(id);
+  }, []);
+  const closeWindow = useCallback((id: string): void => {
+    windowActions.current.get(id)?.onClose?.();
+  }, []);
+  const requestUndock = useCallback((id: string): void => {
+    windowActions.current.get(id)?.onUndock?.();
   }, []);
 
   const raiseWindow = useCallback((id: string): void => {
@@ -103,6 +120,10 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       toggleEdgeCollapse,
       registerWindow,
       unregisterWindow,
+      registerWindowActions,
+      unregisterWindowActions,
+      closeWindow,
+      requestUndock,
       raiseWindow,
       getWindowZIndex,
       getPanelZIndex: (edge: DockEdge): number | null => {
@@ -123,6 +144,10 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     toggleEdgeCollapse,
     registerWindow,
     unregisterWindow,
+    registerWindowActions,
+    unregisterWindowActions,
+    closeWindow,
+    requestUndock,
     raiseWindow,
     startDockDrag,
     setDockDragEdge,

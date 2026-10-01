@@ -48,6 +48,13 @@ export interface DockingContextType {
   /** Join the shared stacking order; windows are stacked in registration order until raised */
   registerWindow: (id: string, zRange: WindowZRange) => void;
   unregisterWindow: (id: string) => void;
+  registerWindowActions: (
+    id: string,
+    actions?: { onClose?: () => void; onUndock?: () => void },
+  ) => void;
+  unregisterWindowActions: (id: string) => void;
+  closeWindow: (id: string) => void;
+  requestUndock: (id: string) => void;
   /** Move a window to the top of the shared stacking order */
   raiseWindow: (id: string) => void;
   getWindowZIndex: (id: string) => number | null;

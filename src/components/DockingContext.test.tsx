@@ -354,6 +354,22 @@ describe("DockingProvider", () => {
     });
   });
 
+  describe("window actions", () => {
+    test("registers and invokes window actions", () => {
+      const onClose = jest.fn();
+      const onUndock = jest.fn();
+      api.registerWindowActions("a", { onClose, onUndock });
+      api.closeWindow("a");
+      api.requestUndock("a");
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onUndock).toHaveBeenCalledTimes(1);
+
+      api.unregisterWindowActions("a");
+      api.closeWindow("a");
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("pre-dock rects", () => {
     test("the floating rect is captured on the first dock and kept while docked", () => {
       act(() => {

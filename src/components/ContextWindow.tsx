@@ -113,7 +113,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         unregisterWindow(id);
       };
     }, [id, maxZIndex, minZIndex, registerWindow, unregisterWindow]);
-
     // Capture isDocked state at interaction start to prevent stale closures during re-renders
     const isDockedAtStartRef = useRef<boolean>(false);
     // Live docked state for document-level drag handlers; set eagerly on drag-undock so a
@@ -319,6 +318,16 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       },
       [id, docking, isDocked, allowUndock],
     );
+    useEffect(() => {
+      if (!dockingContext) {
+        return;
+      }
+      dockingContext.registerWindowActions(id, {
+        onClose,
+        onUndock: () => handleUndock(),
+      });
+      return () => dockingContext.unregisterWindowActions(id);
+    }, [dockingContext, handleUndock, id, onClose]);
 
     const checkPosition = useCallback(() => {
       const chkPos = chkPosition(windowRef);

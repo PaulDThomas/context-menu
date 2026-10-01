@@ -87,14 +87,6 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
     bringPanelToTop();
   };
 
-  const activateWindow = (id: string) => {
-    // Choosing a window from a pinned bar shows its contents again
-    if (isPinned) {
-      docking.toggleEdgeCollapse(edge);
-    }
-    setActiveWindowOnEdge(edge, id);
-  };
-
   return (
     <div
       ref={panelRef}
@@ -139,8 +131,8 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
           <DockPanelTabButton
             key={window.id}
             windowId={window.id}
+            edge={edge}
             isActive={window.id === activeWindowId}
-            onClick={() => activateWindow(window.id)}
           />
         ))}
       </div>
