@@ -43,7 +43,11 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       return existing;
     }
 
-    const fallback: WindowConfig = { title: id || "window" };
+    const fallback: WindowConfig = {
+      title: id || "window",
+      windowInDOM: false,
+      windowVisible: false,
+    };
     windowConfigs.current.set(id, fallback);
     return fallback;
   }, []);

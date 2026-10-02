@@ -34,17 +34,26 @@ export interface WindowZRange {
 
 /** Window configuration and metadata stored in DockingContext */
 export interface WindowConfig {
+  className?: string;
   allowUndock?: boolean;
+  children?: React.ReactNode;
   dockable?: boolean;
+  id?: string;
   initialDockEdge?: DockEdge;
+  maxZIndex?: number;
+  minZIndex?: number;
   moving?: boolean;
   onClose?: () => void;
   onDock?: () => void;
   onMouseDown?: (e: React.MouseEvent<HTMLElement>) => void;
   onOpen?: () => void;
   onUndock?: () => void;
+  style?: React.CSSProperties;
   title: string;
   titleElement?: React.ReactNode;
+  visible?: boolean;
+  windowInDOM?: boolean;
+  windowVisible?: boolean;
 }
 
 export interface DockingContextType {

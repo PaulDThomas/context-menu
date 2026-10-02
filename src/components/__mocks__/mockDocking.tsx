@@ -87,7 +87,11 @@ export const createMockDocking = (
       return existing;
     }
 
-    const fallback: WindowConfig = { title: id || "window" };
+    const fallback: WindowConfig = {
+      title: id || "window",
+      windowInDOM: false,
+      windowVisible: false,
+    };
     windowConfigs.set(id, fallback);
     return fallback;
   },
