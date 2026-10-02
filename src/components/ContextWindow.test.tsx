@@ -339,8 +339,6 @@ describe("Context window", () => {
             id={"max-window-1"}
             visible={true}
             title={"Max Window 1"}
-            minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 1</span>
           </ContextWindow>
@@ -349,8 +347,6 @@ describe("Context window", () => {
             id={"max-window-2"}
             visible={true}
             title={"Max Window 2"}
-            minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 2</span>
           </ContextWindow>
@@ -360,7 +356,7 @@ describe("Context window", () => {
 
     const mockDocking = createMockDocking(
       new Map(),
-      {},
+      { minZIndex: MIN_Z_INDEX, maxZIndex: MIN_Z_INDEX },
       () => {},
       new Map(),
       new Set(),
@@ -397,10 +393,10 @@ describe("Context window", () => {
     expect(parseInt(window2.style.zIndex, 10)).toBe(MIN_Z_INDEX);
   });
 
-  test("Accepts minZIndex prop and applies it correctly", async () => {
+  test("Uses provider minZIndex and applies it correctly", async () => {
     const mockDocking = createMockDocking(
       new Map(),
-      {},
+      { minZIndex: 4000, maxZIndex: 4010 },
       () => {},
       new Map(),
       new Set(),
@@ -418,7 +414,6 @@ describe("Context window", () => {
               id={"testwindow"}
               visible={true}
               title={"Test window"}
-              minZIndex={4000}
             >
               <span>Hello world of tests</span>
             </ContextWindow>

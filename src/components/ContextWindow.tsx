@@ -8,15 +8,7 @@ import {
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
-import {
-  chkPosition,
-  classNames,
-  detectSnapEdge,
-  MAX_Z_INDEX,
-  MIN_Z_INDEX,
-  useDocking,
-  useMouseMove,
-} from "../functions";
+import { chkPosition, classNames, detectSnapEdge, useDocking, useMouseMove } from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import type { DockEdge, WindowConfig } from "./interface";
@@ -39,8 +31,6 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
   titleElement?: ReactNode;
   style?: React.CSSProperties;
   children: React.ReactNode;
-  minZIndex?: number;
-  maxZIndex?: number;
   dockable?: boolean;
   /** Dock into this edge's DockPanel whenever the window opens (requires `dockable`) */
   initialDockEdge?: DockEdge;
@@ -64,8 +54,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       children,
       onOpen,
       onClose,
-      minZIndex = MIN_Z_INDEX,
-      maxZIndex = MAX_Z_INDEX,
       dockable = false,
       initialDockEdge,
       allowUndock = true,
@@ -79,8 +67,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Docking state
     const docking = useDocking();
     const windowConfig = docking.getWindowConfig(id);
-    const windowInDOM = windowConfig.windowInDOM ?? false;
-    const windowVisible = windowConfig.windowVisible ?? false;
+    const windowInDOM = windowConfig.windowInDOM ?? visible;
+    const windowVisible = windowConfig.windowVisible ?? visible;
     const moving = windowConfig.moving ?? false;
     const dockedWindow = docking.getDockedWindow(id);
     const isDocked = !!dockedWindow;
@@ -93,6 +81,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const portalTarget = dockPanelContentHost ?? document.body;
     const targetSnapEdgeRef = useRef<DockEdge | null>(null);
     const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const minZIndex = docking.minZIndex;
+    const maxZIndex = docking.maxZIndex;
 
     // Without a DockingProvider a window cannot stack, so it sits on its own floor
     const zIndex = docking.getWindowZIndex(id) ?? minZIndex;
@@ -296,13 +286,29 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       return () => docking.unregisterWindowActions(id);
     }, [docking, handleUndock, id, onClose]);
 
-    const dockToRight = useCallback(() => {
-      handleDock("right");
+    const handleDockRef = useRef(handleDock);
+    useLayoutEffect(() => {
+      handleDockRef.current = handleDock;
     }, [handleDock]);
 
-    const undockFromTitleBar = useCallback(() => {
-      handleUndock();
+    const handleUndockRef = useRef(handleUndock);
+    useLayoutEffect(() => {
+      handleUndockRef.current = handleUndock;
     }, [handleUndock]);
+
+    const titleBarDockAction = useCallback(() => {
+      if (!dockable || isDockedRef.current) {
+        return;
+      }
+      handleDockRef.current("right");
+    }, [dockable]);
+
+    const titleBarUndockAction = useCallback(() => {
+      if (!dockable || !allowUndock || !isDockedRef.current) {
+        return;
+      }
+      handleUndockRef.current();
+    }, [allowUndock, dockable]);
 
     const checkPosition = useCallback(() => {
       const chkPos = chkPosition(windowRef);
@@ -447,6 +453,15 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       viewportResizeEnabled: windowVisible,
     });
 
+    const onMouseDownRef = useRef(onMouseDown);
+    useLayoutEffect(() => {
+      onMouseDownRef.current = onMouseDown;
+    }, [onMouseDown]);
+
+    const onTitleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>) => {
+      onMouseDownRef.current(e);
+    }, []);
+
     // Expose pushToTop method via ref
     useImperativeHandle(
       ref,
@@ -531,9 +546,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     }, [dispatchDocking, id, initialDockEdge, visible]);
 
     useLayoutEffect(() => {
-      const onDock = dockable && !isDocked ? dockToRight : undefined;
-      const onUndock = dockable && isDocked && allowUndock ? undockFromTitleBar : undefined;
-
       registerWindowConfig(id, {
         id,
         visible,
@@ -542,16 +554,16 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         style: rest.style,
         className: rest.className,
         children,
-        minZIndex,
-        maxZIndex,
         dockable,
         initialDockEdge,
         allowUndock,
         onOpen,
         onClose,
-        onMouseDown,
-        onDock,
-        onUndock,
+        onMouseDown: onTitleMouseDown,
+        canDock: dockable && !isDocked,
+        canUndock: dockable && isDocked && allowUndock,
+        onDock: titleBarDockAction,
+        onUndock: titleBarUndockAction,
       });
     }, [
       registerWindowConfig,
@@ -562,17 +574,15 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       rest.style,
       rest.className,
       children,
-      minZIndex,
-      maxZIndex,
       dockable,
       initialDockEdge,
       allowUndock,
       onOpen,
       onClose,
-      onMouseDown,
+      onTitleMouseDown,
       isDocked,
-      dockToRight,
-      undockFromTitleBar,
+      titleBarDockAction,
+      titleBarUndockAction,
     ]);
 
     useEffect(() => {

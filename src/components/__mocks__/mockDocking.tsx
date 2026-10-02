@@ -1,3 +1,4 @@
+import { MAX_Z_INDEX, MIN_Z_INDEX } from "../../functions/contextWindowConstants";
 import type {
   DockEdge,
   DockedWindow,
@@ -10,6 +11,7 @@ interface WindowActions {
   onClose?: () => void;
   onUndock?: () => void;
 }
+const noop = (): void => undefined;
 
 /**
  * A minimal docking context backed by plain Maps, for tests that need to drive components
@@ -26,6 +28,8 @@ export const createMockDocking = (
   windowConfigs: Map<string, WindowConfig> = new Map(),
   windowActions: Map<string, WindowActions> = new Map(),
 ): DockingContextType => ({
+  maxZIndex: MAX_Z_INDEX,
+  minZIndex: MIN_Z_INDEX,
   dispatch: (action) => {
     if (action.type === "dock") {
       if (action.preDockRect && !preDockRects.has(action.id)) {
@@ -76,6 +80,7 @@ export const createMockDocking = (
   registerWindowConfig: (id: string, config: WindowConfig) => {
     const current = windowConfigs.get(id);
     windowConfigs.set(id, current ? { ...current, ...config } : config);
+    notify();
   },
   getWindowConfig: (id: string) => {
     const existing = windowConfigs.get(id);
@@ -85,8 +90,8 @@ export const createMockDocking = (
 
     const fallback: WindowConfig = {
       title: id || "window",
-      windowInDOM: false,
-      windowVisible: false,
+      onDock: noop,
+      onUndock: noop,
     };
     windowConfigs.set(id, fallback);
     return fallback;

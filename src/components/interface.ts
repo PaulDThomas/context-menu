@@ -28,7 +28,7 @@ export interface WindowRect {
   y: number;
 }
 
-/** The z-index range a window may occupy, taken from its `minZIndex`/`maxZIndex` props */
+/** The z-index range a window may occupy, provided by DockingProvider */
 export interface WindowZRange {
   maxZIndex: number;
   minZIndex: number;
@@ -38,12 +38,12 @@ export interface WindowZRange {
 export interface WindowConfig {
   className?: string;
   allowUndock?: boolean;
+  canDock?: boolean;
+  canUndock?: boolean;
   children?: React.ReactNode;
   dockable?: boolean;
   id?: string;
   initialDockEdge?: DockEdge;
-  maxZIndex?: number;
-  minZIndex?: number;
   moving?: boolean;
   onClose?: () => void;
   onDock?: () => void;
@@ -59,6 +59,8 @@ export interface WindowConfig {
 }
 
 export interface DockingContextType {
+  maxZIndex: number;
+  minZIndex: number;
   dispatch: React.Dispatch<DockingAction>;
   closeWindow: (id: string) => void;
   getActiveWindowOnEdge: (edge: DockEdge) => string | null;

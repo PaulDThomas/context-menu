@@ -1,4 +1,5 @@
 import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
+import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { dockingReducer, initialDockingState } from "../reducer";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import type {
@@ -10,28 +11,41 @@ import type {
 } from "./interface";
 
 export const DockingContext = createContext<DockingContextType | undefined>(undefined);
+const noop = (): void => undefined;
 
 interface DockingProviderProps {
   children: ReactNode;
+  minZIndex?: number;
+  maxZIndex?: number;
 }
 
-export const DockingProvider = ({ children }: DockingProviderProps): React.ReactElement => {
+export const DockingProvider = ({
+  children,
+  minZIndex = MIN_Z_INDEX,
+  maxZIndex = MAX_Z_INDEX,
+}: DockingProviderProps): React.ReactElement => {
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
-  const windowConfigs = useRef(new Map<string, WindowConfig>());
 
   const closeWindow = useCallback((id: string): void => {
     windowActions.current.get(id)?.onClose?.();
   }, []);
 
-  const getWindowConfig = useCallback((id: string): WindowConfig => {
-    const existing = windowConfigs.current.get(id);
-    if (existing) {
-      return existing;
-    }
+  const getWindowConfig = useCallback(
+    (id: string): WindowConfig => {
+      const existing = state.windowConfigs.get(id);
+      if (existing) {
+        return existing;
+      }
 
-    return { title: id || "window", windowInDOM: false, windowVisible: false, moving: false };
-  }, []);
+      return {
+        title: id || "window",
+        onDock: noop,
+        onUndock: noop,
+      };
+    },
+    [state.windowConfigs],
+  );
 
   const registerWindowActions = useCallback(
     (id: string, actions?: { onClose?: () => void; onUndock?: () => void }): void => {
@@ -41,9 +55,7 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   );
 
   const registerWindowConfig = useCallback((id: string, config: WindowConfig): void => {
-    const current = windowConfigs.current.get(id);
-    const nextConfig = current ? { ...current, ...config } : config;
-    windowConfigs.current.set(id, nextConfig);
+    dispatch({ type: "registerWindowConfig", id, config });
   }, []);
 
   const requestUndock = useCallback((id: string): void => {
@@ -82,6 +94,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     };
 
     return {
+      maxZIndex,
+      minZIndex,
       closeWindow,
       dispatch,
       getActiveWindowOnEdge,
@@ -104,6 +118,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     };
   }, [
     closeWindow,
+    maxZIndex,
+    minZIndex,
     dispatch,
     getWindowConfig,
     registerWindowActions,

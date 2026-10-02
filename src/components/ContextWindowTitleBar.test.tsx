@@ -195,9 +195,9 @@ describe("ContextWindowTitleBar", () => {
     expect(mockDocking.closeWindow).toHaveBeenCalledWith("test-window");
   });
 
-  test("Renders dock button when onDock handler is present", () => {
+  test("Renders dock button when canDock is true", () => {
     const onDock = jest.fn();
-    const windowConfig: WindowConfig = { title: "My window", onDock };
+    const windowConfig: WindowConfig = { title: "My window", onDock, canDock: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -219,9 +219,9 @@ describe("ContextWindowTitleBar", () => {
     expect(dock).toHaveAttribute("data-title", "Dock My window");
   });
 
-  test("Renders undock button when onUndock handler is present", () => {
+  test("Renders undock button when canUndock is true", () => {
     const onUndock = jest.fn();
-    const windowConfig: WindowConfig = { title: "My window", onUndock };
+    const windowConfig: WindowConfig = { title: "My window", onUndock, canUndock: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),

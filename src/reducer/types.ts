@@ -1,4 +1,10 @@
-import type { DockEdge, DockedWindow, WindowRect, WindowZRange } from "../components/interface";
+import type {
+  DockEdge,
+  DockedWindow,
+  WindowConfig,
+  WindowRect,
+  WindowZRange,
+} from "../components/interface";
 
 export interface DockingState {
   /** Every docked window, keyed by window id */
@@ -11,6 +17,8 @@ export interface DockingState {
   panelContentHosts: Map<DockEdge, HTMLDivElement>;
   /** Where each window was floating before it docked, so undock can restore it */
   preDockRects: Map<string, WindowRect>;
+  /** Per-window UI metadata used by ContextWindow and title bar rendering */
+  windowConfigs: Map<string, WindowConfig>;
   /** Shared stacking order for every registered window, lowest first */
   zOrder: string[];
   /** The z-index range each registered window may occupy */
@@ -30,6 +38,7 @@ export type DockingAction =
   | { type: "toggleEdgeCollapse"; edge: DockEdge }
   | { type: "toggleAndRaiseEdge"; edge: DockEdge }
   | { type: "registerWindow"; id: string; zRange: WindowZRange }
+  | { type: "registerWindowConfig"; id: string; config: WindowConfig }
   | { type: "unregisterWindow"; id: string }
   | { type: "raiseWindow"; id: string }
   | { type: "startDockDrag"; id: string }
@@ -42,6 +51,7 @@ export const initialDockingState: DockingState = {
   activeWindowsByEdge: new Map(),
   panelContentHosts: new Map(),
   preDockRects: new Map(),
+  windowConfigs: new Map(),
   zOrder: [],
   zRanges: new Map(),
   dragWindowId: null,
