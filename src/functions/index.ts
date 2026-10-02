@@ -11,11 +11,13 @@ export {
   DOCK_PANEL_MIN_SIZE,
   DOCK_PANEL_VIEWPORT_GAP,
 } from "./dockPanelConstants";
+export { fitToViewport } from "./fitToViewport";
 export { isHorizontalEdge } from "./isHorizontalEdge";
 export { parseTranslate } from "./parseTranslate";
 export { UNDOCK_THRESHOLD, shouldUndockFromEdge } from "./shouldUndockFromEdge";
 export { sizeDelta } from "./sizeDelta";
 export { useAutoHide } from "./useAutoHide";
+export { useContextWindowDrag } from "./useContextWindowDrag";
 export { useDocking } from "./useDocking";
 export { useDockPanelResize } from "./useDockPanelResize";
 export { useMouseMove } from "./useMouseMove";
