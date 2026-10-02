@@ -22,7 +22,7 @@ interface DockPanelProps {
 
 export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null => {
   const docking = useDocking();
-  const dispatchDocking = docking.dispatch;
+  const dispatch = docking.dispatch;
   const windows = docking.getWindowsOnEdge(edge);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentHostRef = useRef<HTMLDivElement | null>(null);
@@ -30,8 +30,8 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
 
   // Interacting with the handle raises the panel, matching a click on the docked window itself
   const bringPanelToTop = useCallback(() => {
-    dispatchDocking({ type: "activateWindowOnEdge", edge });
-  }, [dispatchDocking, edge]);
+    dispatch({ type: "activateWindowOnEdge", edge });
+  }, [dispatch, edge]);
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again
   const { panelSize, isResizing, handleResizeMouseDown, handleResizeKeyDown } = useDockPanelResize(
@@ -41,12 +41,12 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   );
 
   useEffect(() => {
-    dispatchDocking({ type: "setPanelContentHost", edge, host: contentHostRef.current });
+    dispatch({ type: "setPanelContentHost", edge, host: contentHostRef.current });
 
     return () => {
-      dispatchDocking({ type: "setPanelContentHost", edge, host: null });
+      dispatch({ type: "setPanelContentHost", edge, host: null });
     };
-  }, [dispatchDocking, edge, windows.length]);
+  }, [dispatch, edge, windows.length]);
 
   const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
   // A pinned bar slides away to a thin line once the pointer moves away from it
@@ -74,7 +74,7 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   const togglePinned = () => {
     // The pointer is on the pin button, so a freshly pinned bar starts shown
     setAutoHidden(false);
-    dispatchDocking({ type: "toggleAndRaiseEdge", edge });
+    dispatch({ type: "toggleAndRaiseEdge", edge });
   };
 
   return (
