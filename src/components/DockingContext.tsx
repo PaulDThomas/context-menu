@@ -1,12 +1,4 @@
-import {
-  ReactNode,
-  createContext,
-  useCallback,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
+import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
 import { dockingReducer, initialDockingState } from "../reducer";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import type {
@@ -24,21 +16,10 @@ interface DockingProviderProps {
   children: ReactNode;
 }
 
-const shouldNotifyWindowConfigUpdate = (left: WindowConfig, right: WindowConfig): boolean =>
-  left.title !== right.title ||
-  left.titleElement !== right.titleElement ||
-  left.windowInDOM !== right.windowInDOM ||
-  left.windowVisible !== right.windowVisible ||
-  left.moving !== right.moving ||
-  left.dockable !== right.dockable ||
-  left.allowUndock !== right.allowUndock ||
-  left.initialDockEdge !== right.initialDockEdge;
-
 export const DockingProvider = ({ children }: DockingProviderProps): React.ReactElement => {
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
   const windowConfigs = useRef(new Map<string, WindowConfig>());
-  const [windowConfigVersion, setWindowConfigVersion] = useState<number>(0);
 
   const activateWindowOnEdge = useCallback((edge: DockEdge, id?: string): void => {
     dispatch({ type: "activateWindowOnEdge", edge, id });
@@ -84,9 +65,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     const current = windowConfigs.current.get(id);
     const nextConfig = current ? { ...current, ...config } : config;
     windowConfigs.current.set(id, nextConfig);
-    if (!current || shouldNotifyWindowConfigUpdate(current, nextConfig)) {
-      setWindowConfigVersion((version) => version + 1);
-    }
   }, []);
 
   const requestUndock = useCallback((id: string): void => {
