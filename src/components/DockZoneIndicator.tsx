@@ -1,4 +1,4 @@
-import { classNames } from "../functions/classNames";
+import { classNames } from "../functions";
 import styles from "./DockZoneIndicator.module.css";
 import type { DockEdge } from "./interface";
 

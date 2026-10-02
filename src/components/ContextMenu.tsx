@@ -1,5 +1,5 @@
 import React, { forwardRef, Fragment, useLayoutEffect, useState } from "react";
-import { classNames } from "../functions/classNames";
+import { classNames } from "../functions";
 import styles from "./ContextMenu.module.css";
 import { ContextMenuEntry } from "./ContextMenuEntry";
 import { isDivider } from "./ContextMenuHandler";

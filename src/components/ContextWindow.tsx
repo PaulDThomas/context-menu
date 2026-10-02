@@ -1,4 +1,3 @@
-import { useDocking } from "components";
 import {
   forwardRef,
   ReactNode,
@@ -10,17 +9,20 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { chkPosition } from "../functions/chkPosition";
-import { classNames } from "../functions/classNames";
-import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
-import { useMouseMove } from "../functions/useMouseMove";
+import {
+  chkPosition,
+  classNames,
+  detectSnapEdge,
+  MAX_Z_INDEX,
+  MIN_Z_INDEX,
+  useDocking,
+  useMouseMove,
+} from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import type { DockEdge } from "./interface";
 
-const SNAP_THRESHOLD = 24;
 const UNDOCK_THRESHOLD = 20;
-const SNAP_HYSTERESIS = 40; // px threshold to UN-snap once snapped (larger than SNAP_THRESHOLD)
 
 const dockedEdgeClassNames: Record<DockEdge, string> = {
   top: styles.dockedTop,
@@ -106,6 +108,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         unregisterWindow(id);
       };
     }, [id, maxZIndex, minZIndex, registerWindow, unregisterWindow]);
+
     // Capture isDocked state at interaction start to prevent stale closures during re-renders
     const isDockedAtStartRef = useRef<boolean>(false);
     // Live docked state for document-level drag handlers; set eagerly on drag-undock so a
@@ -154,58 +157,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
       }
     }, []);
-
-    // Snap-to-dock detection
-    const detectSnapEdge = useCallback(
-      (mouseX: number, mouseY: number, currentSnap: DockEdge | null): DockEdge | null => {
-        /* istanbul ignore next */
-        if (!dockable || !docking || isDockedRef.current) {
-          return null;
-        }
-
-        // Use hysteresis: if already snapped to an edge, use larger threshold to un-snap
-        // This prevents snap from flickering as mouse jitters slightly
-        const detectionThreshold = currentSnap ? SNAP_HYSTERESIS : SNAP_THRESHOLD;
-
-        if (currentSnap === "left" && mouseX < detectionThreshold) {
-          return "left";
-        }
-        if (currentSnap === "right" && mouseX > window.innerWidth - detectionThreshold) {
-          return "right";
-        }
-        if (currentSnap === "top" && mouseY < detectionThreshold) {
-          return "top";
-        }
-        if (currentSnap === "bottom" && mouseY > window.innerHeight - detectionThreshold) {
-          return "bottom";
-        }
-
-        // If currently snapped but moved outside hysteresis threshold, clear snap
-        /* istanbul ignore next */
-        if (currentSnap) {
-          return null;
-        }
-
-        // Not currently snapped, check with standard threshold
-        const threshold = SNAP_THRESHOLD;
-
-        if (mouseX < threshold) {
-          return "left";
-        }
-        if (mouseX > window.innerWidth - threshold) {
-          return "right";
-        }
-        if (mouseY < threshold) {
-          return "top";
-        }
-        if (mouseY > window.innerHeight - threshold) {
-          return "bottom";
-        }
-
-        return null;
-      },
-      [dockable, docking],
-    );
 
     // Define fitToViewport before handleDock and handleUndock so they can use it
     const fitToViewport = useCallback(() => {

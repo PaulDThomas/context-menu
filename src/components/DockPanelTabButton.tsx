@@ -1,6 +1,5 @@
 import { useContext } from "react";
-import { classNames } from "../functions/classNames";
-import { useDocking } from "../functions/useDocking";
+import { classNames, useDocking } from "../functions";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { DockingContext } from "./DockingContext";
 import styles from "./DockPanel.module.css";

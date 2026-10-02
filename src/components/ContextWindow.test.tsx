@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
-import { MIN_Z_INDEX } from "../functions/contextWindowConstants";
+import { MIN_Z_INDEX } from "../functions";
 import { ContextWindow, ContextWindowHandle } from "./ContextWindow";
 import { DockPanel } from "./DockPanel";
 import { DockingContext } from "./DockingContext";

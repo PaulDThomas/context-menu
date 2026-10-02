@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef } from "react";
-import { classNames } from "../functions/classNames";
 import {
+  classNames,
   DOCK_PANEL_AUTOHIDE_DISTANCE,
   DOCK_PANEL_MIN_SIZE,
   DOCK_PANEL_VIEWPORT_GAP,
-} from "../functions/dockPanelConstants";
-import { isHorizontalEdge } from "../functions/isHorizontalEdge";
-import { useAutoHide } from "../functions/useAutoHide";
-import { useDocking } from "../functions/useDocking";
-import { useDockPanelResize } from "../functions/useDockPanelResize";
+  isHorizontalEdge,
+  useAutoHide,
+  useDocking,
+  useDockPanelResize,
+} from "../functions";
 import styles from "./DockPanel.module.css";
 import { DockPanelPinButton } from "./DockPanelPinButton";
 import { DockPanelTabButton } from "./DockPanelTabButton";

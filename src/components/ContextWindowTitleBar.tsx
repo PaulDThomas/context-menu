@@ -1,5 +1,4 @@
-import { classNames } from "../functions/classNames";
-import { useDocking } from "../functions/useDocking";
+import { classNames, useDocking } from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleButton } from "./ContextWindowTitleButton";
 import { CloseIcon, DockIcon, UndockIcon } from "./icons";
