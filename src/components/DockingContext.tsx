@@ -21,48 +21,35 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
   const windowConfigs = useRef(new Map<string, WindowConfig>());
 
-  const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
-    dispatch({ type: "dock", id, edge, preDockRect });
-  }, []);
-
-  const undock = useCallback((id: string, options?: { viaDrag?: boolean }): void => {
-    dispatch({ type: "undock", id, viaDrag: options?.viaDrag });
-  }, []);
-
-  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
-    dispatch({ type: "setActiveWindowOnEdge", edge, id });
-  }, []);
-
   const activateWindowOnEdge = useCallback((edge: DockEdge, id?: string): void => {
     dispatch({ type: "activateWindowOnEdge", edge, id });
   }, []);
 
-  const toggleAndRaiseEdge = useCallback((edge: DockEdge): void => {
-    dispatch({ type: "toggleAndRaiseEdge", edge });
+  const closeWindow = useCallback((id: string): void => {
+    windowActions.current.get(id)?.onClose?.();
   }, []);
 
-  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
-    dispatch({ type: "setPanelContentHost", edge, host });
+  const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
+    dispatch({ type: "dock", id, edge, preDockRect });
   }, []);
 
-  const toggleEdgeCollapse = useCallback((edge: DockEdge): void => {
-    dispatch({ type: "toggleEdgeCollapse", edge });
+  const endDockDrag = useCallback((id: string): void => {
+    dispatch({ type: "endDockDrag", id });
+  }, []);
+
+  const getWindowConfig = useCallback((id: string): WindowConfig => {
+    // if (!windowConfigs.current.has(id)) {
+    //   throw new Error(`Window config not found for id: ${id}`);
+    // }
+    return windowConfigs.current.get(id)!;
+  }, []);
+
+  const raiseWindow = useCallback((id: string): void => {
+    dispatch({ type: "raiseWindow", id });
   }, []);
 
   const registerWindow = useCallback((id: string, zRange: WindowZRange): void => {
     dispatch({ type: "registerWindow", id, zRange });
-  }, []);
-
-  const unregisterWindow = useCallback((id: string): void => {
-    dispatch({ type: "unregisterWindow", id });
-  }, []);
-
-  const registerWindowConfig = useCallback((id: string, config: WindowConfig): void => {
-    windowConfigs.current.set(id, config);
-  }, []);
-
-  const getWindowConfig = useCallback((id: string): WindowConfig | undefined => {
-    return windowConfigs.current.get(id);
   }, []);
 
   const registerWindowActions = useCallback(
@@ -71,30 +58,49 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     },
     [],
   );
-  const unregisterWindowActions = useCallback((id: string): void => {
-    windowActions.current.delete(id);
+
+  const registerWindowConfig = useCallback((id: string, config: WindowConfig): void => {
+    windowConfigs.current.set(id, config);
   }, []);
-  const closeWindow = useCallback((id: string): void => {
-    windowActions.current.get(id)?.onClose?.();
-  }, []);
+
   const requestUndock = useCallback((id: string): void => {
     windowActions.current.get(id)?.onUndock?.();
   }, []);
 
-  const raiseWindow = useCallback((id: string): void => {
-    dispatch({ type: "raiseWindow", id });
-  }, []);
-
-  const startDockDrag = useCallback((id: string): void => {
-    dispatch({ type: "startDockDrag", id });
+  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
+    dispatch({ type: "setActiveWindowOnEdge", edge, id });
   }, []);
 
   const setDockDragEdge = useCallback((edge: DockEdge | null): void => {
     dispatch({ type: "setDockDragEdge", edge });
   }, []);
 
-  const endDockDrag = useCallback((id: string): void => {
-    dispatch({ type: "endDockDrag", id });
+  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
+    dispatch({ type: "setPanelContentHost", edge, host });
+  }, []);
+
+  const startDockDrag = useCallback((id: string): void => {
+    dispatch({ type: "startDockDrag", id });
+  }, []);
+
+  const toggleAndRaiseEdge = useCallback((edge: DockEdge): void => {
+    dispatch({ type: "toggleAndRaiseEdge", edge });
+  }, []);
+
+  const toggleEdgeCollapse = useCallback((edge: DockEdge): void => {
+    dispatch({ type: "toggleEdgeCollapse", edge });
+  }, []);
+
+  const undock = useCallback((id: string, options?: { viaDrag?: boolean }): void => {
+    dispatch({ type: "undock", id, viaDrag: options?.viaDrag });
+  }, []);
+
+  const unregisterWindow = useCallback((id: string): void => {
+    dispatch({ type: "unregisterWindow", id });
+  }, []);
+
+  const unregisterWindowActions = useCallback((id: string): void => {
+    windowActions.current.delete(id);
   }, []);
 
   const contextValue = useMemo<DockingContextType>(() => {
@@ -125,59 +131,59 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     };
 
     return {
-      dock,
-      undock,
-      getDockedWindow,
-      getWindowsOnEdge,
-      setActiveWindowOnEdge,
       activateWindowOnEdge,
+      closeWindow,
+      dock,
+      endDockDrag,
       getActiveWindowOnEdge,
-      toggleAndRaiseEdge,
-      setPanelContentHost,
+      getDockedWindow,
       getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
         state.panelContentHosts.get(edge) ?? null,
-      isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
-      toggleEdgeCollapse,
-      registerWindow,
-      unregisterWindow,
-      registerWindowConfig,
-      getWindowConfig,
-      registerWindowActions,
-      unregisterWindowActions,
-      closeWindow,
-      requestUndock,
-      raiseWindow,
-      getWindowZIndex,
       getPanelZIndex: (edge: DockEdge): number | null => {
         const activeId = getActiveWindowOnEdge(edge);
         return activeId ? getWindowZIndex(activeId) : null;
       },
       getPreDockRect: (id: string): WindowRect | null => state.preDockRects.get(id) ?? null,
-      startDockDrag,
+      getWindowConfig,
+      getWindowZIndex,
+      getWindowsOnEdge,
+      isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
+      raiseWindow,
+      registerWindow,
+      registerWindowActions,
+      registerWindowConfig,
+      requestUndock,
+      setActiveWindowOnEdge,
       setDockDragEdge,
-      endDockDrag,
+      setPanelContentHost,
+      startDockDrag,
+      toggleAndRaiseEdge,
+      toggleEdgeCollapse,
+      undock,
+      unregisterWindow,
+      unregisterWindowActions,
     };
   }, [
-    state,
-    dock,
-    undock,
-    setActiveWindowOnEdge,
     activateWindowOnEdge,
-    toggleAndRaiseEdge,
-    setPanelContentHost,
-    toggleEdgeCollapse,
-    registerWindow,
-    unregisterWindow,
-    registerWindowConfig,
-    getWindowConfig,
-    registerWindowActions,
-    unregisterWindowActions,
     closeWindow,
-    requestUndock,
-    raiseWindow,
-    startDockDrag,
-    setDockDragEdge,
+    dock,
     endDockDrag,
+    getWindowConfig,
+    raiseWindow,
+    registerWindow,
+    registerWindowActions,
+    registerWindowConfig,
+    requestUndock,
+    setActiveWindowOnEdge,
+    setDockDragEdge,
+    setPanelContentHost,
+    startDockDrag,
+    state,
+    toggleAndRaiseEdge,
+    toggleEdgeCollapse,
+    undock,
+    unregisterWindow,
+    unregisterWindowActions,
   ]);
 
   return (

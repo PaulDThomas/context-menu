@@ -555,6 +555,45 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, [visible, initialDockEdge, docking, id]);
 
+    // Register window configuration with docking context
+    useLayoutEffect(() => {
+      if (!docking) {
+        return;
+      }
+
+      const onDock = dockable && !isDocked ? () => handleDock("right") : undefined;
+      const onUndock = dockable && isDocked && allowUndock ? () => handleUndock() : undefined;
+
+      docking.registerWindowConfig(id, {
+        title,
+        titleElement,
+        dockable,
+        initialDockEdge,
+        allowUndock,
+        onOpen,
+        onClose,
+        moving,
+        onMouseDown,
+        onDock,
+        onUndock,
+      });
+    }, [
+      docking,
+      id,
+      title,
+      titleElement,
+      dockable,
+      initialDockEdge,
+      allowUndock,
+      onOpen,
+      onClose,
+      moving,
+      onMouseDown,
+      isDocked,
+      handleDock,
+      handleUndock,
+    ]);
+
     useEffect(() => {
       if (visible && !windowInDOM) {
         // Window should be in DOM when visible becomes true
@@ -672,15 +711,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 rest.onClickCapture?.(e);
               }}
             >
-              <ContextWindowTitleBar
-                title={title}
-                titleElement={titleElement}
-                moving={moving}
-                onMouseDown={onMouseDown}
-                onDock={dockable && !isDocked ? () => handleDock("right") : undefined}
-                onUndock={dockable && isDocked && allowUndock ? () => handleUndock() : undefined}
-                onClose={onClose}
-              />
+              <ContextWindowTitleBar id={id} />
               <div className={styles.contextWindowBody}>
                 <div>{children}</div>
               </div>
