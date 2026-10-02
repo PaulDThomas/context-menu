@@ -38,10 +38,14 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   }, []);
 
   const getWindowConfig = useCallback((id: string): WindowConfig => {
-    // if (!windowConfigs.current.has(id)) {
-    //   throw new Error(`Window config not found for id: ${id}`);
-    // }
-    return windowConfigs.current.get(id)!;
+    const existing = windowConfigs.current.get(id);
+    if (existing) {
+      return existing;
+    }
+
+    const fallback: WindowConfig = { title: id || "window" };
+    windowConfigs.current.set(id, fallback);
+    return fallback;
   }, []);
 
   const raiseWindow = useCallback((id: string): void => {

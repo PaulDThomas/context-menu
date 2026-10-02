@@ -270,7 +270,7 @@ describe("ContextWindowTitleBar", () => {
     expect(onMouseDown).toHaveBeenCalled();
   });
 
-  test("Throws when window config is not found", () => {
+  test("Falls back to an id-based title when the window config is not found", () => {
     const mockDocking = createMockDocking(
       new Map(),
       {},
@@ -281,14 +281,17 @@ describe("ContextWindowTitleBar", () => {
       new Map(),
     );
 
-    jest.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => {
-      render(
-        <DockingContext.Provider value={mockDocking}>
-          <ContextWindowTitleBar id="nonexistent-window" />
-        </DockingContext.Provider>,
-      );
-    }).toThrow("Window config not found for id: nonexistent-window");
-    jest.restoreAllMocks();
+    render(
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindowTitleBar id="nonexistent-window" />
+      </DockingContext.Provider>,
+    );
+
+    expect(screen.getByText("nonexistent-window")).toHaveClass("contextWindowTitleText");
+    expect(screen.getByTitle("nonexistent-window")).toBeInTheDocument();
+    expect(screen.getByTestId("mock-title-button-Close")).toHaveAttribute(
+      "data-title",
+      "Close nonexistent-window",
+    );
   });
 });

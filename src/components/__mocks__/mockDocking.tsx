@@ -82,10 +82,14 @@ export const createMockDocking = (
     windowConfigs.set(id, config);
   },
   getWindowConfig: (id: string) => {
-    if (!windowConfigs.has(id)) {
-      throw new Error(`Window config not found for id: ${id}`);
+    const existing = windowConfigs.get(id);
+    if (existing) {
+      return existing;
     }
-    return windowConfigs.get(id)!;
+
+    const fallback: WindowConfig = { title: id || "window" };
+    windowConfigs.set(id, fallback);
+    return fallback;
   },
   registerWindowActions: (id: string, actions?: WindowActions) => {
     if (actions) {
