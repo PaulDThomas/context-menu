@@ -6,7 +6,6 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
-  useState,
 } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -20,7 +19,7 @@ import {
 } from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
-import type { DockEdge } from "./interface";
+import type { DockEdge, WindowConfig } from "./interface";
 
 const UNDOCK_THRESHOLD = 20;
 
@@ -76,11 +75,13 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
   ): React.ReactElement => {
     const divRef = useRef<HTMLDivElement | null>(null);
     const windowRef = useRef<HTMLDivElement | null>(null);
-    const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
-    const [windowVisible, setWindowVisible] = useState<boolean>(false);
 
     // Docking state
     const docking = useDocking();
+    const windowConfig = docking.getWindowConfig(id);
+    const windowInDOM = windowConfig.windowInDOM ?? false;
+    const windowVisible = windowConfig.windowVisible ?? false;
+    const moving = windowConfig.moving ?? false;
     const dockedWindow = docking.getDockedWindow(id);
     const isDocked = !!dockedWindow;
     const activeDockedWindowId =
@@ -136,7 +137,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     // Position
     const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    const [moving, setMoving] = useState<boolean>(false);
     const undockViaActionRef = useRef<boolean>(false);
     // Docking re-portals the window between document.body and the DockPanel, which remounts
     // the DOM node. Floating styles must be applied to the new node after it mounts.
@@ -157,6 +157,40 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
       }
     }, []);
+
+    const updateWindowConfig = useCallback(
+      (configUpdates: Partial<WindowConfig>) => {
+        registerWindowConfig(id, { ...docking.getWindowConfig(id), ...configUpdates });
+      },
+      [docking, id, registerWindowConfig],
+    );
+    const setWindowInDOM = useCallback(
+      (nextValue: boolean) => {
+        if ((docking.getWindowConfig(id).windowInDOM ?? false) === nextValue) {
+          return;
+        }
+        updateWindowConfig({ windowInDOM: nextValue });
+      },
+      [docking, id, updateWindowConfig],
+    );
+    const setWindowVisible = useCallback(
+      (nextValue: boolean) => {
+        if ((docking.getWindowConfig(id).windowVisible ?? false) === nextValue) {
+          return;
+        }
+        updateWindowConfig({ windowVisible: nextValue });
+      },
+      [docking, id, updateWindowConfig],
+    );
+    const setMoving = useCallback(
+      (nextValue: boolean) => {
+        if ((docking.getWindowConfig(id).moving ?? false) === nextValue) {
+          return;
+        }
+        updateWindowConfig({ moving: nextValue });
+      },
+      [docking, id, updateWindowConfig],
+    );
 
     // Define fitToViewport before handleDock and handleUndock so they can use it
     const fitToViewport = useCallback(() => {
@@ -183,8 +217,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     const handleDock = useCallback(
       (edge: DockEdge) => {
-        /* istanbul ignore next */
-        if (!docking) return;
         if (!windowRef.current) {
           // Docking before the window node exists (e.g. from a mount effect): nothing to restore later
           docking.dock(id, edge);
@@ -212,11 +244,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     const handleUndock = useCallback(
       (pointer?: { x: number; y: number }) => {
-        /* istanbul ignore next */
-        if (!docking || !isDocked) {
-          return;
-        }
-        if (!allowUndock) {
+        if (!isDocked || !allowUndock) {
           return;
         }
 
@@ -526,9 +554,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         allowUndock,
         onOpen,
         onClose,
-        windowInDOM,
-        windowVisible,
-        moving,
         onMouseDown,
         onDock,
         onUndock,
@@ -549,9 +574,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       allowUndock,
       onOpen,
       onClose,
-      windowInDOM,
-      windowVisible,
-      moving,
       onMouseDown,
       isDocked,
       dockToRight,

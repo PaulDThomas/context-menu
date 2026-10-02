@@ -79,7 +79,8 @@ export const createMockDocking = (
   registerWindow: () => {},
   unregisterWindow: () => {},
   registerWindowConfig: (id: string, config: WindowConfig) => {
-    windowConfigs.set(id, config);
+    const current = windowConfigs.get(id);
+    windowConfigs.set(id, current ? { ...current, ...config } : config);
   },
   getWindowConfig: (id: string) => {
     const existing = windowConfigs.get(id);
