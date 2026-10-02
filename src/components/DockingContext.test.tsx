@@ -1,13 +1,46 @@
 import { act, render } from "@testing-library/react";
 import { useContext } from "react";
 import { DockingContext, DockingProvider } from "./DockingContext";
-import type { DockEdge, DockingContextType } from "./interface";
+import type { DockEdge, DockingContextType, WindowRect, WindowZRange } from "./interface";
+
+type DockingTestApi = DockingContextType & {
+  activateWindowOnEdge: (edge: DockEdge, id?: string) => void;
+  dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => void;
+  endDockDrag: (id: string) => void;
+  raiseWindow: (id: string) => void;
+  registerWindow: (id: string, zRange: WindowZRange) => void;
+  setActiveWindowOnEdge: (edge: DockEdge, id: string) => void;
+  setDockDragEdge: (edge: DockEdge | null) => void;
+  setPanelContentHost: (edge: DockEdge, host: HTMLDivElement | null) => void;
+  startDockDrag: (id: string) => void;
+  toggleAndRaiseEdge: (edge: DockEdge) => void;
+  toggleEdgeCollapse: (edge: DockEdge) => void;
+  undock: (id: string, options?: { viaDrag?: boolean }) => void;
+  unregisterWindow: (id: string) => void;
+};
+
+const withDispatchHelpers = (api: DockingContextType): DockingTestApi => ({
+  ...api,
+  activateWindowOnEdge: (edge, id) => api.dispatch({ type: "activateWindowOnEdge", edge, id }),
+  dock: (id, edge, preDockRect) => api.dispatch({ type: "dock", id, edge, preDockRect }),
+  endDockDrag: (id) => api.dispatch({ type: "endDockDrag", id }),
+  raiseWindow: (id) => api.dispatch({ type: "raiseWindow", id }),
+  registerWindow: (id, zRange) => api.dispatch({ type: "registerWindow", id, zRange }),
+  setActiveWindowOnEdge: (edge, id) => api.dispatch({ type: "setActiveWindowOnEdge", edge, id }),
+  setDockDragEdge: (edge) => api.dispatch({ type: "setDockDragEdge", edge }),
+  setPanelContentHost: (edge, host) => api.dispatch({ type: "setPanelContentHost", edge, host }),
+  startDockDrag: (id) => api.dispatch({ type: "startDockDrag", id }),
+  toggleAndRaiseEdge: (edge) => api.dispatch({ type: "toggleAndRaiseEdge", edge }),
+  toggleEdgeCollapse: (edge) => api.dispatch({ type: "toggleEdgeCollapse", edge }),
+  undock: (id, options) => api.dispatch({ type: "undock", id, viaDrag: options?.viaDrag }),
+  unregisterWindow: (id) => api.dispatch({ type: "unregisterWindow", id }),
+});
 
 describe("DockingProvider", () => {
-  let api: DockingContextType;
+  let api: DockingTestApi;
 
   const Capture = (): null => {
-    api = useContext(DockingContext)!;
+    api = withDispatchHelpers(useContext(DockingContext)!);
     return null;
   };
 

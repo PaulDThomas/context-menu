@@ -7,7 +7,6 @@ import type {
   DockingContextType,
   WindowConfig,
   WindowRect,
-  WindowZRange,
 } from "./interface";
 
 export const DockingContext = createContext<DockingContextType | undefined>(undefined);
@@ -21,20 +20,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
   const windowConfigs = useRef(new Map<string, WindowConfig>());
 
-  const activateWindowOnEdge = useCallback((edge: DockEdge, id?: string): void => {
-    dispatch({ type: "activateWindowOnEdge", edge, id });
-  }, []);
-
   const closeWindow = useCallback((id: string): void => {
     windowActions.current.get(id)?.onClose?.();
-  }, []);
-
-  const dock = useCallback((id: string, edge: DockEdge, preDockRect?: WindowRect | null): void => {
-    dispatch({ type: "dock", id, edge, preDockRect });
-  }, []);
-
-  const endDockDrag = useCallback((id: string): void => {
-    dispatch({ type: "endDockDrag", id });
   }, []);
 
   const getWindowConfig = useCallback((id: string): WindowConfig => {
@@ -44,14 +31,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     }
 
     return { title: id || "window", windowInDOM: false, windowVisible: false, moving: false };
-  }, []);
-
-  const raiseWindow = useCallback((id: string): void => {
-    dispatch({ type: "raiseWindow", id });
-  }, []);
-
-  const registerWindow = useCallback((id: string, zRange: WindowZRange): void => {
-    dispatch({ type: "registerWindow", id, zRange });
   }, []);
 
   const registerWindowActions = useCallback(
@@ -69,38 +48,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
 
   const requestUndock = useCallback((id: string): void => {
     windowActions.current.get(id)?.onUndock?.();
-  }, []);
-
-  const setActiveWindowOnEdge = useCallback((edge: DockEdge, id: string): void => {
-    dispatch({ type: "setActiveWindowOnEdge", edge, id });
-  }, []);
-
-  const setDockDragEdge = useCallback((edge: DockEdge | null): void => {
-    dispatch({ type: "setDockDragEdge", edge });
-  }, []);
-
-  const setPanelContentHost = useCallback((edge: DockEdge, host: HTMLDivElement | null): void => {
-    dispatch({ type: "setPanelContentHost", edge, host });
-  }, []);
-
-  const startDockDrag = useCallback((id: string): void => {
-    dispatch({ type: "startDockDrag", id });
-  }, []);
-
-  const toggleAndRaiseEdge = useCallback((edge: DockEdge): void => {
-    dispatch({ type: "toggleAndRaiseEdge", edge });
-  }, []);
-
-  const toggleEdgeCollapse = useCallback((edge: DockEdge): void => {
-    dispatch({ type: "toggleEdgeCollapse", edge });
-  }, []);
-
-  const undock = useCallback((id: string, options?: { viaDrag?: boolean }): void => {
-    dispatch({ type: "undock", id, viaDrag: options?.viaDrag });
-  }, []);
-
-  const unregisterWindow = useCallback((id: string): void => {
-    dispatch({ type: "unregisterWindow", id });
   }, []);
 
   const unregisterWindowActions = useCallback((id: string): void => {
@@ -135,10 +82,8 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     };
 
     return {
-      activateWindowOnEdge,
       closeWindow,
-      dock,
-      endDockDrag,
+      dispatch,
       getActiveWindowOnEdge,
       getDockedWindow,
       getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
@@ -152,36 +97,18 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
       getWindowZIndex,
       getWindowsOnEdge,
       isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
-      raiseWindow,
-      registerWindow,
       registerWindowActions,
       registerWindowConfig,
       requestUndock,
-      setActiveWindowOnEdge,
-      setDockDragEdge,
-      setPanelContentHost,
-      startDockDrag,
-      toggleAndRaiseEdge,
-      toggleEdgeCollapse,
-      undock,
-      unregisterWindow,
       unregisterWindowActions,
     };
   }, [
-    activateWindowOnEdge,
     closeWindow,
-    dock,
-    endDockDrag,
+    dispatch,
     getWindowConfig,
-    raiseWindow,
-    registerWindow,
     registerWindowActions,
     registerWindowConfig,
     requestUndock,
-    setActiveWindowOnEdge,
-    setDockDragEdge,
-    setPanelContentHost,
-    startDockDrag,
     state.activeWindowsByEdge,
     state.collapsedEdges,
     state.dockedWindows,
@@ -189,10 +116,6 @@ export const DockingProvider = ({ children }: DockingProviderProps): React.React
     state.preDockRects,
     state.zOrder,
     state.zRanges,
-    toggleAndRaiseEdge,
-    toggleEdgeCollapse,
-    undock,
-    unregisterWindow,
     unregisterWindowActions,
   ]);
 

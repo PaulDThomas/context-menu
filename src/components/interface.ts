@@ -1,3 +1,5 @@
+import type { DockingAction } from "../reducer";
+
 export interface IMenuItem {
   label: string | React.ReactElement;
   disabled?: boolean;
@@ -57,11 +59,8 @@ export interface WindowConfig {
 }
 
 export interface DockingContextType {
-  activateWindowOnEdge: (edge: DockEdge, id?: string) => void;
+  dispatch: React.Dispatch<DockingAction>;
   closeWindow: (id: string) => void;
-  /** Dock a window into an edge's panel, optionally recording where it was floating */
-  dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => void;
-  endDockDrag: (id: string) => void;
   getActiveWindowOnEdge: (edge: DockEdge) => string | null;
   getDockedWindow: (id: string) => DockedWindow | undefined;
   /** Retrieve a window's configuration by ID */
@@ -73,10 +72,6 @@ export interface DockingContextType {
   getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
   getWindowZIndex: (id: string) => number | null;
   isEdgeCollapsed: (edge: DockEdge) => boolean;
-  /** Move a window to the top of the shared stacking order */
-  raiseWindow: (id: string) => void;
-  /** Join the shared stacking order; windows are stacked in registration order until raised */
-  registerWindow: (id: string, zRange: WindowZRange) => void;
   registerWindowActions: (
     id: string,
     actions?: { onClose?: () => void; onUndock?: () => void },
@@ -84,15 +79,5 @@ export interface DockingContextType {
   /** Register a window's configuration (title, dockable status, etc.) */
   registerWindowConfig: (id: string, config: WindowConfig) => void;
   requestUndock: (id: string) => void;
-  setActiveWindowOnEdge: (edge: DockEdge, id: string) => void;
-  setDockDragEdge: (edge: DockEdge | null) => void;
-  setPanelContentHost: (edge: DockEdge, host: HTMLDivElement | null) => void;
-  /** Drag to dock: the provider renders the single shared drop zone indicator */
-  startDockDrag: (id: string) => void;
-  toggleAndRaiseEdge: (edge: DockEdge) => void;
-  toggleEdgeCollapse: (edge: DockEdge) => void;
-  /** Release a window from its panel; a drag undock keeps the stored floating rect */
-  undock: (id: string, options?: { viaDrag?: boolean }) => void;
-  unregisterWindow: (id: string) => void;
   unregisterWindowActions: (id: string) => void;
 }

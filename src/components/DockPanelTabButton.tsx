@@ -17,12 +17,13 @@ export const DockPanelTabButton = ({
   isActive,
 }: DockPanelTabButtonProps): React.ReactElement => {
   const docking = useDocking();
+  const dispatchDocking = docking.dispatch;
   const dockingContext = useContext(DockingContext);
   const windowConfig = dockingContext?.getWindowConfig(windowId);
   const windowTitle = windowConfig?.title ?? windowId;
 
   const showWindow = () => {
-    docking.activateWindowOnEdge(edge, windowId);
+    dispatchDocking({ type: "activateWindowOnEdge", edge, id: windowId });
   };
 
   return (

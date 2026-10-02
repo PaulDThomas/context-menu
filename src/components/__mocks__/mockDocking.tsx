@@ -26,58 +26,53 @@ export const createMockDocking = (
   windowConfigs: Map<string, WindowConfig> = new Map(),
   windowActions: Map<string, WindowActions> = new Map(),
 ): DockingContextType => ({
-  dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => {
-    if (preDockRect && !preDockRects.has(id)) {
-      preDockRects.set(id, preDockRect);
+  dispatch: (action) => {
+    if (action.type === "dock") {
+      if (action.preDockRect && !preDockRects.has(action.id)) {
+        preDockRects.set(action.id, action.preDockRect);
+      }
+      dockedWindows.set(action.id, { id: action.id, edge: action.edge, order: 0 });
+      activeWindowsByEdge.set(action.edge, action.id);
+      notify();
+      return;
     }
-    dockedWindows.set(id, { id, edge, order: 0 });
-    activeWindowsByEdge.set(edge, id);
-    notify();
-  },
-  undock: (id: string, options?: { viaDrag?: boolean }) => {
-    dockedWindows.delete(id);
-    if (!options?.viaDrag) {
-      preDockRects.delete(id);
+    if (action.type === "undock") {
+      dockedWindows.delete(action.id);
+      if (!action.viaDrag) {
+        preDockRects.delete(action.id);
+      }
+      notify();
+      return;
     }
-    notify();
+    if (action.type === "setActiveWindowOnEdge") {
+      activeWindowsByEdge.set(action.edge, action.id);
+      notify();
+      return;
+    }
+    if (action.type === "activateWindowOnEdge") {
+      const targetId = action.id ?? activeWindowsByEdge.get(action.edge) ?? null;
+      if (targetId) {
+        activeWindowsByEdge.set(action.edge, targetId);
+        collapsedEdges.delete(action.edge);
+        notify();
+      }
+      return;
+    }
+    if (action.type === "toggleAndRaiseEdge" || action.type === "toggleEdgeCollapse") {
+      if (collapsedEdges.has(action.edge)) {
+        collapsedEdges.delete(action.edge);
+      } else {
+        collapsedEdges.add(action.edge);
+      }
+      notify();
+    }
   },
   getDockedWindow: (id: string) => dockedWindows.get(id),
   getWindowsOnEdge: (edge: DockEdge) =>
     Array.from(dockedWindows.values()).filter((window) => window.edge === edge),
-  setActiveWindowOnEdge: (edge: DockEdge, id: string) => {
-    activeWindowsByEdge.set(edge, id);
-    notify();
-  },
-  activateWindowOnEdge: (edge: DockEdge, id?: string) => {
-    const targetId = id ?? activeWindowsByEdge.get(edge) ?? null;
-    if (targetId) {
-      activeWindowsByEdge.set(edge, targetId);
-      collapsedEdges.delete(edge);
-      notify();
-    }
-  },
   getActiveWindowOnEdge: (edge: DockEdge) => activeWindowsByEdge.get(edge) ?? null,
-  toggleAndRaiseEdge: (edge: DockEdge) => {
-    if (collapsedEdges.has(edge)) {
-      collapsedEdges.delete(edge);
-    } else {
-      collapsedEdges.add(edge);
-    }
-    notify();
-  },
-  setPanelContentHost: () => {},
   getPanelContentHost: () => null,
   isEdgeCollapsed: (edge: DockEdge) => collapsedEdges.has(edge),
-  toggleEdgeCollapse: (edge: DockEdge) => {
-    if (collapsedEdges.has(edge)) {
-      collapsedEdges.delete(edge);
-    } else {
-      collapsedEdges.add(edge);
-    }
-    notify();
-  },
-  registerWindow: () => {},
-  unregisterWindow: () => {},
   registerWindowConfig: (id: string, config: WindowConfig) => {
     const current = windowConfigs.get(id);
     windowConfigs.set(id, current ? { ...current, ...config } : config);
@@ -110,13 +105,9 @@ export const createMockDocking = (
   requestUndock: (id: string) => {
     windowActions.get(id)?.onUndock?.();
   },
-  raiseWindow: () => {},
   getWindowZIndex: () => null,
   getPanelZIndex: () => null,
   getPreDockRect: (id: string) => preDockRects.get(id) ?? null,
-  startDockDrag: () => {},
-  setDockDragEdge: () => {},
-  endDockDrag: () => {},
   ...overrides,
 });
 

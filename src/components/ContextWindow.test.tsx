@@ -2180,7 +2180,7 @@ describe("Context window", () => {
 
     const mockDocking = createMockDocking(
       dockingState,
-      { undock: () => {} },
+      {},
       () => {},
       new Map(),
       new Set(),
@@ -2213,7 +2213,7 @@ describe("Context window", () => {
 
     const mockDocking = createMockDocking(
       dockingState,
-      { undock: () => {} },
+      {},
       () => {},
       new Map(),
       new Set(),
@@ -2501,7 +2501,7 @@ describe("Context window", () => {
 
     const mockDocking = createMockDocking(
       dockingState,
-      { undock: () => {} },
+      {},
       () => {},
       new Map(),
       new Set(),

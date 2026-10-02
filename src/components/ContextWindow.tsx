@@ -96,19 +96,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     // Without a DockingProvider a window cannot stack, so it sits on its own floor
     const zIndex = docking.getWindowZIndex(id) ?? minZIndex;
-    const registerWindow = docking.registerWindow;
+    const dispatchDocking = docking.dispatch;
     const registerWindowConfig = docking.registerWindowConfig;
-    const unregisterWindow = docking.unregisterWindow;
-    const raiseWindow = docking.raiseWindow;
     useEffect(() => {
-      if (!registerWindow || !unregisterWindow) {
-        return;
-      }
-      registerWindow(id, { minZIndex, maxZIndex });
+      dispatchDocking({ type: "registerWindow", id, zRange: { minZIndex, maxZIndex } });
       return () => {
-        unregisterWindow(id);
+        dispatchDocking({ type: "unregisterWindow", id });
       };
-    }, [id, maxZIndex, minZIndex, registerWindow, unregisterWindow]);
+    }, [dispatchDocking, id, maxZIndex, minZIndex]);
 
     // Capture isDocked state at interaction start to prevent stale closures during re-renders
     const isDockedAtStartRef = useRef<boolean>(false);
@@ -126,7 +121,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     useEffect(() => {
       return () => {
         if (isDockedRef.current) {
-          dockingRef.current?.undock(id);
+          dockingRef.current?.dispatch({ type: "undock", id });
         }
       };
     }, [id]);
@@ -219,7 +214,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       (edge: DockEdge) => {
         if (!windowRef.current) {
           // Docking before the window node exists (e.g. from a mount effect): nothing to restore later
-          docking.dock(id, edge);
+          dispatchDocking({ type: "dock", id, edge });
           return;
         }
 
@@ -227,19 +222,19 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // If a window is already docked, left/top are panel-relative (often 0/empty),
         // so we only capture a new floating rect when docking from floating mode.
         const rect = isDocked ? null : windowRef.current.getBoundingClientRect();
-        docking.dock(
+        dispatchDocking({
+          type: "dock",
           id,
           edge,
-          // Floating windows are absolutely positioned within document.body, so store document coordinates
-          rect && {
+          preDockRect: rect && {
             x: rect.left + window.scrollX,
             y: rect.top + window.scrollY,
             width: rect.width,
             height: rect.height,
           },
-        );
+        });
       },
-      [docking, id, isDocked],
+      [dispatchDocking, id, isDocked],
     );
 
     const handleUndock = useCallback(
@@ -286,9 +281,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Drag-undocks are left alone so the window stays attached to the pointer.
         undockViaActionRef.current = !pointer;
 
-        docking.undock(id, { viaDrag: !!pointer });
+        dispatchDocking({ type: "undock", id, viaDrag: !!pointer });
       },
-      [id, docking, isDocked, allowUndock],
+      [allowUndock, dispatchDocking, docking, id, isDocked],
     );
     useEffect(() => {
       if (!docking) {
@@ -317,8 +312,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
     // Helper function to push this window to the top
     const pushToTop = useCallback(() => {
-      raiseWindow?.(id);
-    }, [id, raiseWindow]);
+      dispatchDocking({ type: "raiseWindow", id });
+    }, [dispatchDocking, id]);
 
     const parseTranslate = (transform?: string): { x: number; y: number } => {
       const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
@@ -341,7 +336,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         isInInteractionRef.current = true; // Mark that this window is now in an active interaction
         windowPos.current = parseTranslate(windowRef.current?.style.transform);
         setMoving(true);
-        docking.startDockDrag(id);
+        dispatchDocking({ type: "startDockDrag", id });
         // If we're starting a drag, the window must be visible enough to interact with
         // Force windowVisible to true to enable onInteractionEnd firing
         /* istanbul ignore next */
@@ -375,7 +370,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         if (!isDockedRef.current && dockable) {
           const snapEdge = detectSnapEdge(e.clientX, e.clientY, targetSnapEdgeRef.current);
           targetSnapEdgeRef.current = snapEdge;
-          docking.setDockDragEdge(snapEdge);
+          dispatchDocking({ type: "setDockDragEdge", edge: snapEdge });
         }
 
         // Check for undock (if docked and dragged far from edge)
@@ -405,7 +400,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         // Mark that this interaction is complete (safety cleanup)
         isInInteractionRef.current = false;
         // Safety cleanup - ensure snap indicator clears even if onInteractionEnd doesn't fire
-        docking.setDockDragEdge(null);
+        dispatchDocking({ type: "setDockDragEdge", edge: null });
         // Restore normal scrollbar behavior after drag ends
         document.body.style.overflow = "";
       },
@@ -436,7 +431,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           isDocking = true;
         }
 
-        docking.endDockDrag(id);
+        dispatchDocking({ type: "endDockDrag", id });
         targetSnapEdgeRef.current = null;
         // Mark that this interaction is complete
         isInInteractionRef.current = false;
@@ -514,10 +509,10 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
     // This effect derives state from props, which is acceptable when there's no synchronous setState
     useEffect(() => {
-      if (!visible && isDocked && docking) {
-        docking.undock(id);
+      if (!visible && isDocked) {
+        dispatchDocking({ type: "undock", id });
       }
-    }, [visible, isDocked, docking, id]);
+    }, [dispatchDocking, id, isDocked, visible]);
 
     // Open straight into a DockPanel; a layout effect so it never paints as a floating window
     const initialDockAppliedRef = useRef<boolean>(false);
@@ -526,14 +521,14 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         initialDockAppliedRef.current = false;
         return;
       }
-      if (initialDockEdge && docking && !initialDockAppliedRef.current) {
+      if (initialDockEdge && !initialDockAppliedRef.current) {
         initialDockAppliedRef.current = true;
         /* istanbul ignore else */
         if (!isDockedRef.current) {
-          docking.dock(id, initialDockEdge);
+          dispatchDocking({ type: "dock", id, edge: initialDockEdge });
         }
       }
-    }, [visible, initialDockEdge, docking, id]);
+    }, [dispatchDocking, id, initialDockEdge, visible]);
 
     useLayoutEffect(() => {
       const onDock = dockable && !isDocked ? dockToRight : undefined;
@@ -685,7 +680,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
               }}
               onClickCapture={(e) => {
                 if (isDocked && dockedWindow && activeDockedWindowId !== id) {
-                  docking.setActiveWindowOnEdge(dockedWindow.edge, id);
+                  dispatchDocking({ type: "setActiveWindowOnEdge", edge: dockedWindow.edge, id });
                 }
                 pushToTop();
                 rest.onClickCapture?.(e);

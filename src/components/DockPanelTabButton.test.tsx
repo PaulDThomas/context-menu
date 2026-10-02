@@ -16,33 +16,21 @@ describe("DockPanelTabButton", () => {
     const windowId = props.windowId ?? "win";
     const windowConfig = props.windowConfig ?? { title: windowId };
     const context = {
-      dock: jest.fn(),
-      undock: jest.fn(),
+      dispatch: jest.fn(),
       getDockedWindow: jest.fn(),
       getWindowsOnEdge: jest.fn(() => []),
-      setActiveWindowOnEdge: jest.fn(),
-      activateWindowOnEdge: jest.fn(),
       getActiveWindowOnEdge: jest.fn(() => null),
-      toggleAndRaiseEdge: jest.fn(),
-      setPanelContentHost: jest.fn(),
       getPanelContentHost: jest.fn(() => null),
       isEdgeCollapsed: jest.fn(() => false),
-      toggleEdgeCollapse: jest.fn(),
-      registerWindow: jest.fn(),
-      unregisterWindow: jest.fn(),
       registerWindowConfig: jest.fn(),
       getWindowConfig: jest.fn((id: string) => (id === windowId ? windowConfig : undefined)),
       registerWindowActions: jest.fn(),
       unregisterWindowActions: jest.fn(),
       closeWindow: jest.fn(),
       requestUndock: jest.fn(),
-      raiseWindow: jest.fn(),
       getWindowZIndex: jest.fn(() => null),
       getPanelZIndex: jest.fn(() => null),
       getPreDockRect: jest.fn(() => null),
-      startDockDrag: jest.fn(),
-      setDockDragEdge: jest.fn(),
-      endDockDrag: jest.fn(),
       ...overrides,
     } as DockingContextType;
     render(
@@ -75,7 +63,11 @@ describe("DockPanelTabButton", () => {
   test("Calls onClick when clicked", () => {
     const context = renderTab({}, { windowId: "win-3", windowConfig: { title: "win-3" } });
     fireEvent.click(screen.getByRole("button", { name: "win-3" }));
-    expect(context.activateWindowOnEdge).toHaveBeenCalledWith("left", "win-3");
+    expect(context.dispatch).toHaveBeenCalledWith({
+      type: "activateWindowOnEdge",
+      edge: "left",
+      id: "win-3",
+    });
   });
 
   test("Context menu can show, close and undock the related window", async () => {
@@ -96,7 +88,11 @@ describe("DockPanelTabButton", () => {
     fireEvent.mouseDown(screen.getByText("Close"));
     fireEvent.mouseDown(screen.getByText("Undock"));
 
-    expect(context.activateWindowOnEdge).toHaveBeenCalledWith("left", "win-menu");
+    expect(context.dispatch).toHaveBeenCalledWith({
+      type: "activateWindowOnEdge",
+      edge: "left",
+      id: "win-menu",
+    });
     expect(context.closeWindow).toHaveBeenCalledWith("win-menu");
     expect(context.requestUndock).toHaveBeenCalledWith("win-menu");
     jest.useRealTimers();
