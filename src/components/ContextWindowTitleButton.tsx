@@ -14,14 +14,22 @@ export const ContextWindowTitleButton = ({
   title,
   onClick,
   children,
-}: ContextWindowTitleButtonProps): React.ReactElement => (
-  <div
-    className={className}
-    role="button"
-    aria-label={label}
-    onClick={onClick}
-    title={title}
-  >
-    {children}
-  </div>
-);
+}: ContextWindowTitleButtonProps): React.ReactElement => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    onClick?.();
+  };
+
+  return (
+    <div
+      className={className}
+      role="button"
+      aria-label={label}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={handleClick}
+      title={title}
+    >
+      {children}
+    </div>
+  );
+};
