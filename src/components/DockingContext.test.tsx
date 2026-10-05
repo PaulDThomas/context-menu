@@ -1,5 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useContext } from "react";
+import { ContextWindow } from "./ContextWindow";
 import { DockingContext, DockingProvider } from "./DockingContext";
 import type { DockEdge, DockingContextType, WindowRect, WindowZRange } from "./interface";
 
@@ -56,6 +57,59 @@ describe("DockingProvider", () => {
   const rect = { x: 10, y: 20, width: 300, height: 200 };
 
   describe("docking", () => {
+    test("clicking a nested window on the same edge does not activate its parent", () => {
+      const innerClick = jest.fn();
+      const outerCapture = jest.fn();
+      const windows = (innerVisible: boolean) => (
+        <DockingProvider>
+          <Capture />
+          <ContextWindow
+            id="outer-window"
+            title="Outer window"
+            visible
+            dockable
+            initialDockEdge="left"
+            onClickCapture={outerCapture}
+          >
+            <button>Outer action</button>
+            <ContextWindow
+              id="inner-window"
+              title="Inner window"
+              visible={innerVisible}
+              dockable
+              initialDockEdge="left"
+            >
+              <button onClick={innerClick}>Inner action</button>
+            </ContextWindow>
+          </ContextWindow>
+        </DockingProvider>
+      );
+      const { rerender } = render(windows(false));
+      rerender(windows(true));
+      act(() => {
+        api.setActiveWindowOnEdge("left", "inner-window");
+      });
+      expect(api.getActiveWindowOnEdge("left")).toBe("inner-window");
+      expect(
+        document.getElementById("outer-window")?.contains(document.getElementById("inner-window")),
+      ).toBe(false);
+
+      fireEvent.click(screen.getByText("Inner action"));
+
+      expect(innerClick).toHaveBeenCalledTimes(1);
+      expect(outerCapture).toHaveBeenCalledTimes(1);
+      expect(api.getActiveWindowOnEdge("left")).toBe("inner-window");
+      expect(document.getElementById("inner-window")).toHaveStyle({ display: "flex" });
+      expect(document.getElementById("outer-window")).toHaveStyle({ display: "none" });
+
+      act(() => {
+        api.setActiveWindowOnEdge("left", "outer-window");
+      });
+      fireEvent.click(screen.getByText("Outer action"));
+      expect(api.getActiveWindowOnEdge("left")).toBe("outer-window");
+      expect(outerCapture).toHaveBeenCalledTimes(2);
+    });
+
     test.each<DockEdge>(["top", "left", "right", "bottom"])(
       "automatically renders the %s panel while a window is docked",
       (edge) => {

@@ -534,10 +534,12 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 height: isDocked ? "100%" : rest.style?.height,
               }}
               onClickCapture={(e) => {
-                if (isDocked && dockedWindow && activeDockedWindowId !== id) {
-                  dispatch({ type: "setActiveWindowOnEdge", edge: dockedWindow.edge, id });
+                if (e.currentTarget.contains(e.target as Node)) {
+                  if (isDocked && dockedWindow && activeDockedWindowId !== id) {
+                    dispatch({ type: "setActiveWindowOnEdge", edge: dockedWindow.edge, id });
+                  }
+                  dispatch({ type: "raiseWindow", id });
                 }
-                dispatch({ type: "raiseWindow", id });
                 rest.onClickCapture?.(e);
               }}
             >
