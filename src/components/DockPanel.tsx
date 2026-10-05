@@ -178,7 +178,17 @@ export const DockPanel = ({
           title={pushContent ? "Cover content" : "Push content"}
           onClick={() => setPushContent((previous) => !previous)}
         >
-          {pushContent ? <CoverContentIcon size={12} /> : <PushContentIcon size={12} />}
+          {pushContent ? (
+            <CoverContentIcon
+              size={12}
+              edge={edge}
+            />
+          ) : (
+            <PushContentIcon
+              size={12}
+              edge={edge}
+            />
+          )}
         </button>
         {windows.map((window) => (
           <DockPanelTabButton

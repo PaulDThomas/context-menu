@@ -91,6 +91,31 @@ describe("DockPanel", () => {
     });
   });
 
+  test.each([
+    ["left", "M1 4h6v8", "L13 8"],
+    ["right", "M9 4h6v8", "L3 8"],
+    ["top", "M4 1h8v6", "L8 12"],
+    ["bottom", "M4 9h8v6", "L8 4"],
+  ] as const)("layout icons match the %s edge", (edge, coveringPane, pushArrow) => {
+    const windows = [buildDockedWindow("window-a", edge, 0)];
+    const contextValue: DockingContextType = {
+      ...createMockDocking(new Map()),
+      getDockedWindow: (id) => windows.find((window) => window.id === id),
+      getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
+    };
+    render(
+      <DockingContext.Provider value={contextValue}>
+        <DockPanel edge={edge} />
+      </DockingContext.Provider>,
+    );
+    const toggle = screen.getByRole("button", { name: `Push content with ${edge} dock panel` });
+    expect(toggle).toHaveAttribute("title", "Push content");
+    expect(toggle.querySelector("path")?.getAttribute("d")).toContain(pushArrow);
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("title", "Cover content");
+    expect(toggle.querySelector("path")?.getAttribute("d")).toContain(coveringPane);
+  });
+
   test("applies the z-index of the visible window to the panel", () => {
     const windows = [buildDockedWindow("window-a", "top", 0)];
     const contextValue: DockingContextType = {
