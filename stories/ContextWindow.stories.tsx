@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { ContextWindow, ContextWindowHandle } from "../src/components/ContextWindow";
+import { DockingProvider } from "../src/components/DockingContext";
 
 const meta = {
   title: "Components/ContextWindow",
@@ -61,38 +62,40 @@ export const MultipleWindows: Story = {
       };
 
       return (
-        <div style={{ padding: "20px" }}>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <DockingProvider>
+          <div style={{ padding: "20px" }}>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+              {[0, 1, 2].map((i) => (
+                <label
+                  key={i}
+                  style={{ display: "flex", alignItems: "center", gap: "5px" }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showWindow[i]}
+                    onChange={() => toggleWindow(i)}
+                  />
+                  Show window {i + 1}
+                </label>
+              ))}
+            </div>
+            <div>Visible windows: {JSON.stringify(showWindow)}</div>
             {[0, 1, 2].map((i) => (
-              <label
+              <ContextWindow
                 key={i}
-                style={{ display: "flex", alignItems: "center", gap: "5px" }}
+                id={`w-${i}`}
+                visible={showWindow[i]}
+                title={`Window ${i + 1}`}
+                onClose={() => {
+                  setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
+                }}
+                style={{ width: `${(i + 1) * 150}px` }}
               >
-                <input
-                  type="checkbox"
-                  checked={showWindow[i]}
-                  onChange={() => toggleWindow(i)}
-                />
-                Show window {i + 1}
-              </label>
+                <div style={{ padding: "10px" }}>Content for window {i + 1}</div>
+              </ContextWindow>
             ))}
           </div>
-          <div>Visible windows: {JSON.stringify(showWindow)}</div>
-          {[0, 1, 2].map((i) => (
-            <ContextWindow
-              key={i}
-              id={`w-${i}`}
-              visible={showWindow[i]}
-              title={`Window ${i + 1}`}
-              onClose={() => {
-                setShowWindow(showWindow.map((b, ix) => (ix === i ? false : b)));
-              }}
-              style={{ width: `${(i + 1) * 150}px` }}
-            >
-              <div style={{ padding: "10px" }}>Content for window {i + 1}</div>
-            </ContextWindow>
-          ))}
-        </div>
+        </DockingProvider>
       );
     };
     return <MultiWindowDemo />;
@@ -110,21 +113,23 @@ export const ControlledVisibility: Story = {
     const ControlledDemo = () => {
       const [visible, setVisible] = useState(false);
       return (
-        <div style={{ padding: "20px" }}>
-          <button onClick={() => setVisible(true)}>Open Window</button>
-          <ContextWindow
-            id="controlled-window"
-            visible={visible}
-            title="Controlled Window"
-            onClose={() => setVisible(false)}
-            onOpen={() => console.log("Window opened")}
-          >
-            <div style={{ padding: "10px" }}>
-              <p>This window&apos;s visibility is controlled by state.</p>
-              <p>Click the X to close it.</p>
-            </div>
-          </ContextWindow>
-        </div>
+        <DockingProvider>
+          <div style={{ padding: "20px" }}>
+            <button onClick={() => setVisible(true)}>Open Window</button>
+            <ContextWindow
+              id="controlled-window"
+              visible={visible}
+              title="Controlled Window"
+              onClose={() => setVisible(false)}
+              onOpen={() => console.log("Window opened")}
+            >
+              <div style={{ padding: "10px" }}>
+                <p>This window&apos;s visibility is controlled by state.</p>
+                <p>Click the X to close it.</p>
+              </div>
+            </ContextWindow>
+          </div>
+        </DockingProvider>
       );
     };
     return <ControlledDemo />;
@@ -169,88 +174,90 @@ export const PushToTopFromExternal: Story = {
       };
 
       return (
-        <div style={{ padding: "20px" }}>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                style={{ display: "flex", gap: "5px" }}
-              >
-                <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                  <input
-                    type="checkbox"
-                    checked={showWindow[i]}
-                    onChange={() => toggleWindow(i)}
-                  />
-                  Show window {i + 1}
-                </label>
-                <button
-                  onClick={() =>
-                    handlePushToTop(i === 0 ? windowRef1 : i === 1 ? windowRef2 : windowRef3)
-                  }
-                  style={{
-                    padding: "5px 10px",
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
+        <DockingProvider>
+          <div style={{ padding: "20px" }}>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  style={{ display: "flex", gap: "5px" }}
                 >
-                  Push to Top
-                </button>
+                  <label style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                    <input
+                      type="checkbox"
+                      checked={showWindow[i]}
+                      onChange={() => toggleWindow(i)}
+                    />
+                    Show window {i + 1}
+                  </label>
+                  <button
+                    onClick={() =>
+                      handlePushToTop(i === 0 ? windowRef1 : i === 1 ? windowRef2 : windowRef3)
+                    }
+                    style={{
+                      padding: "5px 10px",
+                      backgroundColor: "#007bff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Push to Top
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
+              Visible windows: {JSON.stringify(showWindow)}
+            </div>
+            <ContextWindow
+              ref={windowRef1}
+              id="w-pushToTop-1"
+              visible={showWindow[0]}
+              title="Window 1"
+              onClose={() => {
+                setShowWindow(showWindow.map((b, ix) => (ix === 0 ? false : b)));
+              }}
+              style={{ width: "300px" }}
+            >
+              <div style={{ padding: "10px" }}>
+                <p>This is window 1.</p>
+                <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
               </div>
-            ))}
+            </ContextWindow>
+            <ContextWindow
+              ref={windowRef2}
+              id="w-pushToTop-2"
+              visible={showWindow[1]}
+              title="Window 2"
+              onClose={() => {
+                setShowWindow(showWindow.map((b, ix) => (ix === 1 ? false : b)));
+              }}
+              style={{ width: "300px" }}
+            >
+              <div style={{ padding: "10px" }}>
+                <p>This is window 2.</p>
+                <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
+              </div>
+            </ContextWindow>
+            <ContextWindow
+              ref={windowRef3}
+              id="w-pushToTop-3"
+              visible={showWindow[2]}
+              title="Window 3"
+              onClose={() => {
+                setShowWindow(showWindow.map((b, ix) => (ix === 2 ? false : b)));
+              }}
+              style={{ width: "300px" }}
+            >
+              <div style={{ padding: "10px" }}>
+                <p>This is window 3.</p>
+                <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
+              </div>
+            </ContextWindow>
           </div>
-          <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
-            Visible windows: {JSON.stringify(showWindow)}
-          </div>
-          <ContextWindow
-            ref={windowRef1}
-            id="w-pushToTop-1"
-            visible={showWindow[0]}
-            title="Window 1"
-            onClose={() => {
-              setShowWindow(showWindow.map((b, ix) => (ix === 0 ? false : b)));
-            }}
-            style={{ width: "300px" }}
-          >
-            <div style={{ padding: "10px" }}>
-              <p>This is window 1.</p>
-              <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
-            </div>
-          </ContextWindow>
-          <ContextWindow
-            ref={windowRef2}
-            id="w-pushToTop-2"
-            visible={showWindow[1]}
-            title="Window 2"
-            onClose={() => {
-              setShowWindow(showWindow.map((b, ix) => (ix === 1 ? false : b)));
-            }}
-            style={{ width: "300px" }}
-          >
-            <div style={{ padding: "10px" }}>
-              <p>This is window 2.</p>
-              <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
-            </div>
-          </ContextWindow>
-          <ContextWindow
-            ref={windowRef3}
-            id="w-pushToTop-3"
-            visible={showWindow[2]}
-            title="Window 3"
-            onClose={() => {
-              setShowWindow(showWindow.map((b, ix) => (ix === 2 ? false : b)));
-            }}
-            style={{ width: "300px" }}
-          >
-            <div style={{ padding: "10px" }}>
-              <p>This is window 3.</p>
-              <p>Click the &quot;Push to Top&quot; button to bring it to the foreground.</p>
-            </div>
-          </ContextWindow>
-        </div>
+        </DockingProvider>
       );
     };
     return <PushToTopDemo />;

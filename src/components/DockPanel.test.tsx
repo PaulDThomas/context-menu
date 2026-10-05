@@ -8,7 +8,7 @@ import {
 } from "./DockPanel";
 import { DockingContext, DockingProvider } from "./DockingContext";
 import { createMockDocking } from "./__mocks__/mockDocking";
-import type { DockedWindow, DockingContextType } from "./interface";
+import type { DockEdge, DockedWindow, DockingContextType, WindowRect } from "./interface";
 
 const buildDockedWindow = (
   id: string,
@@ -20,16 +20,24 @@ const buildDockedWindow = (
   order,
 });
 
+type DockingTestApi = DockingContextType & {
+  dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => void;
+  undock: (id: string, options?: { viaDrag?: boolean }) => void;
+};
+
+const withDispatchHelpers = (api: DockingContextType): DockingTestApi => ({
+  ...api,
+  dock: (id, edge, preDockRect) => api.dispatch({ type: "dock", id, edge, preDockRect }),
+  undock: (id, options) => api.dispatch({ type: "undock", id, viaDrag: options?.viaDrag }),
+});
+
 describe("DockPanel", () => {
   test("does not render when no windows are docked on the target edge", () => {
     const contextValue: DockingContextType = {
       ...createMockDocking(new Map()),
-      dock: () => {},
-      undock: () => {},
       getDockedWindow: () => undefined,
       getWindowsOnEdge: () => [],
       isEdgeCollapsed: () => false,
-      toggleEdgeCollapse: () => {},
     };
 
     const { container } = render(
@@ -42,7 +50,7 @@ describe("DockPanel", () => {
   });
 
   test("renders tabs and activates selected docked window", () => {
-    const activateWindowOnEdge = jest.fn();
+    const dispatch = jest.fn();
     const windows = [
       buildDockedWindow("window-a", "right", 0),
       buildDockedWindow("window-b", "right", 1),
@@ -50,16 +58,12 @@ describe("DockPanel", () => {
 
     const contextValue: DockingContextType = {
       ...createMockDocking(new Map()),
-      dock: () => {},
-      undock: () => {},
-      activateWindowOnEdge,
+      dispatch,
       getActiveWindowOnEdge: () => "window-a",
-      setPanelContentHost: () => {},
       getPanelContentHost: () => null,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
       isEdgeCollapsed: () => false,
-      toggleEdgeCollapse: () => {},
     };
 
     render(
@@ -76,20 +80,21 @@ describe("DockPanel", () => {
 
     fireEvent.click(secondButton);
 
-    expect(activateWindowOnEdge).toHaveBeenCalledWith("right", "window-b");
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "activateWindowOnEdge",
+      edge: "right",
+      id: "window-b",
+    });
   });
 
   test("applies the z-index of the visible window to the panel", () => {
     const windows = [buildDockedWindow("window-a", "top", 0)];
     const contextValue: DockingContextType = {
       ...createMockDocking(new Map()),
-      dock: () => {},
-      undock: () => {},
       getPanelZIndex: (edge) => (edge === "top" ? 3005 : null),
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
       isEdgeCollapsed: () => false,
-      toggleEdgeCollapse: () => {},
     };
 
     const { container } = render(
@@ -106,12 +111,9 @@ describe("DockPanel", () => {
       const windows = [buildDockedWindow("window-a", edge, 0)];
       const contextValue: DockingContextType = {
         ...createMockDocking(new Map()),
-        dock: () => {},
-        undock: () => {},
         getDockedWindow: (id) => windows.find((window) => window.id === id),
         getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
         isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
       };
       const utils = render(
         <DockingContext.Provider value={contextValue}>
@@ -218,18 +220,15 @@ describe("DockPanel", () => {
     });
 
     test("mouse and keyboard interaction on the handle raises the panel", () => {
-      const activateWindowOnEdge = jest.fn();
+      const dispatch = jest.fn();
       const windows = [buildDockedWindow("window-a", "right", 0)];
       const contextValue: DockingContextType = {
         ...createMockDocking(new Map()),
-        dock: () => {},
-        undock: () => {},
-        activateWindowOnEdge,
+        dispatch,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
         getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
         isEdgeCollapsed: () => false,
-        toggleEdgeCollapse: () => {},
       };
 
       render(
@@ -241,18 +240,18 @@ describe("DockPanel", () => {
       const handle = screen.getByRole("separator", { name: "Resize right dock panel" });
 
       fireEvent.mouseDown(handle, { button: 0, clientX: 300, clientY: 0 });
-      expect(activateWindowOnEdge).toHaveBeenCalledWith("right");
+      expect(dispatch).toHaveBeenCalledWith({ type: "activateWindowOnEdge", edge: "right" });
       fireEvent.mouseUp(document);
 
-      activateWindowOnEdge.mockClear();
+      dispatch.mockClear();
       fireEvent.keyDown(handle, { key: "ArrowLeft" });
-      expect(activateWindowOnEdge).toHaveBeenCalledWith("right");
+      expect(dispatch).toHaveBeenCalledWith({ type: "activateWindowOnEdge", edge: "right" });
 
       // Keys that do not resize leave the stacking order alone
-      activateWindowOnEdge.mockClear();
+      dispatch.mockClear();
       fireEvent.keyDown(handle, { key: "ArrowUp" });
       fireEvent.keyDown(handle, { key: "Enter" });
-      expect(activateWindowOnEdge).not.toHaveBeenCalled();
+      expect(dispatch).not.toHaveBeenCalled();
     });
 
     test("releases document listeners when unmounted mid-resize", () => {
@@ -266,10 +265,11 @@ describe("DockPanel", () => {
   });
 
   describe("pinning", () => {
-    let dockingApi: DockingContextType | undefined;
+    let dockingApi: DockingTestApi | undefined;
 
     const CaptureDocking = (): null => {
-      dockingApi = useContext(DockingContext);
+      const context = useContext(DockingContext);
+      dockingApi = context ? withDispatchHelpers(context) : undefined;
       return null;
     };
 
@@ -434,10 +434,11 @@ describe("DockPanel", () => {
   });
 
   describe("with the real DockingProvider", () => {
-    let dockingApi: DockingContextType | undefined;
+    let dockingApi: DockingTestApi | undefined;
 
     const CaptureDocking = (): null => {
-      dockingApi = useContext(DockingContext);
+      const context = useContext(DockingContext);
+      dockingApi = context ? withDispatchHelpers(context) : undefined;
       return null;
     };
 
@@ -535,20 +536,17 @@ describe("DockPanel", () => {
   });
 
   test("treats the first window as active when the provider has no active window", () => {
-    const activateWindowOnEdge = jest.fn();
+    const dispatch = jest.fn();
     const windows = [
       buildDockedWindow("window-a", "left", 0),
       buildDockedWindow("window-b", "left", 1),
     ];
     const contextValue: DockingContextType = {
       ...createMockDocking(new Map()),
-      dock: () => {},
-      undock: () => {},
-      activateWindowOnEdge,
+      dispatch,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
       isEdgeCollapsed: () => false,
-      toggleEdgeCollapse: () => {},
     };
 
     render(
@@ -561,7 +559,7 @@ describe("DockPanel", () => {
       "activeDockTabButton",
     );
     fireEvent.mouseDown(screen.getByRole("separator"), { button: 0, clientX: 10, clientY: 0 });
-    expect(activateWindowOnEdge).toHaveBeenCalledWith("left");
+    expect(dispatch).toHaveBeenCalledWith({ type: "activateWindowOnEdge", edge: "left" });
     fireEvent.mouseUp(document);
   });
 });

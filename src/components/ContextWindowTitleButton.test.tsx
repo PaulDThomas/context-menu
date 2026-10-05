@@ -34,6 +34,36 @@ describe("ContextWindowTitleButton", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  test("Stops click and mouse events from bubbling to the parent drag handle", () => {
+    const onParentMouseDown = jest.fn();
+    const onParentClick = jest.fn();
+    const onClick = jest.fn();
+
+    render(
+      <div
+        onMouseDown={onParentMouseDown}
+        onClick={onParentClick}
+      >
+        <ContextWindowTitleButton
+          className="myButton"
+          label="Close"
+          title="Close"
+          onClick={onClick}
+        >
+          x
+        </ContextWindowTitleButton>
+      </div>,
+    );
+
+    const button = screen.getByRole("button", { name: "Close" });
+    fireEvent.mouseDown(button);
+    fireEvent.click(button);
+
+    expect(onParentMouseDown).not.toHaveBeenCalled();
+    expect(onParentClick).not.toHaveBeenCalled();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   test("Clicking without an onClick handler does not throw", () => {
     render(
       <ContextWindowTitleButton

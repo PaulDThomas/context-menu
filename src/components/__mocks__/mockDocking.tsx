@@ -1,5 +1,4 @@
-import { ReactNode, useReducer, useState } from "react";
-import { DockingContext } from "../DockingContext";
+import { MAX_Z_INDEX, MIN_Z_INDEX } from "../../functions/contextWindowConstants";
 import type {
   DockEdge,
   DockedWindow,
@@ -7,6 +6,12 @@ import type {
   WindowConfig,
   WindowRect,
 } from "../interface";
+
+interface WindowActions {
+  onClose?: () => void;
+  onUndock?: () => void;
+}
+const noop = (): void => undefined;
 
 /**
  * A minimal docking context backed by plain Maps, for tests that need to drive components
@@ -21,103 +26,92 @@ export const createMockDocking = (
   collapsedEdges: Set<DockEdge> = new Set(),
   activeWindowsByEdge: Map<DockEdge, string> = new Map(),
   windowConfigs: Map<string, WindowConfig> = new Map(),
+  windowActions: Map<string, WindowActions> = new Map(),
 ): DockingContextType => ({
-  dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => {
-    if (preDockRect && !preDockRects.has(id)) {
-      preDockRects.set(id, preDockRect);
+  maxZIndex: MAX_Z_INDEX,
+  minZIndex: MIN_Z_INDEX,
+  dispatch: (action) => {
+    if (action.type === "dock") {
+      if (action.preDockRect && !preDockRects.has(action.id)) {
+        preDockRects.set(action.id, action.preDockRect);
+      }
+      dockedWindows.set(action.id, { id: action.id, edge: action.edge, order: 0 });
+      activeWindowsByEdge.set(action.edge, action.id);
+      notify();
+      return;
     }
-    dockedWindows.set(id, { id, edge, order: 0 });
-    activeWindowsByEdge.set(edge, id);
-    notify();
-  },
-  undock: (id: string, options?: { viaDrag?: boolean }) => {
-    dockedWindows.delete(id);
-    if (!options?.viaDrag) {
-      preDockRects.delete(id);
+    if (action.type === "undock") {
+      dockedWindows.delete(action.id);
+      if (!action.viaDrag) {
+        preDockRects.delete(action.id);
+      }
+      notify();
+      return;
     }
-    notify();
+    if (action.type === "setActiveWindowOnEdge") {
+      activeWindowsByEdge.set(action.edge, action.id);
+      notify();
+      return;
+    }
+    if (action.type === "activateWindowOnEdge") {
+      const targetId = action.id ?? activeWindowsByEdge.get(action.edge) ?? null;
+      if (targetId) {
+        activeWindowsByEdge.set(action.edge, targetId);
+        collapsedEdges.delete(action.edge);
+        notify();
+      }
+      return;
+    }
+    if (action.type === "toggleAndRaiseEdge" || action.type === "toggleEdgeCollapse") {
+      if (collapsedEdges.has(action.edge)) {
+        collapsedEdges.delete(action.edge);
+      } else {
+        collapsedEdges.add(action.edge);
+      }
+      notify();
+    }
   },
   getDockedWindow: (id: string) => dockedWindows.get(id),
   getWindowsOnEdge: (edge: DockEdge) =>
     Array.from(dockedWindows.values()).filter((window) => window.edge === edge),
-  setActiveWindowOnEdge: (edge: DockEdge, id: string) => {
-    activeWindowsByEdge.set(edge, id);
-    notify();
-  },
-  activateWindowOnEdge: (edge: DockEdge, id?: string) => {
-    const targetId = id ?? activeWindowsByEdge.get(edge) ?? null;
-    if (targetId) {
-      activeWindowsByEdge.set(edge, targetId);
-      collapsedEdges.delete(edge);
-      notify();
-    }
-  },
   getActiveWindowOnEdge: (edge: DockEdge) => activeWindowsByEdge.get(edge) ?? null,
-  toggleAndRaiseEdge: (edge: DockEdge) => {
-    if (collapsedEdges.has(edge)) {
-      collapsedEdges.delete(edge);
-    } else {
-      collapsedEdges.add(edge);
-    }
-    notify();
-  },
-  setPanelContentHost: () => {},
   getPanelContentHost: () => null,
   isEdgeCollapsed: (edge: DockEdge) => collapsedEdges.has(edge),
-  toggleEdgeCollapse: (edge: DockEdge) => {
-    if (collapsedEdges.has(edge)) {
-      collapsedEdges.delete(edge);
-    } else {
-      collapsedEdges.add(edge);
-    }
+  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => {
+    const current = windowConfigs.get(id);
+    windowConfigs.set(id, current ? { ...current, ...config } : { title: id, ...config });
     notify();
   },
-  registerWindow: () => {},
-  unregisterWindow: () => {},
-  registerWindowConfig: (id: string, config: WindowConfig) => {
-    windowConfigs.set(id, config);
+  getWindowConfig: (id: string) => {
+    const existing = windowConfigs.get(id);
+    if (existing) {
+      return existing;
+    }
+
+    const fallback: WindowConfig = {
+      title: id || "window",
+      onDock: noop,
+      onUndock: noop,
+    };
+    windowConfigs.set(id, fallback);
+    return fallback;
   },
-  getWindowConfig: (id: string) => windowConfigs.get(id),
-  registerWindowActions: () => {},
-  unregisterWindowActions: () => {},
-  closeWindow: () => {},
-  requestUndock: () => {},
-  raiseWindow: () => {},
+  registerWindowActions: (id: string, actions?: WindowActions) => {
+    if (actions) {
+      windowActions.set(id, actions);
+    }
+  },
+  unregisterWindowActions: (id: string) => {
+    windowActions.delete(id);
+  },
+  closeWindow: (id: string) => {
+    windowActions.get(id)?.onClose?.();
+  },
+  requestUndock: (id: string) => {
+    windowActions.get(id)?.onUndock?.();
+  },
   getWindowZIndex: () => null,
   getPanelZIndex: () => null,
   getPreDockRect: (id: string) => preDockRects.get(id) ?? null,
-  startDockDrag: () => {},
-  setDockDragEdge: () => {},
-  endDockDrag: () => {},
   ...overrides,
 });
-
-interface MockDockingProviderProps {
-  dockedWindows: Map<string, DockedWindow>;
-  overrides?: Partial<DockingContextType>;
-  children: ReactNode;
-}
-
-/** Hosts a mock docking context and re-renders its consumers whenever the mock state changes */
-export const MockDockingProvider = ({
-  dockedWindows,
-  overrides,
-  children,
-}: MockDockingProviderProps): React.ReactElement => {
-  const [, notify] = useReducer((version: number) => version + 1, 0);
-  const [preDockRects] = useState<Map<string, WindowRect>>(() => new Map());
-  const [collapsedEdges] = useState<Set<DockEdge>>(() => new Set());
-  const [activeWindowsByEdge] = useState<Map<DockEdge, string>>(() => new Map());
-  const [windowConfigs] = useState<Map<string, WindowConfig>>(() => new Map());
-  const value = createMockDocking(
-    dockedWindows,
-    overrides,
-    notify,
-    preDockRects,
-    collapsedEdges,
-    activeWindowsByEdge,
-    windowConfigs,
-  );
-
-  return <DockingContext.Provider value={value}>{children}</DockingContext.Provider>;
-};

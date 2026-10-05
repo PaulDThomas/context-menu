@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef } from "react";
-import { classNames } from "../functions/classNames";
+import { useEffect, useRef } from "react";
 import {
+  classNames,
   DOCK_PANEL_AUTOHIDE_DISTANCE,
   DOCK_PANEL_MIN_SIZE,
   DOCK_PANEL_VIEWPORT_GAP,
-} from "../functions/dockPanelConstants";
-import { isHorizontalEdge } from "../functions/isHorizontalEdge";
-import { useAutoHide } from "../functions/useAutoHide";
-import { useDocking } from "../functions/useDocking";
-import { useDockPanelResize } from "../functions/useDockPanelResize";
+  isHorizontalEdge,
+  useAutoHide,
+  useDocking,
+  useDockPanelResize,
+} from "../functions";
 import styles from "./DockPanel.module.css";
 import { DockPanelPinButton } from "./DockPanelPinButton";
 import { DockPanelTabButton } from "./DockPanelTabButton";
@@ -22,31 +22,26 @@ interface DockPanelProps {
 
 export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null => {
   const docking = useDocking();
+  const dispatch = docking.dispatch;
   const windows = docking.getWindowsOnEdge(edge);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentHostRef = useRef<HTMLDivElement | null>(null);
-  const setPanelContentHost = docking.setPanelContentHost;
   const getActiveWindowOnEdge = docking.getActiveWindowOnEdge;
-
-  // Interacting with the handle raises the panel, matching a click on the docked window itself
-  const bringPanelToTop = useCallback(() => {
-    docking.activateWindowOnEdge(edge);
-  }, [edge, docking]);
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again
   const { panelSize, isResizing, handleResizeMouseDown, handleResizeKeyDown } = useDockPanelResize(
     edge,
     panelRef,
-    bringPanelToTop,
+    () => dispatch({ type: "activateWindowOnEdge", edge }),
   );
 
   useEffect(() => {
-    setPanelContentHost(edge, contentHostRef.current);
+    dispatch({ type: "setPanelContentHost", edge, host: contentHostRef.current });
 
     return () => {
-      setPanelContentHost(edge, null);
+      dispatch({ type: "setPanelContentHost", edge, host: null });
     };
-  }, [edge, setPanelContentHost, windows.length]);
+  }, [dispatch, edge, windows.length]);
 
   const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
   // A pinned bar slides away to a thin line once the pointer moves away from it
@@ -70,12 +65,6 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
       : horizontal
         ? { width: panelSize, maxWidth: `calc(100vw - ${DOCK_PANEL_VIEWPORT_GAP}px)` }
         : { height: panelSize, maxHeight: `calc(100vh - ${DOCK_PANEL_VIEWPORT_GAP}px)` };
-
-  const togglePinned = () => {
-    // The pointer is on the pin button, so a freshly pinned bar starts shown
-    setAutoHidden(false);
-    docking.toggleAndRaiseEdge(edge);
-  };
 
   return (
     <div
@@ -115,7 +104,11 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
         <DockPanelPinButton
           edge={edge}
           isPinned={isPinned}
-          onClick={togglePinned}
+          onClick={() => {
+            // The pointer is on the pin button, so a freshly pinned bar starts shown
+            setAutoHidden(false);
+            dispatch({ type: "toggleAndRaiseEdge", edge });
+          }}
         />
         {windows.map((window) => (
           <DockPanelTabButton

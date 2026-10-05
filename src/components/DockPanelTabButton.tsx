@@ -1,6 +1,5 @@
 import { useContext } from "react";
-import { classNames } from "../functions/classNames";
-import { useDocking } from "../functions/useDocking";
+import { classNames, useDocking } from "../functions";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { DockingContext } from "./DockingContext";
 import styles from "./DockPanel.module.css";
@@ -18,12 +17,13 @@ export const DockPanelTabButton = ({
   isActive,
 }: DockPanelTabButtonProps): React.ReactElement => {
   const docking = useDocking();
+  const dispatch = docking.dispatch;
   const dockingContext = useContext(DockingContext);
   const windowConfig = dockingContext?.getWindowConfig(windowId);
   const windowTitle = windowConfig?.title ?? windowId;
 
   const showWindow = () => {
-    docking.activateWindowOnEdge(edge, windowId);
+    dispatch({ type: "activateWindowOnEdge", edge, id: windowId });
   };
 
   return (

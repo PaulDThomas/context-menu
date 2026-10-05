@@ -1,11 +1,11 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useRef, useState } from "react";
-import { MIN_Z_INDEX } from "../functions/contextWindowConstants";
+import { MIN_Z_INDEX } from "../functions";
 import { ContextWindow, ContextWindowHandle } from "./ContextWindow";
 import { DockPanel } from "./DockPanel";
-import { DockingProvider } from "./DockingContext";
-import { MockDockingProvider as MockDocking } from "./__mocks__/mockDocking";
+import { DockingContext } from "./DockingContext";
+import { createMockDocking } from "./__mocks__/mockDocking";
 import type { DockedWindow } from "./interface";
 
 describe("Context window", () => {
@@ -18,33 +18,59 @@ describe("Context window", () => {
   });
 
   test("Not there", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"w1"}
-          visible={false}
-          title={"Window title"}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"w1"}
+            visible={false}
+            title={"Window title"}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     expect(screen.queryByText("Window title")).not.toBeInTheDocument();
   });
 
   test("Should be visible, and check close", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const user = userEvent.setup();
     const mockClose = jest.fn();
     await act(async () => {
       render(
-        <ContextWindow
-          id={"w1"}
-          visible={true}
-          title={"Window title"}
-          onClose={mockClose}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"w1"}
+            visible={true}
+            title={"Window title"}
+            onClose={mockClose}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     expect(screen.queryByText("Window title")).toBeInTheDocument();
@@ -54,15 +80,28 @@ describe("Context window", () => {
   });
 
   test("Not visible", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"w1"}
-          visible={false}
-          title={"Window title"}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"w1"}
+            visible={false}
+            title={"Window title"}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     const title = screen.queryByText("Window title") as HTMLSpanElement;
@@ -70,6 +109,17 @@ describe("Context window", () => {
   });
 
   test("Window visibility can be toggled", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const WindowWithInput = (): React.ReactElement => {
       const [visible, setVisible] = useState<boolean>(false);
       return (
@@ -96,7 +146,11 @@ describe("Context window", () => {
 
     const user = userEvent.setup();
     await act(async () => {
-      render(<WindowWithInput />);
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <WindowWithInput />
+        </DockingContext.Provider>,
+      );
     });
     const chk = screen.queryByLabelText("testwindow-checkbox") as HTMLInputElement;
     expect(chk).toBeInTheDocument();
@@ -110,20 +164,140 @@ describe("Context window", () => {
   });
 
   test("Window with custom title element", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     render(
-      <ContextWindow
-        id={"testwindow"}
-        visible={true}
-        title={"Test window"}
-        titleElement={<>Window that is a test</>}
-      >
-        <span>Hello world of tests</span>
-      </ContextWindow>,
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindow
+          id={"testwindow"}
+          visible={true}
+          title={"Test window"}
+          titleElement={<>Window that is a test</>}
+        >
+          <span>Hello world of tests</span>
+        </ContextWindow>
+      </DockingContext.Provider>,
     );
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
   });
 
+  test("Reopening the same window restores its prior floating position", async () => {
+    const preDockRects = new Map([["restore-window", { x: 250, y: 300, width: 320, height: 180 }]]);
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      preDockRects,
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
+    const ToggleWindow = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible((v) => !v)}>Toggle Window</button>
+          <ContextWindow
+            id={"restore-window"}
+            visible={visible}
+            title={"Restore Window"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <ToggleWindow />
+        </DockingContext.Provider>,
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle Window" }));
+    const windowAfter = document.getElementById("restore-window") as HTMLElement;
+    expect(windowAfter).toBeInTheDocument();
+    expect(windowAfter.style.left).toBe("250px");
+    expect(windowAfter.style.top).toBe("300px");
+  });
+
+  test("Opening a new window without saved position centers it on screen", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
+    const ToggleWindow = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible((v) => !v)}>Open Window</button>
+          <ContextWindow
+            id={"center-window"}
+            visible={visible}
+            title={"Center Window"}
+            style={{ width: "300px", height: "200px" }}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <ToggleWindow />
+        </DockingContext.Provider>,
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Open Window" }));
+    const windowElement = document.getElementById("center-window") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+
+    // Window should have a reasonable on-screen position, not at origin (0, 0)
+    const left = parseInt(windowElement.style.left, 10);
+    const top = parseInt(windowElement.style.top, 10);
+
+    // Should not be at (0, 0) and should be positive (on-screen in viewport)
+    expect(left).toBeGreaterThanOrEqual(16);
+    expect(top).toBeGreaterThanOrEqual(16);
+  });
+
   test("Reopening the same window does not unnecessarily increment z-index", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const ToggleWindow = (): React.ReactElement => {
       const [visible, setVisible] = useState<boolean>(true);
       return (
@@ -142,7 +316,11 @@ describe("Context window", () => {
 
     const user = userEvent.setup();
     await act(async () => {
-      render(<ToggleWindow />);
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <ToggleWindow />
+        </DockingContext.Provider>,
+      );
     });
 
     expect(document.getElementById("toggle-window")).toBeInTheDocument();
@@ -191,11 +369,22 @@ describe("Context window", () => {
       );
     };
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <MultiWindowTest />
-        </DockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -246,8 +435,6 @@ describe("Context window", () => {
             id={"max-window-1"}
             visible={true}
             title={"Max Window 1"}
-            minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 1</span>
           </ContextWindow>
@@ -256,8 +443,6 @@ describe("Context window", () => {
             id={"max-window-2"}
             visible={true}
             title={"Max Window 2"}
-            minZIndex={MIN_Z_INDEX}
-            maxZIndex={MIN_Z_INDEX}
           >
             <span>Content 2</span>
           </ContextWindow>
@@ -265,16 +450,27 @@ describe("Context window", () => {
       );
     };
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      { minZIndex: MIN_Z_INDEX, maxZIndex: MIN_Z_INDEX },
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <CappedWindows
             onRefsReady={(firstRef, secondRef) => {
               ref1 = firstRef;
               ref2 = secondRef;
             }}
           />
-        </DockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -293,20 +489,32 @@ describe("Context window", () => {
     expect(parseInt(window2.style.zIndex, 10)).toBe(MIN_Z_INDEX);
   });
 
-  test("Accepts minZIndex prop and applies it correctly", async () => {
+  test("Uses provider minZIndex and applies it correctly", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      { minZIndex: 4000, maxZIndex: 4010 },
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <>
-          <button>Open Window</button>
-          <ContextWindow
-            id={"testwindow"}
-            visible={true}
-            title={"Test window"}
-            minZIndex={4000}
-          >
-            <span>Hello world of tests</span>
-          </ContextWindow>
-        </>,
+        <DockingContext.Provider value={mockDocking}>
+          <>
+            <button>Open Window</button>
+            <ContextWindow
+              id={"testwindow"}
+              visible={true}
+              title={"Test window"}
+            >
+              <span>Hello world of tests</span>
+            </ContextWindow>
+          </>
+        </DockingContext.Provider>,
       );
     });
     const window = document.getElementById("testwindow") as HTMLElement;
@@ -317,15 +525,28 @@ describe("Context window", () => {
 
   test("Close button title shows 'window' when title is blank/whitespace", async () => {
     // whitespace title
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"blank1"}
-          visible={true}
-          title={" "}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"blank1"}
+            visible={true}
+            title={" "}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     const close1 = screen.getByLabelText("Close");
@@ -334,13 +555,15 @@ describe("Context window", () => {
     cleanup();
     await act(async () => {
       render(
-        <ContextWindow
-          id={"blank2"}
-          visible={true}
-          title={""}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"blank2"}
+            visible={true}
+            title={""}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     const close2 = screen.getByLabelText("Close");
@@ -348,19 +571,32 @@ describe("Context window", () => {
   });
 
   test("Calls rest.onClickCapture", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const onClickCapture = jest.fn();
 
     const user = userEvent.setup();
     await act(async () => {
       render(
-        <ContextWindow
-          id={"clicktest"}
-          visible={true}
-          title={"Click Test"}
-          onClickCapture={onClickCapture}
-        >
-          <span>Content</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"clicktest"}
+            visible={true}
+            title={"Click Test"}
+            onClickCapture={onClickCapture}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -377,33 +613,59 @@ describe("Context window", () => {
   });
 
   test("Calls onOpen when window becomes visible", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const onOpen = jest.fn();
     await act(async () => {
       render(
-        <ContextWindow
-          id={"open1"}
-          visible={true}
-          title={"Open Test"}
-          onOpen={onOpen}
-        >
-          <span>Hi</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"open1"}
+            visible={true}
+            title={"Open Test"}
+            onOpen={onOpen}
+          >
+            <span>Hi</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
     expect(onOpen).toHaveBeenCalled();
   });
 
   test("Dragging updates moving UI state", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"dragwindow"}
-          visible={true}
-          title={"Drag Window"}
-          style={{ transition: "opacity 0s linear" }}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"dragwindow"}
+            visible={true}
+            title={"Drag Window"}
+            style={{ transition: "opacity 0s linear" }}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -419,16 +681,29 @@ describe("Context window", () => {
   });
 
   test("Dragging handles non-element event targets", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"dragwindow-text"}
-          visible={true}
-          title={"Drag Window Text"}
-          style={{ transition: "opacity 0s linear" }}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"dragwindow-text"}
+            visible={true}
+            title={"Drag Window Text"}
+            style={{ transition: "opacity 0s linear" }}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -446,6 +721,17 @@ describe("Context window", () => {
   });
 
   test("Positions window below when space is available and uses default min sizes", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const orig = HTMLElement.prototype.getBoundingClientRect;
     const spyRect = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -478,13 +764,15 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <ContextWindow
-          id={"posbelow"}
-          visible={true}
-          title={"Pos Below"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"posbelow"}
+            visible={true}
+            title={"Pos Below"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -505,6 +793,17 @@ describe("Context window", () => {
   });
 
   test("Positions window above when not enough space below", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const orig = HTMLElement.prototype.getBoundingClientRect;
     const spyRect = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -536,13 +835,15 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <ContextWindow
-          id={"posabove"}
-          visible={true}
-          title={"Pos Above"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"posabove"}
+            visible={true}
+            title={"Pos Above"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -559,6 +860,17 @@ describe("Context window", () => {
   });
 
   test("ResizeObserver callback attaches mouseup listener and calls checkPosition on release", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     let observerCallback: ResizeObserverCallback | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).ResizeObserver = class {
@@ -572,13 +884,15 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <ContextWindow
-          id={"resize-obs-mouseup"}
-          visible={true}
-          title={"Resize Obs Mouseup"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"resize-obs-mouseup"}
+            visible={true}
+            title={"Resize Obs Mouseup"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -616,15 +930,28 @@ describe("Context window", () => {
   });
 
   test("Window resize triggers position check", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"window-resize-check"}
-          visible={true}
-          title={"Window Resize Check"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"window-resize-check"}
+            visible={true}
+            title={"Window Resize Check"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -684,15 +1011,28 @@ describe("Context window", () => {
   });
 
   test("Window resize reduces window dimensions when it is larger than the viewport", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id={"window-resize-fit"}
-          visible={true}
-          title={"Window Resize Fit"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"window-resize-fit"}
+            visible={true}
+            title={"Window Resize Fit"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -748,6 +1088,17 @@ describe("Context window", () => {
   });
 
   test("ResizeObserver cleanup removes pending mouseup listener when window is hidden", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     let observerCallback: ResizeObserverCallback | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).ResizeObserver = class {
@@ -760,13 +1111,15 @@ describe("Context window", () => {
     };
 
     const { rerender } = render(
-      <ContextWindow
-        id={"resize-cleanup-test"}
-        visible={true}
-        title={"Resize Cleanup Test"}
-      >
-        <span>Body</span>
-      </ContextWindow>,
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindow
+          id={"resize-cleanup-test"}
+          visible={true}
+          title={"Resize Cleanup Test"}
+        >
+          <span>Body</span>
+        </ContextWindow>
+      </DockingContext.Provider>,
     );
     await act(async () => {});
 
@@ -781,13 +1134,15 @@ describe("Context window", () => {
     const removeEventSpy = jest.spyOn(document, "removeEventListener");
     await act(async () => {
       rerender(
-        <ContextWindow
-          id={"resize-cleanup-test"}
-          visible={false}
-          title={"Resize Cleanup Test"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"resize-cleanup-test"}
+            visible={false}
+            title={"Resize Cleanup Test"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -798,14 +1153,27 @@ describe("Context window", () => {
   });
 
   test("Mouseup after window is hidden does not fail", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const { rerender } = render(
-      <ContextWindow
-        id={"hidden-during-drag"}
-        visible={true}
-        title={"Hidden During Drag"}
-      >
-        <span>Body</span>
-      </ContextWindow>,
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindow
+          id={"hidden-during-drag"}
+          visible={true}
+          title={"Hidden During Drag"}
+        >
+          <span>Body</span>
+        </ContextWindow>
+      </DockingContext.Provider>,
     );
 
     await act(async () => {});
@@ -815,13 +1183,15 @@ describe("Context window", () => {
 
     await act(async () => {
       rerender(
-        <ContextWindow
-          id={"hidden-during-drag"}
-          visible={false}
-          title={"Hidden During Drag"}
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id={"hidden-during-drag"}
+            visible={false}
+            title={"Hidden During Drag"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -871,15 +1241,26 @@ describe("Context window", () => {
       );
     };
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <CaptureRefs
             onRefsReady={(ref1) => {
               capturedRef1 = ref1;
             }}
           />
-        </DockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -914,10 +1295,21 @@ describe("Context window", () => {
     // inadvertently process the interaction due to global mouseup listeners.
     // The isInInteractionRef guard ensures windows only process interactions they started.
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const MultiWindowDragTest = (): React.ReactElement => {
       const [visible, setVisible] = useState<boolean>(true);
       return (
-        <>
+        <DockingContext.Provider value={mockDocking}>
           <button onClick={() => setVisible(!visible)}>Toggle</button>
           <ContextWindow
             id="window-a"
@@ -940,7 +1332,7 @@ describe("Context window", () => {
           >
             <span>Content C</span>
           </ContextWindow>
-        </>
+        </DockingContext.Provider>
       );
     };
 
@@ -974,19 +1366,32 @@ describe("Context window", () => {
     // If isDocked changes during drag (e.g., snap detection), the captured value
     // remains frozen for the duration of the interaction.
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const TestComponent = (): React.ReactElement => {
       const ref = useRef<ContextWindowHandle>(null);
 
       return (
-        <ContextWindow
-          ref={ref}
-          id="dock-test-window"
-          visible={true}
-          title="Dock Test"
-          dockable={true}
-        >
-          <span>Test content</span>
-        </ContextWindow>
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            ref={ref}
+            id="dock-test-window"
+            visible={true}
+            title="Dock Test"
+            dockable={true}
+          >
+            <span>Test content</span>
+          </ContextWindow>
+        </DockingContext.Provider>
       );
     };
 
@@ -1011,6 +1416,17 @@ describe("Context window", () => {
     // drag (due to component re-renders when isDocked state changes), only the first
     // fire actually processes the dock logic. Subsequent fires are skipped.
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const TestComponent = (): React.ReactElement => {
       return (
         <ContextWindow
@@ -1025,7 +1441,11 @@ describe("Context window", () => {
     };
 
     await act(async () => {
-      render(<TestComponent />);
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <TestComponent />
+        </DockingContext.Provider>,
+      );
     });
 
     const window = document.getElementById("duplicate-test-window") as HTMLElement;
@@ -1047,16 +1467,29 @@ describe("Context window", () => {
     // trigger docking, even with dockable={true}. The targetSnapEdgeRef must be
     // set for docking to occur.
 
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const TestComponent = (): React.ReactElement => {
       return (
-        <ContextWindow
-          id="no-snap-window"
-          visible={true}
-          title="No Snap Test"
-          dockable={true}
-        >
-          <span>Test content</span>
-        </ContextWindow>
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id="no-snap-window"
+            visible={true}
+            title="No Snap Test"
+            dockable={true}
+          >
+            <span>Test content</span>
+          </ContextWindow>
+        </DockingContext.Provider>
       );
     };
 
@@ -1083,8 +1516,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -1094,7 +1534,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="ref-dock-test"
@@ -1104,7 +1544,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1125,8 +1565,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -1136,7 +1583,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="ref-undock-test"
@@ -1146,7 +1593,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1180,8 +1627,19 @@ describe("Context window", () => {
         ref.current?.dock("right");
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="right" />
           <ContextWindow
             ref={ref}
@@ -1193,7 +1651,7 @@ describe("Context window", () => {
           >
             <span>Docked content</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1226,8 +1684,19 @@ describe("Context window", () => {
         capturedRef = ref;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           <DockPanel edge="right" />
           <ContextWindow
@@ -1239,7 +1708,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1293,8 +1762,19 @@ describe("Context window", () => {
         capturedRef = ref;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="right" />
           <ContextWindow
             ref={ref}
@@ -1305,7 +1785,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1401,9 +1881,20 @@ describe("Context window", () => {
 
     try {
       const ref = { current: null } as React.RefObject<ContextWindowHandle | null>;
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       await act(async () => {
         render(
-          <DockingProvider>
+          <DockingContext.Provider value={mockDocking}>
             <DockPanel edge="right" />
             <ContextWindow
               ref={ref}
@@ -1414,7 +1905,7 @@ describe("Context window", () => {
             >
               <span>Body</span>
             </ContextWindow>
-          </DockingProvider>,
+          </DockingContext.Provider>,
         );
       });
 
@@ -1448,8 +1939,19 @@ describe("Context window", () => {
         capturedRef = ref;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           <DockPanel edge="right" />
           <ContextWindow
@@ -1461,7 +1963,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1518,8 +2020,19 @@ describe("Context window", () => {
         refs.bottom = bottomRef;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="top" />
           <DockPanel edge="bottom" />
           <ContextWindow
@@ -1540,7 +2053,7 @@ describe("Context window", () => {
           >
             <span>Bottom body</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1582,8 +2095,19 @@ describe("Context window", () => {
         capturedRef = ref;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           <DockPanel edge="right" />
           <ContextWindow
@@ -1595,7 +2119,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1641,8 +2165,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -1652,7 +2183,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="dock-button-test"
@@ -1662,7 +2193,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1684,8 +2215,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -1695,7 +2233,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-button-test"
@@ -1705,7 +2243,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1731,18 +2269,20 @@ describe("Context window", () => {
   test("Dock button with blank title shows generic label", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking
-        dockedWindows={dockingState}
-        overrides={{ undock: () => {} }}
-      >
-        {children}
-      </MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     await act(async () => {
       render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id="blank-title-dock"
             visible={true}
@@ -1751,7 +2291,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -1762,13 +2302,15 @@ describe("Context window", () => {
   test("Undock button with whitespace title shows generic label", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking
-        dockedWindows={dockingState}
-        overrides={{ undock: () => {} }}
-      >
-        {children}
-      </MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
@@ -1780,7 +2322,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="whitespace-title-undock"
@@ -1790,7 +2332,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1810,8 +2352,15 @@ describe("Context window", () => {
   test("Undock from top edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
@@ -1823,7 +2372,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-from-top"
@@ -1833,7 +2382,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1859,8 +2408,15 @@ describe("Context window", () => {
   test("Undock from bottom edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
@@ -1872,7 +2428,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-from-bottom"
@@ -1882,7 +2438,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1915,8 +2471,15 @@ describe("Context window", () => {
   test("Undock from left edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
@@ -1928,7 +2491,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-from-left"
@@ -1938,7 +2501,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -1964,8 +2527,15 @@ describe("Context window", () => {
   test("Undock from right edge via drag beyond threshold", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
@@ -1977,7 +2547,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-from-right"
@@ -1987,7 +2557,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2020,22 +2590,20 @@ describe("Context window", () => {
   test("Dockable window displays dock button when floating", async () => {
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking
-        dockedWindows={dockingState}
-        overrides={{
-          dock: () => {},
-          undock: () => {},
-          getWindowsOnEdge: () => [],
-        }}
-      >
-        {children}
-      </MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     await act(async () => {
       render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id="dockable-button-test"
             visible={true}
@@ -2044,7 +2612,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -2053,16 +2621,29 @@ describe("Context window", () => {
   });
 
   test("Non-dockable window does not display dock button", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id="non-dockable-test"
-          visible={true}
-          title="Non-Dockable Window"
-          dockable={false}
-        >
-          <span>Content</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id="non-dockable-test"
+            visible={true}
+            title="Non-Dockable Window"
+            dockable={false}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -2074,8 +2655,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2085,7 +2673,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="docked-undock-button-test"
@@ -2095,7 +2683,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2125,8 +2713,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2136,7 +2731,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="snap-left-test"
@@ -2146,7 +2741,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2174,8 +2769,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2185,7 +2787,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="snap-right-test"
@@ -2195,7 +2797,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2228,8 +2830,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2239,7 +2848,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="snap-top-test"
@@ -2249,7 +2858,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2277,8 +2886,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2288,7 +2904,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="snap-bottom-test"
@@ -2298,7 +2914,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2331,8 +2947,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2342,7 +2965,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="undock-by-drag-test"
@@ -2352,7 +2975,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2382,6 +3005,17 @@ describe("Context window", () => {
   });
 
   test("Undock is called when docking is null (early return)", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
     const TestComponent = () => {
@@ -2391,15 +3025,17 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <ContextWindow
-          ref={ref}
-          id="undock-null-docking-test"
-          visible={true}
-          title="Undock Null Docking"
-          dockable={true}
-        >
-          <span>Content</span>
-        </ContextWindow>
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            ref={ref}
+            id="undock-null-docking-test"
+            visible={true}
+            title="Undock Null Docking"
+            dockable={true}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </DockingContext.Provider>
       );
     };
 
@@ -2421,8 +3057,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2432,7 +3075,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="visibility-test"
@@ -2442,7 +3085,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2472,8 +3115,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2483,7 +3133,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="snap-hysteresis-test"
@@ -2493,7 +3143,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2521,8 +3171,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2532,7 +3189,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="drag-window-test"
@@ -2543,7 +3200,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2567,21 +3224,34 @@ describe("Context window", () => {
   });
 
   test("Window close button is clickable and calls onClose", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     const onCloseMock = jest.fn();
 
     const TestComponent = () => {
       const ref = useRef<ContextWindowHandle>(null);
 
       return (
-        <ContextWindow
-          ref={ref}
-          id="close-window-test"
-          visible={true}
-          title="Close Window Test"
-          onClose={onCloseMock}
-        >
-          <span>Content</span>
-        </ContextWindow>
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            ref={ref}
+            id="close-window-test"
+            visible={true}
+            title="Close Window Test"
+            onClose={onCloseMock}
+          >
+            <span>Content</span>
+          </ContextWindow>
+        </DockingContext.Provider>
       );
     };
 
@@ -2609,8 +3279,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2620,7 +3297,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="styled-drag-test"
@@ -2631,7 +3308,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2654,6 +3331,17 @@ describe("Context window", () => {
   });
 
   test("Multiple windows: second window created after first maintains correct z-index", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     let _firstRef: React.RefObject<ContextWindowHandle | null> | null = null;
     let _secondRef: React.RefObject<ContextWindowHandle | null> | null = null;
 
@@ -2666,7 +3354,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref1}
             id="z-index-window-1"
@@ -2683,7 +3371,7 @@ describe("Context window", () => {
           >
             <span>Content 2</span>
           </ContextWindow>
-        </>
+        </DockingContext.Provider>
       );
     };
 
@@ -2705,8 +3393,15 @@ describe("Context window", () => {
     let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
     const dockingState = new Map<string, DockedWindow>();
 
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const TestComponent = () => {
@@ -2716,7 +3411,7 @@ describe("Context window", () => {
       }, []);
 
       return (
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             ref={ref}
             id="dock-undock-ref-test"
@@ -2726,7 +3421,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </MockDockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2765,8 +3460,19 @@ describe("Context window", () => {
         setMounted = setMountedState;
       }, []);
 
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           {mounted && (
             <ContextWindow
@@ -2779,7 +3485,7 @@ describe("Context window", () => {
               <span>Content</span>
             </ContextWindow>
           )}
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2807,8 +3513,20 @@ describe("Context window", () => {
         refA.current?.dock("left");
         refB.current?.dock("left");
       }, []);
+
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           {(["a", "b"] as const).map((key) => (
             <ContextWindow
@@ -2823,7 +3541,7 @@ describe("Context window", () => {
               <span>Content {key}</span>
             </ContextWindow>
           ))}
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2869,8 +3587,20 @@ describe("Context window", () => {
       useEffect(() => {
         setVisible = setVisibleState;
       }, []);
+
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="right" />
           <ContextWindow
             id="initial-dock-test"
@@ -2881,7 +3611,7 @@ describe("Context window", () => {
           >
             <span>Initial content</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -2916,8 +3646,19 @@ describe("Context window", () => {
 
   test("initialDockEdge is ignored when the window is not dockable", async () => {
     await act(async () => {
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       render(
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           <ContextWindow
             id="initial-dock-not-dockable"
@@ -2927,7 +3668,7 @@ describe("Context window", () => {
           >
             <span>Content</span>
           </ContextWindow>
-        </DockingProvider>,
+        </DockingContext.Provider>,
       );
     });
     expect(
@@ -2946,8 +3687,20 @@ describe("Context window", () => {
         windowRef = ref;
         setVisible = setVisibleState;
       }, []);
+
+      const mockDocking = createMockDocking(
+        new Map(),
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
+      );
+
       return (
-        <DockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <DockPanel edge="left" />
           <DockPanel edge="bottom" />
           <ContextWindow
@@ -2961,7 +3714,7 @@ describe("Context window", () => {
           >
             <span>Locked content</span>
           </ContextWindow>
-        </DockingProvider>
+        </DockingContext.Provider>
       );
     };
 
@@ -3006,67 +3759,29 @@ describe("Context window", () => {
     expect(screen.queryByRole("button", { name: /dock panel/ })).not.toBeInTheDocument();
   });
 
-  test("Guard branches exit early without a docking provider", async () => {
-    const user = userEvent.setup();
-
-    await act(async () => {
-      render(
-        <ContextWindow
-          id="guard-no-docking"
-          visible={true}
-          title="Guard No Docking"
-          dockable={true}
-        >
-          <span>Body</span>
-        </ContextWindow>,
-      );
-    });
-
-    const dockButton = screen.getByLabelText("Dock");
-    await act(async () => {
-      await user.click(dockButton);
-    });
-    expect(screen.getByLabelText("Dock")).toBeInTheDocument();
-
-    let _capturedRef: React.RefObject<ContextWindowHandle | null> | null = null;
-    const RefComponent = () => {
-      const ref = useRef<ContextWindowHandle>(null);
-      useEffect(() => {
-        _capturedRef = ref;
-      }, []);
-      return (
-        <ContextWindow
-          ref={ref}
-          id="guard-undock-no-docking"
-          visible={true}
-          title="Guard Undock No Docking"
-          dockable={true}
-        >
-          <span>Body</span>
-        </ContextWindow>
-      );
-    };
-
-    await act(async () => {
-      render(<RefComponent />);
-    });
-
-    await act(async () => {
-      _capturedRef?.current?.undock();
-    });
-    expect(screen.getByText("Guard Undock No Docking")).toBeInTheDocument();
-  });
-
   test("Mouseup without an active interaction exits without throwing", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
     await act(async () => {
       render(
-        <ContextWindow
-          id="no-interaction-mouseup"
-          visible={true}
-          title="No Interaction Mouseup"
-        >
-          <span>Body</span>
-        </ContextWindow>,
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindow
+            id="no-interaction-mouseup"
+            visible={true}
+            title="No Interaction Mouseup"
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </DockingContext.Provider>,
       );
     });
 
@@ -3078,12 +3793,19 @@ describe("Context window", () => {
   test("Snap detection covers hysteresis and edge clearing paths", async () => {
     const renderWindow = (id: string, title: string, dockable = true) => {
       const dockingState = new Map<string, DockedWindow>();
-      const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-        <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+      const mockDocking = createMockDocking(
+        dockingState,
+        {},
+        () => {},
+        new Map(),
+        new Set(),
+        new Map(),
+        new Map(),
+        new Map(),
       );
 
       return render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id={id}
             visible={true}
@@ -3092,7 +3814,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     };
 
@@ -3171,8 +3893,15 @@ describe("Context window", () => {
 
   test("Undocking from a docked edge applies the header offset while dragging", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     dockingState.set("undock-header-offset", {
@@ -3183,7 +3912,7 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id="undock-header-offset"
             visible={true}
@@ -3192,7 +3921,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -3215,8 +3944,15 @@ describe("Context window", () => {
 
   test("Undocking from top edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     dockingState.set("undock-top-edge", {
@@ -3227,7 +3963,7 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id="undock-top-edge"
             visible={true}
@@ -3236,7 +3972,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 
@@ -3256,8 +3992,15 @@ describe("Context window", () => {
 
   test("Undocking from bottom edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const originalHeight = window.innerHeight;
@@ -3272,7 +4015,7 @@ describe("Context window", () => {
 
       await act(async () => {
         render(
-          <MockDockingProvider>
+          <DockingContext.Provider value={mockDocking}>
             <ContextWindow
               id="undock-bottom-edge"
               visible={true}
@@ -3281,7 +4024,7 @@ describe("Context window", () => {
             >
               <span>Body</span>
             </ContextWindow>
-          </MockDockingProvider>,
+          </DockingContext.Provider>,
         );
       });
 
@@ -3309,8 +4052,15 @@ describe("Context window", () => {
 
   test("Undocking from right edge applies correct undock logic", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     const originalWidth = window.innerWidth;
@@ -3325,7 +4075,7 @@ describe("Context window", () => {
 
       await act(async () => {
         render(
-          <MockDockingProvider>
+          <DockingContext.Provider value={mockDocking}>
             <ContextWindow
               id="undock-right-edge"
               visible={true}
@@ -3334,7 +4084,7 @@ describe("Context window", () => {
             >
               <span>Body</span>
             </ContextWindow>
-          </MockDockingProvider>,
+          </DockingContext.Provider>,
         );
       });
 
@@ -3362,8 +4112,15 @@ describe("Context window", () => {
 
   test("Docked window drag without exceeding undock threshold does not undock", async () => {
     const dockingState = new Map<string, DockedWindow>();
-    const MockDockingProvider = ({ children }: { children: React.ReactNode }) => (
-      <MockDocking dockedWindows={dockingState}>{children}</MockDocking>
+    const mockDocking = createMockDocking(
+      dockingState,
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
     );
 
     dockingState.set("no-undock-left", {
@@ -3374,7 +4131,7 @@ describe("Context window", () => {
 
     await act(async () => {
       render(
-        <MockDockingProvider>
+        <DockingContext.Provider value={mockDocking}>
           <ContextWindow
             id="no-undock-left"
             visible={true}
@@ -3383,7 +4140,7 @@ describe("Context window", () => {
           >
             <span>Body</span>
           </ContextWindow>
-        </MockDockingProvider>,
+        </DockingContext.Provider>,
       );
     });
 

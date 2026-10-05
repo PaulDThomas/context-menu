@@ -1,4 +1,4 @@
-import { classNames } from "../functions/classNames";
+import { classNames } from "../functions";
 import styles from "./DockPanel.module.css";
 import { PinIcon } from "./icons";
 import type { DockEdge } from "./interface";

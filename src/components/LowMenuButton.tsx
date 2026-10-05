@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { classNames } from "../functions/classNames";
+import { classNames } from "../functions";
 import styles from "./LowMenu.module.css";
 import { LowSubMenu } from "./LowSubMenu";
 import { IMenuItem } from "./interface";
