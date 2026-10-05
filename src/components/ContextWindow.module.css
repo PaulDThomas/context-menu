@@ -65,6 +65,10 @@
   box-sizing: border-box;
 }
 
+.contextWindow.docked .contextWindowTitle.undockDisabled {
+  cursor: default;
+}
+
 .contextWindow.docked .contextWindowBody {
   height: auto;
   flex: 1 1 auto;

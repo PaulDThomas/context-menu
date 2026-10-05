@@ -8,6 +8,32 @@ import type { WindowConfig } from "./interface";
 jest.mock("./ContextWindowTitleButton");
 
 describe("ContextWindowTitleBar", () => {
+  test.each([
+    [true, false, true],
+    [true, true, false],
+    [true, undefined, false],
+    [false, false, false],
+    [false, true, false],
+    [false, undefined, false],
+  ])(
+    "locked cursor for docked=%s and allowUndock=%s is %s",
+    (isDocked, allowUndock, expectedDisabled) => {
+      const windowConfig: WindowConfig = { title: "My window", allowUndock };
+      const mockDocking = createMockDocking(new Map());
+      mockDocking.getWindowConfig = () => windowConfig;
+      mockDocking.getDockedWindow = () =>
+        isDocked ? { id: "test-window", edge: "left", order: 0 } : undefined;
+
+      const { container } = render(
+        <DockingContext.Provider value={mockDocking}>
+          <ContextWindowTitleBar id="test-window" />
+        </DockingContext.Provider>,
+      );
+      const bar = container.querySelector(".contextWindowTitle");
+      expect(bar?.classList.contains("undockDisabled")).toBe(expectedDisabled);
+    },
+  );
+
   test("Renders the title text with a tooltip", () => {
     const windowConfig: WindowConfig = { title: "My window" };
     const windowConfigs = new Map([["test-window", windowConfig]]);

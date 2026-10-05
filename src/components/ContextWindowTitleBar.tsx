@@ -13,10 +13,15 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
   const config = docking.getWindowConfig(id);
   const { onMouseDown, moving, title, titleElement, onDock, onUndock, canDock, canUndock } = config;
   const windowLabel = title && title.trim() !== "" ? title : "window";
+  const undockDisabled = config.allowUndock === false && !!docking.getDockedWindow(id);
 
   return (
     <div
-      className={classNames(styles.contextWindowTitle, moving && styles.moving)}
+      className={classNames(
+        styles.contextWindowTitle,
+        moving && styles.moving,
+        undockDisabled && styles.undockDisabled,
+      )}
       onMouseDown={onMouseDown}
     >
       <div
