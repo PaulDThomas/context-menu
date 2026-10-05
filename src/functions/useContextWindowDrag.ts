@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DockEdge } from "../components/interface";
 import type { DockingAction } from "../reducer";
 import { detectSnapEdge } from "./detectSnapEdge";
@@ -13,6 +13,7 @@ interface UseContextWindowDragProps {
   isDocked: boolean;
   dockedEdge?: DockEdge;
   windowVisible: boolean;
+  moving: boolean;
   windowRef: React.RefObject<HTMLDivElement | null>;
   windowPosRef: React.MutableRefObject<{ x: number; y: number }>;
   isDockedRef: React.MutableRefObject<boolean>;
@@ -49,6 +50,7 @@ export const useContextWindowDrag = ({
   isDocked,
   dockedEdge,
   windowVisible,
+  moving,
   windowRef,
   windowPosRef,
   isDockedRef,
@@ -64,7 +66,6 @@ export const useContextWindowDrag = ({
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const interactionProcessedRef = useRef<boolean>(false);
   const isInInteractionRef = useRef<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const handleDockRef = useRef(handleDock);
   useLayoutEffect(() => {
@@ -87,7 +88,6 @@ export const useContextWindowDrag = ({
         setWindowVisible(true);
       }
       armInteractionEnd();
-      setIsDragging(true);
       dispatch({ type: "raiseWindow", id });
     },
     onMouseMove: (e: MouseEvent) => {
@@ -133,7 +133,6 @@ export const useContextWindowDrag = ({
       setMoving(false);
       isInInteractionRef.current = false;
       dispatch({ type: "setDockDragEdge", edge: null });
-      setIsDragging(false);
     },
     onInteractionEnd: () => {
       if (!isInInteractionRef.current || interactionProcessedRef.current) {
@@ -174,7 +173,7 @@ export const useContextWindowDrag = ({
   }, [isDocked]);
 
   useEffect(() => {
-    if (!isDragging) {
+    if (!moving) {
       return;
     }
     const previousOverflow = document.body.style.overflow;
@@ -182,7 +181,7 @@ export const useContextWindowDrag = ({
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isDragging]);
+  }, [moving]);
 
   const onTitleMouseDown = useCallback((e: React.MouseEvent<HTMLElement>) => {
     onMouseDownRef.current(e);

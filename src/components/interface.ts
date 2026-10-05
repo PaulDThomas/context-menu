@@ -54,7 +54,6 @@ export interface WindowConfig {
   title: string;
   titleElement?: React.ReactNode;
   visible?: boolean;
-  windowInDOM?: boolean;
   windowVisible?: boolean;
 }
 

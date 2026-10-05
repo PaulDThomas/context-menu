@@ -71,9 +71,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Docking state
     const docking = useDocking();
     const windowConfig = docking.getWindowConfig(id);
-    // Rendered straight from the prop (and mirrored into the window config) so opening and
-    // closing never lag a render behind waiting for the stored value to round-trip
-    const windowInDOM = visible;
     const windowVisible = windowConfig.windowVisible ?? false;
     const moving = windowConfig.moving ?? false;
     const dockedWindow = docking.getDockedWindow(id);
@@ -183,7 +180,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           return;
         }
 
-        const restoreState = docking.getPreDockRect(id);
+        const restoreState = dockingRef.current?.getPreDockRect(id);
         if (pointer) {
           // Drag-undock: centre the header under the pointer (resolved from the latest pointer
           // position when applied) so the drag continues seamlessly
@@ -223,7 +220,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
 
         dispatch({ type: "undock", id, viaDrag: !!pointer });
       },
-      [allowUndock, dispatch, docking, id, isDocked],
+      [allowUndock, dispatch, id, isDocked],
     );
     useEffect(() => {
       if (!docking) {
@@ -235,16 +232,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       });
       return () => docking.unregisterWindowActions(id);
     }, [docking, handleUndock, id, onClose]);
-
-    const handleDockRef = useRef(handleDock);
-    useLayoutEffect(() => {
-      handleDockRef.current = handleDock;
-    }, [handleDock]);
-
-    const handleUndockRef = useRef(handleUndock);
-    useLayoutEffect(() => {
-      handleUndockRef.current = handleUndock;
-    }, [handleUndock]);
 
     const checkPosition = useCallback(() => {
       const chkPos = chkPosition(windowRef);
@@ -259,6 +246,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       isDocked,
       dockedEdge: dockedWindow?.edge,
       windowVisible,
+      moving,
       windowRef,
       windowPosRef: windowPos,
       isDockedRef,
@@ -326,8 +314,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     });
 
-    // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
-    // This effect derives state from props, which is acceptable when there's no synchronous setState
     useEffect(() => {
       if (!visible && isDocked) {
         dispatch({ type: "undock", id });
@@ -354,7 +340,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       registerWindowConfig(id, {
         id,
         visible,
-        windowInDOM,
         title,
         titleElement,
         dockable,
@@ -367,20 +352,19 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           if (!dockable || isDockedRef.current) {
             return;
           }
-          handleDockRef.current("right");
+          handleDock("right");
         },
         onUndock: () => {
           if (!dockable || !allowUndock || !isDockedRef.current) {
             return;
           }
-          handleUndockRef.current();
+          handleUndock();
         },
       });
     }, [
       registerWindowConfig,
       id,
       visible,
-      windowInDOM,
       title,
       titleElement,
       dockable,
@@ -388,6 +372,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       allowUndock,
       isDocked,
       onTitleMouseDown,
+      handleDock,
+      handleUndock,
     ]);
 
     // A closed window must be positioned again before it is shown on the next open
@@ -432,7 +418,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     );
 
     useLayoutEffect(() => {
-      if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
+      if (visible && !windowVisible && divRef.current && windowRef.current) {
         // Position the window (a window opened straight into a DockPanel is laid out by the panel)
         if (!isDockedRef.current) {
           const savedRect = docking.getPreDockRect(id);
@@ -473,7 +459,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         dispatch({ type: "raiseWindow", id });
         setWindowVisible(true);
       }
-    }, [docking, dispatch, id, onOpen, setWindowVisible, visible, windowInDOM, windowVisible]);
+    }, [docking, dispatch, id, onOpen, setWindowVisible, visible, windowVisible]);
 
     // When CSS resize handle is used, defer checkPosition until resize interaction ends.
     useEffect(() => {
@@ -508,7 +494,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         className={styles.contextWindowAnchor}
         ref={divRef}
       >
-        {windowInDOM &&
+        {visible &&
           createPortal(
             <div
               {...rest}
