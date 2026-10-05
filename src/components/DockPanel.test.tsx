@@ -450,6 +450,71 @@ describe("DockPanel", () => {
       dockingApi = undefined;
     });
 
+    test.each<DockEdge>(["left", "right", "top", "bottom"])(
+      "%s panel toggles body spacing and restores it when emptied or unmounted",
+      (edge) => {
+        const property = `padding-${edge}`;
+        const inset = `--dock-panel-inset-${edge}`;
+        document.body.style.setProperty(property, "7px");
+        jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+          width: 240,
+          height: 160,
+        } as DOMRect);
+        const { unmount } = render(
+          <DockingProvider>
+            <CaptureDocking />
+          </DockingProvider>,
+        );
+        act(() => dockingApi!.dock("window-a", edge));
+        const toggle = screen.getByRole("button", { name: `Push content with ${edge} dock panel` });
+        expect(toggle).toHaveAttribute("aria-pressed", "false");
+        expect(document.body.style.getPropertyValue(property)).toBe("7px");
+
+        fireEvent.click(toggle);
+        const size = edge === "left" || edge === "right" ? 240 : 160;
+        expect(toggle).toHaveAttribute("aria-pressed", "true");
+        expect(document.body.style.getPropertyValue(property)).toBe(`${size + 7}px`);
+        expect(document.body.style.getPropertyValue(inset)).toBe(`${size}px`);
+
+        fireEvent.click(toggle);
+        expect(document.body.style.getPropertyValue(property)).toBe("7px");
+        fireEvent.click(toggle);
+        act(() => dockingApi!.undock("window-a"));
+        expect(document.body.style.getPropertyValue(property)).toBe("7px");
+        expect(document.body.style.getPropertyValue(inset)).toBe("");
+        act(() => dockingApi!.dock("window-a", edge));
+        expect(document.body.style.getPropertyValue(property)).toBe(`${size + 7}px`);
+        unmount();
+        expect(document.body.style.getPropertyValue(property)).toBe("7px");
+        document.body.style.removeProperty(property);
+      },
+    );
+
+    test("push spacing follows panel resizing and is released while pinned", () => {
+      const rect = jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        width: 240,
+        height: 160,
+      } as DOMRect);
+      render(
+        <DockingProvider>
+          <CaptureDocking />
+        </DockingProvider>,
+      );
+      act(() => dockingApi!.dock("window-a", "left"));
+      fireEvent.click(screen.getByRole("button", { name: "Push content with left dock panel" }));
+      expect(document.body.style.paddingLeft).toBe("240px");
+      rect.mockReturnValue({ width: 300, height: 160 } as DOMRect);
+      fireEvent.keyDown(screen.getByRole("separator"), { key: "ArrowRight" });
+      expect(document.body.style.paddingLeft).toBe("300px");
+      rect.mockReturnValue({ width: 320, height: 160 } as DOMRect);
+      fireEvent(window, new Event("resize"));
+      expect(document.body.style.paddingLeft).toBe("320px");
+      fireEvent.click(screen.getByRole("button", { name: "Pin left dock panel" }));
+      expect(document.body.style.paddingLeft).toBe("");
+      fireEvent.click(screen.getByRole("button", { name: "Unpin left dock panel" }));
+      expect(document.body.style.paddingLeft).toBe("320px");
+    });
+
     test("only renders for its own edge and is removed when its last window leaves", () => {
       const { container } = render(
         <DockingProvider>

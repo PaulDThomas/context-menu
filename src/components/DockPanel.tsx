@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   classNames,
   DOCK_PANEL_AUTOHIDE_DISTANCE,
@@ -12,6 +12,7 @@ import {
 import styles from "./DockPanel.module.css";
 import { DockPanelPinButton } from "./DockPanelPinButton";
 import { DockPanelTabButton } from "./DockPanelTabButton";
+import { CoverContentIcon, PushContentIcon } from "./icons";
 import type { DockEdge } from "./interface";
 
 export { DOCK_PANEL_AUTOHIDE_DISTANCE, DOCK_PANEL_MIN_SIZE, DOCK_PANEL_VIEWPORT_GAP };
@@ -26,6 +27,7 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   const windows = docking.getWindowsOnEdge(edge);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentHostRef = useRef<HTMLDivElement | null>(null);
+  const [pushContent, setPushContent] = useState(false);
   const getActiveWindowOnEdge = docking.getActiveWindowOnEdge;
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again
@@ -46,6 +48,43 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
   const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
   // A pinned bar slides away to a thin line once the pointer moves away from it
   const [autoHidden, setAutoHidden] = useAutoHide(isPinned, panelRef);
+  const hasWindows = windows.length > 0;
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!pushContent || isPinned || !hasWindows || !panel) {
+      return;
+    }
+
+    const bodyStyle = document.body.style;
+    const paddingProperty = `padding-${edge}`;
+    const insetProperty = `--dock-panel-inset-${edge}`;
+    const originalPadding = bodyStyle.getPropertyValue(paddingProperty);
+    const originalPaddingPriority = bodyStyle.getPropertyPriority(paddingProperty);
+    const originalInset = bodyStyle.getPropertyValue(insetProperty);
+    const originalInsetPriority = bodyStyle.getPropertyPriority(insetProperty);
+    const basePadding =
+      parseFloat(getComputedStyle(document.body).getPropertyValue(paddingProperty)) || 0;
+
+    const updateInset = () => {
+      const rect = panel.getBoundingClientRect();
+      const size = isHorizontalEdge(edge) ? rect.width : rect.height;
+      bodyStyle.setProperty(paddingProperty, `${basePadding + size}px`);
+      bodyStyle.setProperty(insetProperty, `${size}px`);
+    };
+
+    updateInset();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateInset);
+    observer?.observe(panel);
+    window.addEventListener("resize", updateInset);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateInset);
+      bodyStyle.setProperty(paddingProperty, originalPadding, originalPaddingPriority);
+      bodyStyle.setProperty(insetProperty, originalInset, originalInsetPriority);
+    };
+  }, [edge, hasWindows, isPinned, panelSize, pushContent]);
 
   if (windows.length === 0) {
     return null;
@@ -110,6 +149,19 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
             dispatch({ type: "toggleAndRaiseEdge", edge });
           }}
         />
+        <button
+          type="button"
+          className={classNames(
+            styles.dockLayoutButton,
+            pushContent && styles.dockLayoutButtonActive,
+          )}
+          aria-pressed={pushContent}
+          aria-label={`Push content with ${edge} dock panel`}
+          title={pushContent ? "Cover content" : "Push content"}
+          onClick={() => setPushContent((previous) => !previous)}
+        >
+          {pushContent ? <CoverContentIcon size={12} /> : <PushContentIcon size={12} />}
+        </button>
         {windows.map((window) => (
           <DockPanelTabButton
             key={window.id}

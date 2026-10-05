@@ -150,7 +150,8 @@
   display: none;
 }
 
-.dockPinButton {
+.dockPinButton,
+.dockLayoutButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -163,7 +164,8 @@
   cursor: pointer;
 }
 
-.dockPinButton:hover {
+.dockPinButton:hover,
+.dockLayoutButton:hover {
   background-color: rgb(230, 230, 230);
   border-color: rgba(0, 0, 0, 0.15);
 }
@@ -173,7 +175,8 @@
   transition: transform 0.15s ease;
 }
 
-.dockPinButtonPinned {
+.dockPinButtonPinned,
+.dockLayoutButtonActive {
   color: rgb(43, 100, 205);
 }
 

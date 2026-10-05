@@ -222,6 +222,7 @@ Each panel has a content area, filled by the active window, and a strip of tab b
 
 - **Tabs** – click a tab to show that window. The panel takes the z-index of its visible window, so panels and floating windows stack correctly.
 - **Resize** – drag the panel's inner edge (or focus it and use the arrow keys, Shift for larger steps) to change its size. The size is kept between 80px and the viewport size minus 40px, and is remembered while the panel is empty. Clicking the resize handle brings the panel to the front.
+- **Push / cover content** - the button beside pin toggles between covering the page (default) and reserving body padding for the panel. Reserved space follows resizing and is released while pinned or empty. The choice is remembered when windows dock again. Existing body padding is restored when push mode ends. Viewport-sized layouts can subtract the `--dock-panel-inset-top`, `--dock-panel-inset-right`, `--dock-panel-inset-bottom`, and `--dock-panel-inset-left` CSS variables (with a `0px` fallback) from their dimensions.
 - **Pin / auto-hide** – the pin button hides the window contents and lays the tab strip flat against the screen edge. While pinned, the strip auto-hides to a thin line whenever the pointer is more than 48px away (or leaves the page) and slides back when the pointer approaches or a tab gets keyboard focus. Clicking a tab, or docking another window to the edge, unpins the panel.
 
 #### `DockPanel` properties

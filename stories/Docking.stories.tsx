@@ -13,6 +13,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const dockingViewportSize = {
+  width: "calc(100vw - var(--dock-panel-inset-left, 0px) - var(--dock-panel-inset-right, 0px))",
+  height: "calc(100vh - var(--dock-panel-inset-top, 0px) - var(--dock-panel-inset-bottom, 0px))",
+};
+
 const dummyContent = (title: string) => (
   <div style={{ padding: "15px" }}>
     <h3 style={{ margin: "0 0 10px 0", fontSize: "14px" }}>{title}</h3>
@@ -61,8 +66,7 @@ export const KitchenSink: Story = {
         <DockingProvider>
           <div
             style={{
-              width: "100vw",
-              height: "100vh",
+              ...dockingViewportSize,
               backgroundColor: "#f5f5f5",
               display: "grid",
               gridTemplateColumns: "160px 1fr 160px",
@@ -360,8 +364,7 @@ export const SingleDockableWindow: Story = {
       <DockingProvider>
         <div
           style={{
-            width: "100vw",
-            height: "100vh",
+            ...dockingViewportSize,
             backgroundColor: "#f5f5f5",
             display: "grid",
             gridTemplateColumns: "160px 1fr 160px",
@@ -453,8 +456,7 @@ export const MultipleDockedWindows: Story = {
       <DockingProvider>
         <div
           style={{
-            width: "100vw",
-            height: "100vh",
+            ...dockingViewportSize,
             backgroundColor: "#f5f5f5",
             display: "grid",
             gridTemplateColumns: "160px 1fr 160px",
@@ -568,8 +570,7 @@ const DockLayout = ({ children }: { children: ReactNode }) => (
   <DockingProvider>
     <div
       style={{
-        width: "100vw",
-        height: "100vh",
+        ...dockingViewportSize,
         backgroundColor: "#f5f5f5",
         display: "grid",
         gridTemplateColumns: "160px 1fr 160px",
