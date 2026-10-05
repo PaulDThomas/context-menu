@@ -4,6 +4,7 @@ import { endDockDrag as handleEndDockDrag } from "./endDockDrag";
 import { raiseWindow as handleRaiseWindow } from "./raiseWindow";
 import { registerWindow as handleRegisterWindow } from "./registerWindow";
 import { registerWindowConfig as handleRegisterWindowConfig } from "./registerWindowConfig";
+import { saveWindowPosition as handleSaveWindowPosition } from "./saveWindowPosition";
 import { setActiveWindowOnEdge as handleSetActiveWindowOnEdge } from "./setActiveWindowOnEdge";
 import { setDockDragEdge as handleSetDockDragEdge } from "./setDockDragEdge";
 import { setPanelContentHost as handleSetPanelContentHost } from "./setPanelContentHost";
@@ -28,6 +29,8 @@ export const dockingReducer = (state: DockingState, action: DockingAction): Dock
       return handleRegisterWindow(state, action);
     case "registerWindowConfig":
       return handleRegisterWindowConfig(state, action);
+    case "saveWindowPosition":
+      return handleSaveWindowPosition(state, action);
     case "setActiveWindowOnEdge":
       return handleSetActiveWindowOnEdge(state, action);
     case "setDockDragEdge":

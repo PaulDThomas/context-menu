@@ -4,7 +4,8 @@ import type { DockingState } from "./types";
 export type RegisterWindowConfigAction = {
   type: "registerWindowConfig";
   id: string;
-  config: WindowConfig;
+  /** Partial updates are merged into the stored config */
+  config: Partial<WindowConfig>;
 };
 
 const areConfigsEqual = (left: WindowConfig, right: WindowConfig): boolean => {
@@ -23,7 +24,9 @@ export const registerWindowConfig = (
   action: RegisterWindowConfigAction,
 ): DockingState => {
   const currentConfig = state.windowConfigs.get(action.id);
-  const nextConfig = currentConfig ? { ...currentConfig, ...action.config } : action.config;
+  const nextConfig: WindowConfig = currentConfig
+    ? { ...currentConfig, ...action.config }
+    : { title: action.id, ...action.config };
   if (currentConfig && areConfigsEqual(currentConfig, nextConfig)) {
     return state;
   }

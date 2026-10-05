@@ -78,8 +78,8 @@ export interface DockingContextType {
     id: string,
     actions?: { onClose?: () => void; onUndock?: () => void },
   ) => void;
-  /** Register a window's configuration (title, dockable status, etc.) */
-  registerWindowConfig: (id: string, config: WindowConfig) => void;
+  /** Register or update a window's configuration; partial updates are merged into the stored config */
+  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
   requestUndock: (id: string) => void;
   unregisterWindowActions: (id: string) => void;
 }

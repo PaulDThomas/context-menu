@@ -17,7 +17,7 @@ import {
 } from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
-import type { DockEdge, WindowConfig } from "./interface";
+import type { DockEdge } from "./interface";
 
 const dockedEdgeClassNames: Record<DockEdge, string> = {
   top: styles.dockedTop,
@@ -71,7 +71,9 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     // Docking state
     const docking = useDocking();
     const windowConfig = docking.getWindowConfig(id);
-    const windowInDOM = windowConfig.windowInDOM ?? visible;
+    // Rendered straight from the prop (and mirrored into the window config) so opening and
+    // closing never lag a render behind waiting for the stored value to round-trip
+    const windowInDOM = visible;
     const windowVisible = windowConfig.windowVisible ?? false;
     const moving = windowConfig.moving ?? false;
     const dockedWindow = docking.getDockedWindow(id);
@@ -139,38 +141,13 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       }
     }, []);
 
-    const updateWindowConfig = useCallback(
-      (configUpdates: Partial<WindowConfig>) => {
-        registerWindowConfig(id, { ...docking.getWindowConfig(id), ...configUpdates });
-      },
-      [docking, id, registerWindowConfig],
-    );
-    const setWindowInDOM = useCallback(
-      (nextValue: boolean) => {
-        if ((docking.getWindowConfig(id).windowInDOM ?? false) === nextValue) {
-          return;
-        }
-        updateWindowConfig({ windowInDOM: nextValue });
-      },
-      [docking, id, updateWindowConfig],
-    );
     const setWindowVisible = useCallback(
-      (nextValue: boolean) => {
-        if ((docking.getWindowConfig(id).windowVisible ?? false) === nextValue) {
-          return;
-        }
-        updateWindowConfig({ windowVisible: nextValue });
-      },
-      [docking, id, updateWindowConfig],
+      (nextValue: boolean) => registerWindowConfig(id, { windowVisible: nextValue }),
+      [id, registerWindowConfig],
     );
     const setMoving = useCallback(
-      (nextValue: boolean) => {
-        if ((docking.getWindowConfig(id).moving ?? false) === nextValue) {
-          return;
-        }
-        updateWindowConfig({ moving: nextValue });
-      },
-      [docking, id, updateWindowConfig],
+      (nextValue: boolean) => registerWindowConfig(id, { moving: nextValue }),
+      [id, registerWindowConfig],
     );
 
     const handleDock = useCallback(
@@ -377,6 +354,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       registerWindowConfig(id, {
         id,
         visible,
+        windowInDOM,
         title,
         titleElement,
         dockable,
@@ -402,6 +380,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       registerWindowConfig,
       id,
       visible,
+      windowInDOM,
       title,
       titleElement,
       dockable,
@@ -411,18 +390,48 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       onTitleMouseDown,
     ]);
 
+    // A closed window must be positioned again before it is shown on the next open
     useEffect(() => {
-      if (visible && !windowInDOM) {
-        // Window should be in DOM when visible becomes true
-        setWindowInDOM(true);
-      } else if (!visible && windowInDOM) {
-        // Window should leave DOM when visible becomes false
-        setWindowInDOM(false);
+      if (!visible && windowVisible) {
         setWindowVisible(false);
       }
-    }, [visible, windowInDOM, setWindowInDOM, setWindowVisible]);
+    }, [visible, windowVisible, setWindowVisible]);
 
-    useEffect(() => {
+    // Save the floating position as the node leaves the DOM (close, or re-portal into a
+    // DockPanel). Ref cleanup runs while the node is still attached, so the measured rect is
+    // accurate and includes any drag translate.
+    const setWindowNode = useCallback(
+      (node: HTMLDivElement | null) => {
+        windowRef.current = node;
+        if (!node) {
+          return;
+        }
+        return () => {
+          windowRef.current = null;
+          if (isDockedRef.current) {
+            return;
+          }
+          const rect = node.getBoundingClientRect();
+          // Nothing laid out (e.g. never shown) - keep any previously saved position
+          if (rect.width === 0 && rect.height === 0) {
+            return;
+          }
+          dispatch({
+            type: "saveWindowPosition",
+            id,
+            rect: {
+              x: rect.left + window.scrollX,
+              y: rect.top + window.scrollY,
+              width: rect.width,
+              height: rect.height,
+            },
+          });
+        };
+      },
+      [dispatch, id],
+    );
+
+    useLayoutEffect(() => {
       if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
         // Position the window (a window opened straight into a DockPanel is laid out by the panel)
         if (!isDockedRef.current) {
@@ -459,7 +468,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           };
         }
 
-        // Bring to front and make visible - use startTransition
+        // Bring to front and make visible
         onOpen?.();
         dispatch({ type: "raiseWindow", id });
         setWindowVisible(true);
@@ -503,7 +512,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           createPortal(
             <div
               {...rest}
-              ref={windowRef}
+              ref={setWindowNode}
               id={id}
               className={classNames(
                 styles.contextWindow,

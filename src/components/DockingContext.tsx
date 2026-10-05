@@ -54,7 +54,7 @@ export const DockingProvider = ({
     [],
   );
 
-  const registerWindowConfig = useCallback((id: string, config: WindowConfig): void => {
+  const registerWindowConfig = useCallback((id: string, config: Partial<WindowConfig>): void => {
     dispatch({ type: "registerWindowConfig", id, config });
   }, []);
 

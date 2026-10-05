@@ -38,12 +38,13 @@ export type DockingAction =
   | { type: "toggleEdgeCollapse"; edge: DockEdge }
   | { type: "toggleAndRaiseEdge"; edge: DockEdge }
   | { type: "registerWindow"; id: string; zRange: WindowZRange }
-  | { type: "registerWindowConfig"; id: string; config: WindowConfig }
+  | { type: "registerWindowConfig"; id: string; config: Partial<WindowConfig> }
   | { type: "unregisterWindow"; id: string }
   | { type: "raiseWindow"; id: string }
   | { type: "startDockDrag"; id: string }
   | { type: "setDockDragEdge"; edge: DockEdge | null }
-  | { type: "endDockDrag"; id: string };
+  | { type: "endDockDrag"; id: string }
+  | { type: "saveWindowPosition"; id: string; rect: WindowRect };
 
 export const initialDockingState: DockingState = {
   dockedWindows: new Map(),

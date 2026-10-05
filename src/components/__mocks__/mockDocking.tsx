@@ -77,9 +77,9 @@ export const createMockDocking = (
   getActiveWindowOnEdge: (edge: DockEdge) => activeWindowsByEdge.get(edge) ?? null,
   getPanelContentHost: () => null,
   isEdgeCollapsed: (edge: DockEdge) => collapsedEdges.has(edge),
-  registerWindowConfig: (id: string, config: WindowConfig) => {
+  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => {
     const current = windowConfigs.get(id);
-    windowConfigs.set(id, current ? { ...current, ...config } : config);
+    windowConfigs.set(id, current ? { ...current, ...config } : { title: id, ...config });
     notify();
   },
   getWindowConfig: (id: string) => {
@@ -115,37 +115,3 @@ export const createMockDocking = (
   getPreDockRect: (id: string) => preDockRects.get(id) ?? null,
   ...overrides,
 });
-
-// interface MockDockingProviderProps {
-//   dockedWindows: Map<string, DockedWindow>;
-//   overrides?: Partial<DockingContextType>;
-//   children: ReactNode;
-// }
-
-/** * DO NOT USE THIS inline DockingContext.Provider in each test */
-/** * DO NOT UNCOMMENT THIS COMPONENT IN TESTS */
-// /** Hosts a mock docking context and re-renders its consumers whenever the mock state changes */
-// export const MockDockingProvider = ({
-//   dockedWindows,
-//   overrides,
-//   children,
-// }: MockDockingProviderProps): React.ReactElement => {
-//   const [, notify] = useReducer((version: number) => version + 1, 0);
-//   const [preDockRects] = useState<Map<string, WindowRect>>(() => new Map());
-//   const [collapsedEdges] = useState<Set<DockEdge>>(() => new Set());
-//   const [activeWindowsByEdge] = useState<Map<DockEdge, string>>(() => new Map());
-//   const [windowConfigs] = useState<Map<string, WindowConfig>>(() => new Map());
-//   const [windowActions] = useState<Map<string, WindowActions>>(() => new Map());
-//   const value = createMockDocking(
-//     dockedWindows,
-//     overrides,
-//     notify,
-//     preDockRects,
-//     collapsedEdges,
-//     activeWindowsByEdge,
-//     windowConfigs,
-//     windowActions,
-//   );
-
-//   return <DockingContext.Provider value={value}>{children}</DockingContext.Provider>;
-// };
