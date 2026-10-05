@@ -1,6 +1,7 @@
 import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
 import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { dockingReducer, initialDockingState } from "../reducer";
+import { DockPanel } from "./DockPanel";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import type {
   DockEdge,
@@ -138,6 +139,10 @@ export const DockingProvider = ({
   return (
     <DockingContext.Provider value={contextValue}>
       {children}
+      <DockPanel edge="top" />
+      <DockPanel edge="left" />
+      <DockPanel edge="right" />
+      <DockPanel edge="bottom" />
       {/* One shared overlay: only a single window can be dragged towards an edge at a time */}
       <DockZoneIndicator
         targetEdge={state.dragSnapEdge}

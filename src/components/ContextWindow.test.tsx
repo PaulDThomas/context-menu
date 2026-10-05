@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MIN_Z_INDEX } from "../functions";
 import { ContextWindow, ContextWindowHandle } from "./ContextWindow";
 import { DockPanel } from "./DockPanel";
-import { DockingContext } from "./DockingContext";
+import { DockingContext, DockingProvider } from "./DockingContext";
 import { createMockDocking } from "./__mocks__/mockDocking";
 import type { DockedWindow } from "./interface";
 
@@ -15,6 +15,26 @@ describe("Context window", () => {
       unobserve = jest.fn();
       disconnect = jest.fn();
     };
+  });
+
+  test("renders initially docked content in the provider's automatic panel", async () => {
+    render(
+      <DockingProvider>
+        <ContextWindow
+          id="automatic-panel-window"
+          title="Automatic Panel Window"
+          visible
+          dockable
+          initialDockEdge="right"
+        >
+          <span>Automatically docked content</span>
+        </ContextWindow>
+      </DockingProvider>,
+    );
+
+    const content = await screen.findByText("Automatically docked content");
+    expect(content.closest("[class*='dockPanelContent']")).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Pin right dock panel" })).toHaveLength(1);
   });
 
   test("Not there", async () => {

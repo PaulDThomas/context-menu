@@ -159,22 +159,17 @@ Pass a `ref` to control the window from code:
 
 ### Docking
 
-Wrap your layout in a `DockingProvider` and place a `DockPanel` for each edge you want to support. A `DockPanel` only renders while at least one window is docked to its edge, and is removed again when the last window leaves (undocked or closed).
+Wrap your layout in a `DockingProvider`. The provider automatically includes a `DockPanel` for each screen edge; do not add panels yourself. A panel only renders while at least one window is docked to its edge, and is removed again when the last window leaves (undocked or closed).
 
 ```tsx
 import { useRef } from "react";
-import { ContextWindow, DockingProvider, DockPanel } from "@asup/context-menu";
+import { ContextWindow, DockingProvider } from "@asup/context-menu";
 
 export function App(): React.ReactElement {
   const toolsRef = useRef<React.ComponentRef<typeof ContextWindow>>(null);
 
   return (
     <DockingProvider>
-      <DockPanel edge="top" />
-      <DockPanel edge="left" />
-      <DockPanel edge="right" />
-      <DockPanel edge="bottom" />
-
       {/* Floating, can be docked by dragging to an edge */}
       <ContextWindow
         id="notes"
@@ -256,7 +251,8 @@ Exported types: `DockEdge`, `DockingContextType`.
 
 ### Breaking changes in v3
 
-- `DockingProvider` now owns window stacking. Windows outside a provider keep a fixed z-index instead of being raised on click.
+- `DockingProvider` renders all four edge panels automatically. Remove explicit `DockPanel` elements from layouts inside the provider.
+- `DockingProvider` owns window stacking. Windows outside a provider keep a fixed z-index instead of being raised on click.
 - `StackDirection`, the `defaultStackDirection` prop and the third argument of `dock(id, edge, stackDirection)` have been removed; a panel's layout follows its edge.
 - The context no longer exposes `state`, `toggleCollapse`, `isCollapsed`, `setPanelZIndex` or `getWindowActivationCount`; use `isEdgeCollapsed`/`toggleEdgeCollapse` and the derived `getWindowZIndex`/`getPanelZIndex` instead.
 - `ContextWindowHandle.dock` takes a single `edge` argument.

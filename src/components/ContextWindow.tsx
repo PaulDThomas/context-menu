@@ -58,7 +58,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       children,
       onOpen,
       onClose,
-      dockable = false,
+      dockable = true,
       initialDockEdge,
       allowUndock = true,
       ...rest

@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { useContext } from "react";
 import { DockingContext, DockingProvider } from "./DockingContext";
 import type { DockEdge, DockingContextType, WindowRect, WindowZRange } from "./interface";
@@ -56,6 +56,30 @@ describe("DockingProvider", () => {
   const rect = { x: 10, y: 20, width: 300, height: 200 };
 
   describe("docking", () => {
+    test.each<DockEdge>(["top", "left", "right", "bottom"])(
+      "automatically renders the %s panel while a window is docked",
+      (edge) => {
+        expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+        expect(api.getPanelContentHost(edge)).toBeNull();
+
+        act(() => {
+          api.dock("automatic-panel", edge);
+        });
+
+        expect(
+          screen.getByRole("separator", { name: `Resize ${edge} dock panel` }),
+        ).toBeInTheDocument();
+        expect(api.getPanelContentHost(edge)).toBeInstanceOf(HTMLDivElement);
+
+        act(() => {
+          api.undock("automatic-panel");
+        });
+
+        expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+        expect(api.getPanelContentHost(edge)).toBeNull();
+      },
+    );
+
     test("dock adds windows to an edge in docking order and makes the newest active", () => {
       act(() => {
         api.dock("a", "left");

@@ -277,7 +277,6 @@ describe("DockPanel", () => {
       const result = render(
         <DockingProvider>
           <CaptureDocking />
-          <DockPanel edge="left" />
         </DockingProvider>,
       );
       act(() => {
@@ -455,8 +454,6 @@ describe("DockPanel", () => {
       const { container } = render(
         <DockingProvider>
           <CaptureDocking />
-          <DockPanel edge="left" />
-          <DockPanel edge="right" />
         </DockingProvider>,
       );
       expect(container.querySelector("[class*='dockPanel']")).toBeNull();
@@ -474,7 +471,6 @@ describe("DockPanel", () => {
       const { container, unmount } = render(
         <DockingProvider>
           <CaptureDocking />
-          <DockPanel edge="top" />
         </DockingProvider>,
       );
       expect(dockingApi!.getPanelContentHost?.("top")).toBeNull();
@@ -493,7 +489,6 @@ describe("DockPanel", () => {
       render(
         <DockingProvider>
           <CaptureDocking />
-          <DockPanel edge="bottom" />
         </DockingProvider>,
       );
       act(() => {
@@ -517,7 +512,6 @@ describe("DockPanel", () => {
       const { container } = render(
         <DockingProvider>
           <CaptureDocking />
-          <DockPanel edge="right" />
         </DockingProvider>,
       );
       act(() => dockingApi!.dock("window-a", "right"));

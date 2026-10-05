@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ReactNode, useRef, useState } from "react";
-import {
-  ContextWindow,
-  ContextWindowHandle,
-  DockingProvider,
-  DockPanel,
-  type DockEdge,
-} from "../src/components";
+import { ContextWindow, DockingProvider, type DockEdge } from "../src/components";
+import { ContextWindowHandle } from "../src/components/ContextWindow";
 
 const meta = {
   title: "Components/Docking",
@@ -76,16 +71,6 @@ export const KitchenSink: Story = {
               overflow: "hidden",
             }}
           >
-            {/* Top Panel */}
-            <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
-              <DockPanel edge="top" />
-            </div>
-
-            {/* Left Panel */}
-            <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
-              <DockPanel edge="left" />
-            </div>
-
             {/* Center Content Area */}
             <div
               style={{
@@ -357,16 +342,6 @@ export const KitchenSink: Story = {
                 </div>
               </div>
             </div>
-
-            {/* Right Panel */}
-            <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
-              <DockPanel edge="right" />
-            </div>
-
-            {/* Bottom Panel */}
-            <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
-              <DockPanel edge="bottom" />
-            </div>
           </div>
         </DockingProvider>
       );
@@ -395,16 +370,6 @@ export const SingleDockableWindow: Story = {
             overflow: "hidden",
           }}
         >
-          {/* Top Panel */}
-          <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
-            <DockPanel edge="top" />
-          </div>
-
-          {/* Left Panel */}
-          <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
-            <DockPanel edge="left" />
-          </div>
-
           {/* Center Content Area */}
           <div
             style={{
@@ -431,7 +396,7 @@ export const SingleDockableWindow: Story = {
                 <p>Try dragging this window near any screen edge (within 24px).</p>
                 <p>You&apos;ll see a blue highlight indicating where it will dock.</p>
                 <button
-                  onClick={() => windowRef.current?.dock("right", "vertical")}
+                  onClick={() => windowRef.current?.dock("right")}
                   style={{
                     padding: "10px 15px",
                     marginRight: "10px",
@@ -462,16 +427,6 @@ export const SingleDockableWindow: Story = {
               </div>
             </ContextWindow>
           </div>
-
-          {/* Right Panel */}
-          <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
-            <DockPanel edge="right" />
-          </div>
-
-          {/* Bottom Panel */}
-          <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
-            <DockPanel edge="bottom" />
-          </div>
         </div>
       </DockingProvider>
     );
@@ -490,7 +445,7 @@ export const MultipleDockedWindows: Story = {
     const toggleWindow = (id: string) => {
       setVisibleWindows((prev) => ({
         ...prev,
-        [id]: !prev[id],
+        [id]: !prev[id as keyof typeof prev],
       }));
     };
 
@@ -539,16 +494,6 @@ export const MultipleDockedWindows: Story = {
                 </label>
               ))}
             </div>
-          </div>
-
-          {/* Top Panel */}
-          <div style={{ gridColumn: "1 / 4", gridRow: 2, position: "relative" }}>
-            <DockPanel edge="top" />
-          </div>
-
-          {/* Left Panel */}
-          <div style={{ gridColumn: 1, gridRow: 3, position: "relative", overflow: "auto" }}>
-            <DockPanel edge="left" />
           </div>
 
           {/* Center Content Area */}
@@ -613,16 +558,6 @@ export const MultipleDockedWindows: Story = {
               </ContextWindow>
             )}
           </div>
-
-          {/* Right Panel */}
-          <div style={{ gridColumn: 3, gridRow: 3, position: "relative", overflow: "auto" }}>
-            <DockPanel edge="right" />
-          </div>
-
-          {/* Bottom Panel */}
-          <div style={{ gridColumn: "1 / 4", gridRow: 4, position: "relative" }}>
-            <DockPanel edge="bottom" />
-          </div>
         </div>
       </DockingProvider>
     );
@@ -643,12 +578,6 @@ const DockLayout = ({ children }: { children: ReactNode }) => (
         overflow: "hidden",
       }}
     >
-      <div style={{ gridColumn: "1 / 4", gridRow: 1, position: "relative" }}>
-        <DockPanel edge="top" />
-      </div>
-      <div style={{ gridColumn: 1, gridRow: 2, position: "relative", overflow: "auto" }}>
-        <DockPanel edge="left" />
-      </div>
       <div
         style={{
           gridColumn: 2,
@@ -659,12 +588,6 @@ const DockLayout = ({ children }: { children: ReactNode }) => (
         }}
       >
         {children}
-      </div>
-      <div style={{ gridColumn: 3, gridRow: 2, position: "relative", overflow: "auto" }}>
-        <DockPanel edge="right" />
-      </div>
-      <div style={{ gridColumn: "1 / 4", gridRow: 3, position: "relative" }}>
-        <DockPanel edge="bottom" />
       </div>
     </div>
   </DockingProvider>
@@ -724,12 +647,7 @@ export const LockedDockedWindow: Story = {
           {edges.map((edge) => (
             <button
               key={edge}
-              onClick={() =>
-                windowRef.current?.dock(
-                  edge,
-                  edge === "left" || edge === "right" ? "vertical" : "horizontal",
-                )
-              }
+              onClick={() => windowRef.current?.dock(edge)}
             >
               Move to {edge}
             </button>
