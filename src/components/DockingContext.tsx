@@ -1,7 +1,16 @@
-import { ReactNode, createContext, useCallback, useMemo, useReducer, useRef } from "react";
+import {
+  ReactNode,
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { dockingReducer, initialDockingState } from "../reducer";
-import { DockPanel } from "./DockPanel";
+import { DockPanel, type DockPanelSettings } from "./DockPanel";
 import { DockZoneIndicator } from "./DockZoneIndicator";
 import type {
   DockEdge,
@@ -13,6 +22,42 @@ import type {
 
 export const DockingContext = createContext<DockingContextType | undefined>(undefined);
 const noop = (): void => undefined;
+
+const PANEL_SETTINGS_KEY = "@asup/context-menu:dock-panels";
+const DOCK_EDGES: DockEdge[] = ["top", "left", "right", "bottom"];
+
+const readPanelSettings = (): Record<DockEdge, DockPanelSettings> => {
+  const settings: Record<DockEdge, DockPanelSettings> = {
+    top: { size: null, pushContent: false },
+    left: { size: null, pushContent: false },
+    right: { size: null, pushContent: false },
+    bottom: { size: null, pushContent: false },
+  };
+  if (typeof window === "undefined") {
+    return settings;
+  }
+
+  try {
+    const saved: unknown = JSON.parse(window.localStorage.getItem(PANEL_SETTINGS_KEY) ?? "null");
+    if (typeof saved !== "object" || saved === null || Array.isArray(saved)) {
+      return settings;
+    }
+    for (const edge of DOCK_EDGES) {
+      const panel: unknown = (saved as Record<string, unknown>)[edge];
+      if (typeof panel !== "object" || panel === null || Array.isArray(panel)) {
+        continue;
+      }
+      const { size, pushContent } = panel as Record<string, unknown>;
+      settings[edge] = {
+        size: typeof size === "number" && Number.isFinite(size) && size > 0 ? size : null,
+        pushContent: typeof pushContent === "boolean" ? pushContent : false,
+      };
+    }
+  } catch {
+    return settings;
+  }
+  return settings;
+};
 
 interface DockingProviderProps {
   children: ReactNode;
@@ -26,7 +71,30 @@ export const DockingProvider = ({
   maxZIndex = MAX_Z_INDEX,
 }: DockingProviderProps): React.ReactElement => {
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
+  const [panelSettings, setPanelSettings] = useState(readPanelSettings);
+  const savedPanelSettings = useRef(panelSettings);
   const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
+
+  const updatePanelSettings = useCallback((edge: DockEdge, settings: DockPanelSettings): void => {
+    setPanelSettings((previous) => {
+      const current = previous[edge];
+      return current.size === settings.size && current.pushContent === settings.pushContent
+        ? previous
+        : { ...previous, [edge]: settings };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (savedPanelSettings.current === panelSettings) {
+      return;
+    }
+    savedPanelSettings.current = panelSettings;
+    try {
+      window.localStorage.setItem(PANEL_SETTINGS_KEY, JSON.stringify(panelSettings));
+    } catch {
+      return;
+    }
+  }, [panelSettings]);
 
   const closeWindow = useCallback((id: string): void => {
     windowActions.current.get(id)?.onClose?.();
@@ -139,10 +207,14 @@ export const DockingProvider = ({
   return (
     <DockingContext.Provider value={contextValue}>
       {children}
-      <DockPanel edge="top" />
-      <DockPanel edge="left" />
-      <DockPanel edge="right" />
-      <DockPanel edge="bottom" />
+      {DOCK_EDGES.map((edge) => (
+        <DockPanel
+          key={edge}
+          edge={edge}
+          initialSettings={panelSettings[edge]}
+          onSettingsChange={updatePanelSettings}
+        />
+      ))}
       {/* One shared overlay: only a single window can be dragged towards an edge at a time */}
       <DockZoneIndicator
         targetEdge={state.dragSnapEdge}

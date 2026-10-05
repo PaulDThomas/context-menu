@@ -32,6 +32,10 @@ const withDispatchHelpers = (api: DockingContextType): DockingTestApi => ({
 });
 
 describe("DockPanel", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   test("does not render when no windows are docked on the target edge", () => {
     const contextValue: DockingContextType = {
       ...createMockDocking(new Map()),
@@ -449,6 +453,157 @@ describe("DockPanel", () => {
       jest.restoreAllMocks();
       dockingApi = undefined;
     });
+
+    test.each([
+      "not-json",
+      "null",
+      "[]",
+      JSON.stringify({ left: { size: -10, pushContent: "true" } }),
+      JSON.stringify({ left: { size: "240", pushContent: null } }),
+    ])("ignores invalid saved preferences: %s", (saved) => {
+      localStorage.setItem("@asup/context-menu:dock-panels", saved);
+      const writes = jest.spyOn(Storage.prototype, "setItem");
+      render(
+        <DockingProvider>
+          <CaptureDocking />
+        </DockingProvider>,
+      );
+      act(() => dockingApi!.dock("window-a", "left"));
+      expect(screen.getByRole("separator")).not.toHaveAttribute("aria-valuenow");
+      expect(
+        screen.getByRole("button", { name: "Push content with left dock panel" }),
+      ).toHaveAttribute("aria-pressed", "false");
+      expect(writes).not.toHaveBeenCalled();
+    });
+
+    test("clamps saved sizes and keeps valid preferences on other edges", () => {
+      localStorage.setItem(
+        "@asup/context-menu:dock-panels",
+        JSON.stringify({
+          left: { size: 99999, pushContent: false },
+          bottom: { size: 160, pushContent: true },
+          right: { size: null, pushContent: false },
+        }),
+      );
+      const { unmount } = render(
+        <DockingProvider>
+          <CaptureDocking />
+        </DockingProvider>,
+      );
+      act(() => {
+        dockingApi!.dock("window-a", "left");
+        dockingApi!.dock("window-b", "bottom");
+      });
+      expect(screen.getByRole("separator", { name: "Resize left dock panel" })).toHaveAttribute(
+        "aria-valuenow",
+        `${window.innerWidth - DOCK_PANEL_VIEWPORT_GAP}`,
+      );
+      expect(screen.getByRole("separator", { name: "Resize bottom dock panel" })).toHaveAttribute(
+        "aria-valuenow",
+        "160",
+      );
+      expect(
+        screen.getByRole("button", { name: "Push content with bottom dock panel" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      unmount();
+    });
+
+    test("panels remain usable when storage reads and writes are blocked", () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("Storage blocked");
+      });
+      const writes = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage blocked");
+      });
+      const { unmount } = render(
+        <DockingProvider>
+          <CaptureDocking />
+        </DockingProvider>,
+      );
+      act(() => dockingApi!.dock("window-a", "left"));
+      const toggle = screen.getByRole("button", { name: "Push content with left dock panel" });
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      expect(writes).toHaveBeenCalledTimes(1);
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      unmount();
+    });
+
+    test("saves a drag resize only when the drag finishes", () => {
+      jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        width: 240,
+        height: 160,
+      } as DOMRect);
+      const writes = jest.spyOn(Storage.prototype, "setItem");
+      render(
+        <DockingProvider>
+          <CaptureDocking />
+        </DockingProvider>,
+      );
+      act(() => dockingApi!.dock("window-a", "left"));
+      fireEvent.mouseDown(screen.getByRole("separator"), { button: 0, clientX: 100, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 150, clientY: 0 });
+      fireEvent.mouseMove(document, { clientX: 180, clientY: 0 });
+      expect(writes).not.toHaveBeenCalled();
+      fireEvent.mouseUp(document);
+      expect(writes).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(localStorage.getItem("@asup/context-menu:dock-panels")!).left).toEqual({
+        size: 320,
+        pushContent: false,
+      });
+    });
+
+    test.each<DockEdge>(["left", "right", "top", "bottom"])(
+      "restores %s panel size and push mode after the provider remounts",
+      (edge) => {
+        const storageKey = "@asup/context-menu:dock-panels";
+        const writes = jest.spyOn(Storage.prototype, "setItem");
+        jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+          width: 240,
+          height: 160,
+        } as DOMRect);
+        const mount = () =>
+          render(
+            <DockingProvider>
+              <CaptureDocking />
+            </DockingProvider>,
+          );
+        const first = mount();
+        expect(writes).not.toHaveBeenCalled();
+        act(() => dockingApi!.dock("window-a", edge));
+        expect(writes).not.toHaveBeenCalled();
+        fireEvent.click(
+          screen.getByRole("button", { name: `Push content with ${edge} dock panel` }),
+        );
+        const handle = screen.getByRole("separator");
+        const keys = {
+          left: "ArrowRight",
+          right: "ArrowLeft",
+          top: "ArrowDown",
+          bottom: "ArrowUp",
+        };
+        fireEvent.keyDown(handle, { key: keys[edge] });
+        const size = edge === "left" || edge === "right" ? 250 : 170;
+        expect(JSON.parse(localStorage.getItem(storageKey)!)[edge]).toEqual({
+          size,
+          pushContent: true,
+        });
+        const writeCount = writes.mock.calls.length;
+        act(() => dockingApi!.undock("window-a"));
+        expect(writes).toHaveBeenCalledTimes(writeCount);
+        first.unmount();
+
+        const second = mount();
+        act(() => dockingApi!.dock("window-b", edge));
+        expect(screen.getByRole("separator")).toHaveAttribute("aria-valuenow", `${size}`);
+        expect(
+          screen.getByRole("button", { name: `Push content with ${edge} dock panel` }),
+        ).toHaveAttribute("aria-pressed", "true");
+        expect(writes).toHaveBeenCalledTimes(writeCount);
+        second.unmount();
+      },
+    );
 
     test.each<DockEdge>(["left", "right", "top", "bottom"])(
       "%s panel toggles body spacing and restores it when emptied or unmounted",

@@ -220,6 +220,8 @@ export function App(): React.ReactElement {
 
 Each panel has a content area, filled by the active window, and a strip of tab buttons, one per window docked to that edge.
 
+`DockingProvider` loads each edge's size and push/cover preference from local storage on mount, using the key `@asup/context-menu:dock-panels`. Preferences are saved after drag resizing finishes, keyboard resizing, or toggling push/cover mode, and survive page reloads. Saved sizes are clamped to the current viewport. Missing, malformed, or blocked storage falls back to the default size and cover mode without disabling docking. Pin state and docked windows are not persisted.
+
 - **Tabs** – click a tab to show that window. The panel takes the z-index of its visible window, so panels and floating windows stack correctly.
 - **Resize** – drag the panel's inner edge (or focus it and use the arrow keys, Shift for larger steps) to change its size. The size is kept between 80px and the viewport size minus 40px, and is remembered while the panel is empty. Clicking the resize handle brings the panel to the front.
 - **Push / cover content** - the button beside pin toggles between covering the page (default) and reserving body padding for the panel. Reserved space follows resizing and is released while pinned or empty. The choice is remembered when windows dock again. Existing body padding is restored when push mode ends. Viewport-sized layouts can subtract the `--dock-panel-inset-top`, `--dock-panel-inset-right`, `--dock-panel-inset-bottom`, and `--dock-panel-inset-left` CSS variables (with a `0px` fallback) from their dimensions.

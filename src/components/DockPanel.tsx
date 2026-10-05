@@ -17,17 +17,28 @@ import type { DockEdge } from "./interface";
 
 export { DOCK_PANEL_AUTOHIDE_DISTANCE, DOCK_PANEL_MIN_SIZE, DOCK_PANEL_VIEWPORT_GAP };
 
-interface DockPanelProps {
-  edge: DockEdge;
+export interface DockPanelSettings {
+  size: number | null;
+  pushContent: boolean;
 }
 
-export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null => {
+interface DockPanelProps {
+  edge: DockEdge;
+  initialSettings?: DockPanelSettings;
+  onSettingsChange?: (edge: DockEdge, settings: DockPanelSettings) => void;
+}
+
+export const DockPanel = ({
+  edge,
+  initialSettings,
+  onSettingsChange,
+}: DockPanelProps): React.ReactElement | null => {
   const docking = useDocking();
   const dispatch = docking.dispatch;
   const windows = docking.getWindowsOnEdge(edge);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentHostRef = useRef<HTMLDivElement | null>(null);
-  const [pushContent, setPushContent] = useState(false);
+  const [pushContent, setPushContent] = useState(initialSettings?.pushContent ?? false);
   const getActiveWindowOnEdge = docking.getActiveWindowOnEdge;
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again
@@ -35,7 +46,14 @@ export const DockPanel = ({ edge }: DockPanelProps): React.ReactElement | null =
     edge,
     panelRef,
     () => dispatch({ type: "activateWindowOnEdge", edge }),
+    initialSettings?.size ?? null,
   );
+
+  useEffect(() => {
+    if (!isResizing) {
+      onSettingsChange?.(edge, { size: panelSize, pushContent });
+    }
+  }, [edge, isResizing, onSettingsChange, panelSize, pushContent]);
 
   useEffect(() => {
     dispatch({ type: "setPanelContentHost", edge, host: contentHostRef.current });

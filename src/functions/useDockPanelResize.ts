@@ -21,8 +21,11 @@ export const useDockPanelResize = (
   edge: DockEdge,
   panelRef: RefObject<HTMLElement | null>,
   onResizeStart: () => void,
+  initialSize: number | null = null,
 ): UseDockPanelResizeResult => {
-  const [panelSize, setPanelSize] = useState<number | null>(null);
+  const [panelSize, setPanelSize] = useState<number | null>(() =>
+    initialSize === null ? null : clampPanelSize(edge, initialSize),
+  );
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
 
