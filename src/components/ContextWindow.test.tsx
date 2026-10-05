@@ -190,6 +190,102 @@ describe("Context window", () => {
     expect(screen.queryByText("Window that is a test")).toBeInTheDocument();
   });
 
+  test("Reopening the same window restores its prior floating position", async () => {
+    const preDockRects = new Map([["restore-window", { x: 250, y: 300, width: 320, height: 180 }]]);
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      preDockRects,
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
+    const ToggleWindow = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible((v) => !v)}>Toggle Window</button>
+          <ContextWindow
+            id={"restore-window"}
+            visible={visible}
+            title={"Restore Window"}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <ToggleWindow />
+        </DockingContext.Provider>,
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle Window" }));
+    const windowAfter = document.getElementById("restore-window") as HTMLElement;
+    expect(windowAfter).toBeInTheDocument();
+    expect(windowAfter.style.left).toBe("250px");
+    expect(windowAfter.style.top).toBe("300px");
+  });
+
+  test("Opening a new window without saved position centers it on screen", async () => {
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      new Map(),
+      new Map(),
+    );
+
+    const ToggleWindow = (): React.ReactElement => {
+      const [visible, setVisible] = useState<boolean>(false);
+      return (
+        <>
+          <button onClick={() => setVisible((v) => !v)}>Open Window</button>
+          <ContextWindow
+            id={"center-window"}
+            visible={visible}
+            title={"Center Window"}
+            style={{ width: "300px", height: "200px" }}
+          >
+            <span>Body</span>
+          </ContextWindow>
+        </>
+      );
+    };
+
+    const user = userEvent.setup();
+    await act(async () => {
+      render(
+        <DockingContext.Provider value={mockDocking}>
+          <ToggleWindow />
+        </DockingContext.Provider>,
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Open Window" }));
+    const windowElement = document.getElementById("center-window") as HTMLElement;
+    expect(windowElement).toBeInTheDocument();
+
+    // Window should have a reasonable on-screen position, not at origin (0, 0)
+    const left = parseInt(windowElement.style.left, 10);
+    const top = parseInt(windowElement.style.top, 10);
+
+    // Should not be at (0, 0) and should be positive (on-screen in viewport)
+    expect(left).toBeGreaterThanOrEqual(16);
+    expect(top).toBeGreaterThanOrEqual(16);
+  });
+
   test("Reopening the same window does not unnecessarily increment z-index", async () => {
     const mockDocking = createMockDocking(
       new Map(),

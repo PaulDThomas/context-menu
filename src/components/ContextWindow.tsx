@@ -426,25 +426,37 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
         // Position the window (a window opened straight into a DockPanel is laid out by the panel)
         if (!isDockedRef.current) {
-          const parentPos = divRef.current.getBoundingClientRect();
-          const pos = windowRef.current.getBoundingClientRect();
-          const windowHeight = pos.bottom - pos.top;
-          windowRef.current.style.left = `${parentPos.left}px`;
-          windowRef.current.style.top = `${
-            parentPos.bottom + windowHeight < window.innerHeight
-              ? parentPos.bottom
-              : Math.max(0, parentPos.top - windowHeight)
-          }px`;
+          const savedRect = docking.getPreDockRect(id);
+          let left: number;
+          let top: number;
+          const width = savedRect?.width ?? windowRef.current.offsetWidth ?? 300;
+          const height = savedRect?.height ?? windowRef.current.offsetHeight ?? 200;
+
+          if (savedRect) {
+            // Restore previously saved floating position
+            left = savedRect.x;
+            top = savedRect.y;
+          } else {
+            // Center on screen when no saved position
+            left = Math.max(16, (window.innerWidth - width) / 2) + window.scrollX;
+            top = Math.max(16, (window.innerHeight - height) / 2) + window.scrollY;
+          }
+
+          windowRef.current.style.left = `${left}px`;
+          windowRef.current.style.top = `${top}px`;
+          if (savedRect?.width !== undefined) {
+            windowRef.current.style.width = `${savedRect.width}px`;
+          }
+          if (savedRect?.height !== undefined) {
+            windowRef.current.style.height = `${savedRect.height}px`;
+          }
           windowRef.current.style.transform = "";
           const checkedPosition = chkPosition(windowRef);
           windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
-          /* istanbul ignore else */
-          if (windowPos && windowPos.current) {
-            windowPos.current = {
-              x: checkedPosition.translateX,
-              y: checkedPosition.translateY,
-            };
-          }
+          windowPos.current = {
+            x: checkedPosition.translateX,
+            y: checkedPosition.translateY,
+          };
         }
 
         // Bring to front and make visible - use startTransition
@@ -452,7 +464,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         dispatch({ type: "raiseWindow", id });
         setWindowVisible(true);
       }
-    }, [dispatch, id, onOpen, setWindowVisible, visible, windowInDOM, windowVisible]);
+    }, [docking, dispatch, id, onOpen, setWindowVisible, visible, windowInDOM, windowVisible]);
 
     // When CSS resize handle is used, defer checkPosition until resize interaction ends.
     useEffect(() => {
