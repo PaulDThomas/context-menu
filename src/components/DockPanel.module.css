@@ -1,3 +1,12 @@
+.dockPanel[data-dock-target]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(79, 172, 254, 0.3);
+  border: 3px solid rgba(79, 172, 254, 0.8);
+}
+
 .dockPanel {
   position: fixed;
   background-color: rgb(240, 240, 240);

@@ -106,7 +106,30 @@ export const useContextWindowDrag = ({
       }
 
       if (!isDockedRef.current && dockable) {
-        const snapEdge = detectSnapEdge(e.clientX, e.clientY, targetSnapEdgeRef.current);
+        let topPanel: HTMLElement | null = null;
+        let topZ = -Infinity;
+        const panels = document.querySelectorAll<HTMLElement>("[data-dock-panel-edge]");
+        for (const panel of panels) {
+          const r = panel.getBoundingClientRect();
+          const isOver =
+            e.clientX >= r.left &&
+            e.clientX <= r.right &&
+            e.clientY >= r.top &&
+            e.clientY <= r.bottom;
+          // Equal z-index: the later panel in the DOM paints on top
+          const z = parseInt(getComputedStyle(panel).zIndex, 10) || 0;
+          if (isOver && z >= topZ) {
+            topPanel = panel;
+            topZ = z;
+          }
+        }
+        for (const panel of panels) {
+          panel.toggleAttribute("data-dock-target", panel === topPanel);
+        }
+        const panelEdge = (topPanel as HTMLElement | null)?.dataset.dockPanelEdge as
+          DockEdge | undefined;
+        const snapEdge =
+          panelEdge ?? detectSnapEdge(e.clientX, e.clientY, targetSnapEdgeRef.current);
         targetSnapEdgeRef.current = snapEdge;
         dispatch({ type: "setDockDragEdge", edge: snapEdge });
       }
@@ -133,6 +156,9 @@ export const useContextWindowDrag = ({
       setMoving(false);
       isInInteractionRef.current = false;
       dispatch({ type: "setDockDragEdge", edge: null });
+      document
+        .querySelectorAll("[data-dock-target]")
+        .forEach((panel) => panel.removeAttribute("data-dock-target"));
     },
     onInteractionEnd: () => {
       if (!isInInteractionRef.current || interactionProcessedRef.current) {

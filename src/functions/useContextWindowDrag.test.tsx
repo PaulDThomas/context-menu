@@ -106,6 +106,71 @@ describe("useContextWindowDrag", () => {
     );
   });
 
+  test("docks into a dock panel under the pointer and ignores panels the pointer is outside", () => {
+    const handleDock = jest.fn();
+    const makePanel = (edge: string, rect: Partial<DOMRect>) => {
+      const panel = document.createElement("div");
+      panel.dataset.dockPanelEdge = edge;
+      panel.getBoundingClientRect = () =>
+        ({ left: 0, right: 0, top: 0, bottom: 0, ...rect }) as DOMRect;
+      document.body.appendChild(panel);
+      return panel;
+    };
+    const farPanel = makePanel("top", { left: 0, right: 50, top: 0, bottom: 50 });
+    const panel = makePanel("right", { left: 400, right: 600, top: 100, bottom: 500 });
+
+    render(
+      <TestHarness
+        dispatch={jest.fn()}
+        handleDock={handleDock}
+        handleUndock={jest.fn()}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByText("Window title"));
+    fireEvent.mouseMove(document, { clientX: 500, clientY: 300, movementX: 1, movementY: 0 });
+    expect(panel).toHaveAttribute("data-dock-target");
+    expect(farPanel).not.toHaveAttribute("data-dock-target");
+    fireEvent.mouseUp(document);
+    expect(panel).not.toHaveAttribute("data-dock-target");
+    expect(handleDock).toHaveBeenCalledWith("right");
+    farPanel.remove();
+    panel.remove();
+  });
+
+  test("prefers the overlapping dock panel with the higher z-index", () => {
+    const handleDock = jest.fn();
+    const rect = { left: 0, right: 100, top: 0, bottom: 100 } as DOMRect;
+    const makePanel = (edge: string, zIndex: string) => {
+      const panel = document.createElement("div");
+      panel.dataset.dockPanelEdge = edge;
+      panel.style.zIndex = zIndex;
+      panel.getBoundingClientRect = () => rect;
+      document.body.appendChild(panel);
+      return panel;
+    };
+    const high = makePanel("left", "5");
+    const low = makePanel("bottom", "2");
+
+    render(
+      <TestHarness
+        dispatch={jest.fn()}
+        handleDock={handleDock}
+        handleUndock={jest.fn()}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByText("Window title"));
+    fireEvent.mouseMove(document, { clientX: 50, clientY: 50, movementX: 1, movementY: 0 });
+    expect(high).toHaveAttribute("data-dock-target");
+    expect(low).not.toHaveAttribute("data-dock-target");
+    fireEvent.mouseUp(document);
+
+    expect(handleDock).toHaveBeenCalledWith("left");
+    high.remove();
+    low.remove();
+  });
+
   test("calls the undock API with the pointer when dragging away from a dock edge", () => {
     const dispatch: Dispatch<DockingAction> = jest.fn();
     const handleUndock = jest.fn();

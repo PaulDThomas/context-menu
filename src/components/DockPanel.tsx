@@ -122,6 +122,7 @@ export const DockPanel = ({
   return (
     <div
       ref={panelRef}
+      data-dock-panel-edge={edge}
       className={classNames(
         styles.dockPanel,
         styles[`edge-${edge}`],
