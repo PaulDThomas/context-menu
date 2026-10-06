@@ -91,6 +91,28 @@ describe("DockPanel", () => {
     });
   });
 
+  test("uses the first docked window when the edge has no active selection", () => {
+    const windows = [
+      buildDockedWindow("window-a", "right", 0),
+      buildDockedWindow("window-b", "right", 1),
+    ];
+    const contextValue: DockingContextType = {
+      ...createMockDocking(new Map()),
+      getActiveWindowOnEdge: () => null,
+      getDockedWindow: (id) => windows.find((window) => window.id === id),
+      getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+    };
+
+    render(
+      <DockingContext.Provider value={contextValue}>
+        <DockPanel edge="right" />
+      </DockingContext.Provider>,
+    );
+
+    expect(screen.getByRole("button", { name: "window-a" })).toHaveClass("activeDockTabButton");
+    expect(screen.getByRole("button", { name: "window-b" })).not.toHaveClass("activeDockTabButton");
+  });
+
   test.each([
     ["left", "M1 4h6v8", "L13 8"],
     ["right", "M9 4h6v8", "L3 8"],
@@ -771,6 +793,42 @@ describe("DockPanel", () => {
 
       act(() => dockingApi!.dock("window-b", "right"));
       expect((container.firstElementChild as HTMLElement).style.width).toBe(size);
+    });
+
+    test("observes a pushed panel and disconnects on unmount", () => {
+      const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
+      const observe = jest.fn();
+      const disconnect = jest.fn();
+      class MockResizeObserver {
+        constructor(_callback: ResizeObserverCallback) {}
+        observe = observe;
+        disconnect = disconnect;
+        unobserve = jest.fn();
+      }
+      Object.defineProperty(globalThis, "ResizeObserver", {
+        configurable: true,
+        value: MockResizeObserver,
+      });
+
+      try {
+        const { unmount } = render(
+          <DockingProvider>
+            <CaptureDocking />
+          </DockingProvider>,
+        );
+        act(() => dockingApi!.dock("window-a", "left"));
+        fireEvent.click(screen.getByRole("button", { name: "Push content with left dock panel" }));
+        expect(observe).toHaveBeenCalledWith(expect.any(HTMLElement));
+
+        unmount();
+        expect(disconnect).toHaveBeenCalled();
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(globalThis, "ResizeObserver", originalDescriptor);
+        } else {
+          Reflect.deleteProperty(globalThis, "ResizeObserver");
+        }
+      }
     });
   });
 

@@ -223,9 +223,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       [allowUndock, dispatch, id, isDocked],
     );
     useEffect(() => {
-      if (!docking) {
-        return;
-      }
       docking.registerWindowActions(id, {
         onClose,
         onUndock: () => handleUndock(),
@@ -389,6 +386,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const setWindowNode = useCallback(
       (node: HTMLDivElement | null) => {
         windowRef.current = node;
+        /* istanbul ignore next: React 19 uses this ref's returned cleanup on detach. */
         if (!node) {
           return;
         }

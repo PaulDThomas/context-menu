@@ -36,6 +36,22 @@ describe("detectSnapEdge", () => {
     expect(result).toBeNull();
   });
 
+  test.each([
+    ["right", window.innerWidth - SNAP_HYSTERESIS + 1, 100],
+    ["top", 100, SNAP_HYSTERESIS - 1],
+    ["bottom", 100, window.innerHeight - SNAP_HYSTERESIS + 1],
+  ] as const)("maintains a %s snap inside the hysteresis threshold", (edge, x, y) => {
+    expect(detectSnapEdge(x, y, edge)).toBe(edge);
+  });
+
+  test.each([
+    ["right", window.innerWidth - SNAP_HYSTERESIS - 1, 100],
+    ["top", 100, SNAP_HYSTERESIS + 1],
+    ["bottom", 100, window.innerHeight - SNAP_HYSTERESIS - 1],
+  ] as const)("clears a %s snap beyond the hysteresis threshold", (edge, x, y) => {
+    expect(detectSnapEdge(x, y, edge)).toBeNull();
+  });
+
   test("requires tighter threshold to snap when not already snapped", () => {
     const result = detectSnapEdge(SNAP_THRESHOLD + 5, 100, null);
     expect(result).toBeNull();

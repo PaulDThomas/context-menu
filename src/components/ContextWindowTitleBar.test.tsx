@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMockDocking } from "./__mocks__/mockDocking";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
@@ -267,6 +267,30 @@ describe("ContextWindowTitleBar", () => {
     const undock = screen.getByTestId("mock-title-button-Undock");
     expect(undock).toHaveAttribute("data-class-name", "undockButton");
     expect(undock).toHaveAttribute("data-title", "Undock My window");
+  });
+
+  test("uses no-op handlers when dock and undock callbacks are absent", () => {
+    const windowConfigs = new Map([["test-window", { title: "", canDock: true, canUndock: true }]]);
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      windowConfigs,
+    );
+
+    render(
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindowTitleBar id="test-window" />
+      </DockingContext.Provider>,
+    );
+
+    expect(() => {
+      fireEvent.click(screen.getByTestId("mock-title-button-Dock"));
+      fireEvent.click(screen.getByTestId("mock-title-button-Undock"));
+    }).not.toThrow();
   });
 
   test("Calls onMouseDown handler when title bar is clicked", async () => {

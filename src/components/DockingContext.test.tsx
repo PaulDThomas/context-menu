@@ -53,6 +53,16 @@ describe("DockingProvider", () => {
     );
   });
 
+  test("supplies callable no-op actions for a missing window config", () => {
+    const config = api.getWindowConfig("");
+
+    expect(config.title).toBe("window");
+    expect(() => {
+      config.onDock?.();
+      config.onUndock?.();
+    }).not.toThrow();
+  });
+
   const ids = (edge: DockEdge) => api.getWindowsOnEdge(edge).map((w) => w.id);
   const rect = { x: 10, y: 20, width: 300, height: 200 };
 
@@ -108,6 +118,13 @@ describe("DockingProvider", () => {
       fireEvent.click(screen.getByText("Outer action"));
       expect(api.getActiveWindowOnEdge("left")).toBe("outer-window");
       expect(outerCapture).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        api.setActiveWindowOnEdge("left", "inner-window");
+      });
+      fireEvent.click(screen.getByText("Outer action"));
+      expect(api.getActiveWindowOnEdge("left")).toBe("outer-window");
+      expect(outerCapture).toHaveBeenCalledTimes(3);
     });
 
     test.each<DockEdge>(["top", "left", "right", "bottom"])(

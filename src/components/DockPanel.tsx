@@ -108,11 +108,7 @@ export const DockPanel = ({
     return null;
   }
 
-  const activeWindowId =
-    getActiveWindowOnEdge(edge) ??
-    windows[0]?.id ??
-    // istanbul ignore next
-    null;
+  const activeWindowId = getActiveWindowOnEdge(edge) ?? windows[0].id;
   // Panels stack with floating windows using the z-index of their visible (active) window
   const panelZIndex = docking.getPanelZIndex(edge) ?? undefined;
   const horizontal = isHorizontalEdge(edge);
