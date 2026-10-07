@@ -128,8 +128,29 @@ describe("ContextWindowTitleBar", () => {
     expect(bar).not.toHaveClass("moving");
   });
 
-  test("Always renders the close button", () => {
+  test("Doesn't render the close button when canClose is false", () => {
     const windowConfig: WindowConfig = { title: "My window" };
+    const windowConfigs = new Map([["test-window", windowConfig]]);
+    const mockDocking = createMockDocking(
+      new Map(),
+      {},
+      () => {},
+      new Map(),
+      new Set(),
+      new Map(),
+      windowConfigs,
+    );
+
+    render(
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindowTitleBar id="test-window" />
+      </DockingContext.Provider>,
+    );
+    expect(screen.queryByTestId("mock-title-button-Close")).not.toBeInTheDocument();
+  });
+
+  test("Renders the close button when canClose is true", () => {
+    const windowConfig: WindowConfig = { title: "My window", canClose: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -152,7 +173,7 @@ describe("ContextWindowTitleBar", () => {
   });
 
   test("Uses 'window' in button title when the title is empty", () => {
-    const windowConfig: WindowConfig = { title: "" };
+    const windowConfig: WindowConfig = { title: "", canClose: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -174,7 +195,7 @@ describe("ContextWindowTitleBar", () => {
   });
 
   test("Uses 'window' in button title when the title is whitespace", () => {
-    const windowConfig: WindowConfig = { title: "   " };
+    const windowConfig: WindowConfig = { title: "   ", canClose: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -197,7 +218,7 @@ describe("ContextWindowTitleBar", () => {
 
   test("Calls closeWindow on context when close button is clicked", async () => {
     const user = userEvent.setup();
-    const windowConfig: WindowConfig = { title: "My window" };
+    const windowConfig: WindowConfig = { title: "My window", canClose: true, onClose: jest.fn() };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -339,9 +360,5 @@ describe("ContextWindowTitleBar", () => {
 
     expect(screen.getByText("nonexistent-window")).toHaveClass("contextWindowTitleText");
     expect(screen.getByTitle("nonexistent-window")).toBeInTheDocument();
-    expect(screen.getByTestId("mock-title-button-Close")).toHaveAttribute(
-      "data-title",
-      "Close nonexistent-window",
-    );
   });
 });

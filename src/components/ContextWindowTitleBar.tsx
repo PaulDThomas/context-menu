@@ -11,7 +11,17 @@ interface ContextWindowTitleBarProps {
 export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React.ReactElement => {
   const docking = useDocking();
   const config = docking.getWindowConfig(id);
-  const { onMouseDown, moving, title, titleElement, onDock, onUndock, canDock, canUndock } = config;
+  const {
+    onMouseDown,
+    moving,
+    title,
+    titleElement,
+    onDock,
+    onUndock,
+    canDock,
+    canUndock,
+    canClose,
+  } = config;
   const windowLabel = title && title.trim() !== "" ? title : "window";
   const undockDisabled = config.allowUndock === false && !!docking.getDockedWindow(id);
 
@@ -50,14 +60,16 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           <UndockIcon size={14} />
         </ContextWindowTitleButton>
       )}
-      <ContextWindowTitleButton
-        className={styles.contextWindowTitleClose}
-        label="Close"
-        title={`Close ${windowLabel}`}
-        onClick={() => docking.closeWindow(id)}
-      >
-        <CloseIcon />
-      </ContextWindowTitleButton>
+      {canClose && (
+        <ContextWindowTitleButton
+          className={styles.contextWindowTitleClose}
+          label="Close"
+          title={`Close ${windowLabel}`}
+          onClick={() => docking.closeWindow(id)}
+        >
+          <CloseIcon />
+        </ContextWindowTitleButton>
+      )}
     </div>
   );
 };

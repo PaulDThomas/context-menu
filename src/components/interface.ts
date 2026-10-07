@@ -38,6 +38,7 @@ export interface WindowZRange {
 export interface WindowConfig {
   className?: string;
   allowUndock?: boolean;
+  canClose?: boolean;
   canDock?: boolean;
   canUndock?: boolean;
   children?: React.ReactNode;

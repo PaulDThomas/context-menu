@@ -481,7 +481,6 @@ export const MultipleDockedWindows: Story = {
                 { id: "w1", label: "Window 1" },
                 { id: "w2", label: "Window 2" },
                 { id: "w3", label: "Window 3" },
-                { id: "w4", label: "Window 4" },
               ].map(({ id, label }) => (
                 <label
                   key={id}
@@ -553,7 +552,6 @@ export const MultipleDockedWindows: Story = {
                 visible={true}
                 title="Window 4 (Top)"
                 dockable={true}
-                onClose={() => toggleWindow("w4")}
                 style={{ width: "300px", minHeight: "150px" }}
               >
                 <div style={{ padding: "10px", fontSize: "12px" }}>Window 4 Content</div>

@@ -343,6 +343,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         initialDockEdge,
         allowUndock,
         onMouseDown: onTitleMouseDown,
+        canClose: onClose !== undefined,
         canDock: dockable && !isDocked,
         canUndock: dockable && isDocked && allowUndock,
         onDock: () => {
@@ -368,6 +369,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       initialDockEdge,
       allowUndock,
       isDocked,
+      onClose,
       onTitleMouseDown,
       handleDock,
       handleUndock,
