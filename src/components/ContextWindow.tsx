@@ -9,9 +9,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  checkPosition,
   chkPosition,
   classNames,
-  fitToViewport,
   useContextWindowDrag,
   useDocking,
 } from "../functions";
@@ -233,12 +233,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       return () => docking.unregisterWindowActions(id);
     }, [docking, handleUndock, id, onClose]);
 
-    const checkPosition = useCallback(() => {
-      const chkPos = chkPosition(windowRef);
-      move(chkPos.translateX, chkPos.translateY);
-      fitToViewport(windowRef.current);
-    }, [move]);
-
     const { onTitleMouseDown, armInteractionEnd, lastMousePosRef } = useContextWindowDrag({
       id,
       dockable,
@@ -254,7 +248,6 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       move,
       setMoving,
       setWindowVisible,
-      checkPosition,
       handleDock,
       handleUndock,
     });
@@ -270,7 +263,8 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       [dispatch, id, handleDock, handleUndock],
     );
 
-    // Apply restored floating position to the newly mounted (re-portaled) window node after undock
+    // Undocking re-portals the node, so correct it in a layout effect after restored styles apply
+    // and before paint instead of checking inside handleUndock, when the floating node may not exist.
     useLayoutEffect(() => {
       const pending = pendingFloatingStyleRef.current;
       if (isDocked || !pending || !windowRef.current) {
@@ -310,7 +304,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       if (undockViaActionRef.current) {
         undockViaActionRef.current = false;
         // Keep the window on-screen if the viewport changed while it was docked
-        checkPosition();
+        checkPosition(windowRef, move);
       }
     });
 
@@ -451,6 +445,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
             windowRef.current.style.height = `${savedRect.height}px`;
           }
           windowRef.current.style.transform = "";
+          // Seed the opening transform directly; checkPosition is reserved for completed transitions.
           const checkedPosition = chkPosition(windowRef);
           windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
           windowPos.current = {

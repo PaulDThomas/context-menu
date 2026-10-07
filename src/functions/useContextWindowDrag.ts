@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DockEdge } from "../components/interface";
 import type { DockingAction } from "../reducer";
+import { checkPosition } from "./checkPosition";
 import { detectSnapEdge } from "./detectSnapEdge";
 import { useMouseMove } from "./useMouseMove";
 
@@ -15,13 +16,12 @@ interface UseContextWindowDragProps {
   windowVisible: boolean;
   moving: boolean;
   windowRef: React.RefObject<HTMLDivElement | null>;
-  windowPosRef: React.MutableRefObject<{ x: number; y: number }>;
-  isDockedRef: React.MutableRefObject<boolean>;
+  windowPosRef: React.RefObject<{ x: number; y: number }>;
+  isDockedRef: React.RefObject<boolean>;
   dispatch: React.Dispatch<DockingAction>;
   move: (x: number, y: number) => void;
   setMoving: (nextValue: boolean) => void;
   setWindowVisible: (nextValue: boolean) => void;
-  checkPosition: () => void;
   handleDock: (edge: DockEdge) => void;
   handleUndock: (pointer?: { x: number; y: number }) => void;
 }
@@ -29,7 +29,7 @@ interface UseContextWindowDragProps {
 interface UseContextWindowDragResult {
   onTitleMouseDown: (e: React.MouseEvent<HTMLElement>) => void;
   armInteractionEnd: () => void;
-  lastMousePosRef: React.MutableRefObject<{ x: number; y: number }>;
+  lastMousePosRef: React.RefObject<{ x: number; y: number }>;
 }
 
 const parseTranslate = (transform?: string): { x: number; y: number } => {
@@ -58,7 +58,6 @@ export const useContextWindowDrag = ({
   move,
   setMoving,
   setWindowVisible,
-  checkPosition,
   handleDock,
   handleUndock,
 }: UseContextWindowDragProps): UseContextWindowDragResult => {
@@ -66,6 +65,7 @@ export const useContextWindowDrag = ({
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const interactionProcessedRef = useRef<boolean>(false);
   const isInInteractionRef = useRef<boolean>(false);
+  const hasMovedRef = useRef<boolean>(false);
 
   const handleDockRef = useRef(handleDock);
   useLayoutEffect(() => {
@@ -81,6 +81,7 @@ export const useContextWindowDrag = ({
     onMouseDown: () => {
       interactionProcessedRef.current = false;
       isInInteractionRef.current = true;
+      hasMovedRef.current = false;
       windowPosRef.current = parseTranslate(windowRef.current?.style.transform);
       setMoving(true);
       dispatch({ type: "startDockDrag", id });
@@ -91,6 +92,7 @@ export const useContextWindowDrag = ({
       dispatch({ type: "raiseWindow", id });
     },
     onMouseMove: (e: MouseEvent) => {
+      hasMovedRef.current = true;
       lastMousePosRef.current = { x: e.clientX, y: e.clientY };
 
       if (!windowVisible && windowRef.current) {
@@ -176,13 +178,15 @@ export const useContextWindowDrag = ({
       dispatch({ type: "endDockDrag", id });
       targetSnapEdgeRef.current = null;
       isInInteractionRef.current = false;
-      if (!isDocking && !isDockedNow) {
-        checkPosition();
+      const shouldCheckPosition = !isDocking && !isDockedNow && hasMovedRef.current;
+      hasMovedRef.current = false;
+      if (shouldCheckPosition) {
+        checkPosition(windowRef, move);
       }
     },
     interactionEndEnabled: windowVisible,
     onViewportResize: () => {
-      checkPosition();
+      checkPosition(windowRef, move);
     },
     viewportResizeEnabled: windowVisible,
   });

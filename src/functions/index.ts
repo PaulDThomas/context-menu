@@ -1,4 +1,5 @@
 export { calculateUndockPosition } from "./calculateUndockPosition";
+export { checkPosition } from "./checkPosition";
 export { chkPosition } from "./chkPosition";
 export { clampPanelSize } from "./clampPanelSize";
 export { clampUndockPosition } from "./clampUndockPosition";

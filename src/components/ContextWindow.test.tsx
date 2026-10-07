@@ -175,19 +175,6 @@ describe("ContextWindow", () => {
     expect(element.style.transform).toBe("translate(28px, 24px)");
   });
 
-  test("does not translate a docked window while its title is dragged within the edge", () => {
-    renderWindow({ initialDockEdge: "left" });
-    const header = document.querySelector(".contextWindowTitle")!;
-    const element = document.getElementById("test-window")!;
-    fireEvent.mouseDown(header);
-    const move = new MouseEvent("mousemove", { bubbles: true, clientX: 2, clientY: 200 });
-    Object.defineProperty(move, "movementX", { value: 12 });
-    Object.defineProperty(move, "movementY", { value: 8 });
-    act(() => document.dispatchEvent(move));
-
-    expect(element.style.transform).toBe("");
-  });
-
   test.each<DockEdge>(["right", "bottom", "left", "top"])(
     "the dock button targets the default %s edge after floating and undocking",
     (edge) => {

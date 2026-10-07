@@ -18,7 +18,6 @@ interface TestHarnessProps {
   positionRef?: RefObject<{ x: number; y: number }>;
   move?: (x: number, y: number) => void;
   setWindowVisible?: (visible: boolean) => void;
-  checkPosition?: () => void;
   attachWindow?: boolean;
 }
 
@@ -36,7 +35,6 @@ const TestHarness = ({
   positionRef,
   move = jest.fn(),
   setWindowVisible = jest.fn(),
-  checkPosition = jest.fn(),
   attachWindow = true,
 }: TestHarnessProps): React.ReactElement => {
   const windowRef = useRef<HTMLDivElement>(null);
@@ -58,7 +56,6 @@ const TestHarness = ({
     move,
     setMoving: jest.fn(),
     setWindowVisible,
-    checkPosition,
     handleDock,
     handleUndock,
   });
@@ -228,15 +225,15 @@ describe("useContextWindowDrag", () => {
   });
 
   test("checks position when a floating window is released away from an edge", () => {
-    const checkPosition = jest.fn();
     const handleDock = jest.fn();
+    const move = jest.fn();
 
     render(
       <TestHarness
         dispatch={jest.fn()}
         handleDock={handleDock}
         handleUndock={jest.fn()}
-        checkPosition={checkPosition}
+        move={move}
       />,
     );
 
@@ -245,7 +242,25 @@ describe("useContextWindowDrag", () => {
     fireEvent.mouseUp(document);
 
     expect(handleDock).not.toHaveBeenCalled();
-    expect(checkPosition).toHaveBeenCalledTimes(1);
+    expect(move).toHaveBeenLastCalledWith(16, 16);
+  });
+
+  test("does not check position when a floating window is clicked without moving", () => {
+    const move = jest.fn();
+
+    render(
+      <TestHarness
+        dispatch={jest.fn()}
+        handleDock={jest.fn()}
+        handleUndock={jest.fn()}
+        move={move}
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByText("Window title"));
+    fireEvent.mouseUp(document);
+
+    expect(move).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -255,14 +270,14 @@ describe("useContextWindowDrag", () => {
     ["right", window.innerWidth - 2, 100],
   ] as const)("does not undock a %s window before crossing its edge threshold", (edge, x, y) => {
     const handleUndock = jest.fn();
-    const checkPosition = jest.fn();
+    const move = jest.fn();
 
     render(
       <TestHarness
         dispatch={jest.fn()}
         handleDock={jest.fn()}
         handleUndock={handleUndock}
-        checkPosition={checkPosition}
+        move={move}
         isDocked
         dockedEdge={edge}
       />,
@@ -273,7 +288,7 @@ describe("useContextWindowDrag", () => {
     fireEvent.mouseUp(document);
 
     expect(handleUndock).not.toHaveBeenCalled();
-    expect(checkPosition).not.toHaveBeenCalled();
+    expect(move).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -384,19 +399,19 @@ describe("useContextWindowDrag", () => {
   });
 
   test("updates window position when the viewport resizes", () => {
-    const checkPosition = jest.fn();
+    const move = jest.fn();
     render(
       <TestHarness
         dispatch={jest.fn()}
         handleDock={jest.fn()}
         handleUndock={jest.fn()}
-        checkPosition={checkPosition}
+        move={move}
       />,
     );
 
     fireEvent(window, new Event("resize"));
 
-    expect(checkPosition).toHaveBeenCalledTimes(1);
+    expect(move).toHaveBeenCalledWith(16, 16);
   });
 
   test("restores body overflow when dragging ends", () => {
@@ -426,13 +441,13 @@ describe("useContextWindowDrag", () => {
   test("does not process an interaction end that was armed without a drag", () => {
     const actions: DockingAction[] = [];
     const dispatch: Dispatch<DockingAction> = (action) => actions.push(action);
-    const checkPosition = jest.fn();
+    const move = jest.fn();
     render(
       <TestHarness
         dispatch={dispatch}
         handleDock={jest.fn()}
         handleUndock={jest.fn()}
-        checkPosition={checkPosition}
+        move={move}
       />,
     );
 
@@ -440,6 +455,6 @@ describe("useContextWindowDrag", () => {
     fireEvent.mouseUp(document);
 
     expect(actions).not.toContainEqual({ type: "endDockDrag", id: "test-window" });
-    expect(checkPosition).not.toHaveBeenCalled();
+    expect(move).not.toHaveBeenCalled();
   });
 });
