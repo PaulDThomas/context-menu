@@ -18,7 +18,7 @@ const dockingViewportSize = {
   height: "calc(100vh - var(--dock-panel-inset-top, 0px) - var(--dock-panel-inset-bottom, 0px))",
 };
 
-const dummyContent = (title: string) => (
+const dummyContent = (title: string, defaultDockEdge: DockEdge = "right") => (
   <div style={{ padding: "15px" }}>
     <h3 style={{ margin: "0 0 10px 0", fontSize: "14px" }}>{title}</h3>
     <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#666" }}>
@@ -26,7 +26,7 @@ const dummyContent = (title: string) => (
     </p>
     <ul style={{ margin: "0", paddingLeft: "20px", fontSize: "12px", color: "#666" }}>
       <li>Drag near screen edges to snap-dock</li>
-      <li>Click the dock button to dock to right edge</li>
+      <li>Click the dock button to dock to the {defaultDockEdge} edge</li>
       <li>Drag away from edge to undock</li>
       <li>Click undock button when docked</li>
     </ul>
@@ -43,7 +43,6 @@ export const KitchenSink: Story = {
         "window-4": true,
         "window-5": false,
         "window-6": true,
-        "window-7": true,
       });
 
       const windowRefs = useRef<Record<string, ContextWindowHandle | null>>({});
@@ -112,7 +111,6 @@ export const KitchenSink: Story = {
                     { id: "window-4", label: "Window 4 (Top)" },
                     { id: "window-5", label: "Window 5 (Free)" },
                     { id: "window-6", label: "Window 6 (Starts docked left)" },
-                    { id: "window-7", label: "Window 7 (Locked to bottom)" },
                   ].map(({ id, label }) => (
                     <label
                       key={id}
@@ -149,6 +147,7 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-1"] ?? false}
                   title="Window 1 - Right Docked"
                   dockable={true}
+                  defaultDockEdge="right"
                   onClose={() => toggleWindow("window-1")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
@@ -179,10 +178,11 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-2"] ?? false}
                   title="Window 2 - Bottom Docked"
                   dockable={true}
+                  defaultDockEdge="bottom"
                   onClose={() => toggleWindow("window-2")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
-                  {dummyContent("Window 2 - Try dragging to bottom edge")}
+                  {dummyContent("Window 2 - Try dragging to bottom edge", "bottom")}
                   <button
                     onClick={() => handleDockWindow("window-2", "bottom")}
                     style={{
@@ -209,10 +209,11 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-3"] ?? false}
                   title="Window 3 - Left Docked"
                   dockable={true}
+                  defaultDockEdge="left"
                   onClose={() => toggleWindow("window-3")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
-                  {dummyContent("Window 3 - Try dragging to left edge")}
+                  {dummyContent("Window 3 - Try dragging to left edge", "left")}
                   <button
                     onClick={() => handleDockWindow("window-3", "left")}
                     style={{
@@ -239,10 +240,11 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-4"] ?? false}
                   title="Window 4 - Top Docked"
                   dockable={true}
+                  defaultDockEdge="top"
                   onClose={() => toggleWindow("window-4")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
-                  {dummyContent("Window 4 - Try dragging to top edge")}
+                  {dummyContent("Window 4 - Try dragging to top edge", "top")}
                   <button
                     onClick={() => handleDockWindow("window-4", "top")}
                     style={{
@@ -286,6 +288,7 @@ export const KitchenSink: Story = {
                   visible={visibleWindows["window-6"] ?? false}
                   title="Window 6 - Starts Docked"
                   dockable={true}
+                  defaultDockEdge="left"
                   initialDockEdge="left"
                   onClose={() => toggleWindow("window-6")}
                   style={{ width: "350px", minHeight: "200px" }}
@@ -302,12 +305,11 @@ export const KitchenSink: Story = {
                 {/* Window 7: Opens docked to the bottom and cannot be undocked */}
                 <ContextWindow
                   id="window-7"
-                  visible={visibleWindows["window-7"] ?? false}
+                  visible={true}
                   title="Window 7 - Locked"
                   dockable={true}
                   initialDockEdge="bottom"
                   allowUndock={false}
-                  onClose={() => toggleWindow("window-7")}
                   style={{ width: "350px", minHeight: "200px" }}
                 >
                   <div style={{ padding: "15px", fontSize: "12px", color: "#666" }}>

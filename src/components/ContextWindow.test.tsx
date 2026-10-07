@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { ContextWindow, type ContextWindowHandle, type ContextWindowProps } from "./ContextWindow";
 import { DockingContext, DockingProvider } from "./DockingContext";
 import { createMockDocking } from "./__mocks__/mockDocking";
-import type { DockingContextType } from "./interface";
+import type { DockEdge, DockingContextType } from "./interface";
 
 describe("ContextWindow", () => {
   let docking: DockingContextType;
@@ -187,6 +187,22 @@ describe("ContextWindow", () => {
 
     expect(element.style.transform).toBe("");
   });
+
+  test.each<DockEdge>(["right", "bottom", "left", "top"])(
+    "the dock button targets the default %s edge after floating and undocking",
+    (edge) => {
+      renderWindow({ defaultDockEdge: edge });
+      expect(docking.getDockedWindow("test-window")).toBeUndefined();
+      expect(document.getElementById("test-window")).not.toHaveAttribute("defaultDockEdge");
+
+      fireEvent.click(screen.getByRole("button", { name: "Dock" }));
+      expect(docking.getDockedWindow("test-window")).toMatchObject({ edge });
+
+      fireEvent.click(screen.getByRole("button", { name: "Undock" }));
+      fireEvent.click(screen.getByRole("button", { name: "Dock" }));
+      expect(docking.getDockedWindow("test-window")).toMatchObject({ edge });
+    },
+  );
 
   test("registered header callbacks guard invalid states and handle valid dock actions", () => {
     renderWindow();

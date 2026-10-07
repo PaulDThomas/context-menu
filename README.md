@@ -142,6 +142,7 @@ A floating, draggable window rendered in a portal. Clicking a window brings it t
 | `onOpen` / `onClose`    | `() => void`                             | —             | Called when the window opens / when its close button is clicked.                                                              |
 | `minZIndex`/`maxZIndex` | `number`                                 | `3000`/`3010` | Z-index range used when bringing windows to the front.                                                                        |
 | `dockable`              | `boolean`                                | `false`       | Allows the window to dock into a `DockPanel` (requires a `DockingProvider`).                                                  |
+| `defaultDockEdge`       | `"top" \| "right" \| "bottom" \| "left"` | `"right"`     | Edge targeted by the dock button while floating. The button icon reflects this edge. Requires `dockable`.                     |
 | `initialDockEdge`       | `"top" \| "right" \| "bottom" \| "left"` | —             | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                 |
 | `allowUndock`           | `boolean`                                | `true`        | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing. |
 
@@ -211,7 +212,7 @@ export function App(): React.ReactElement {
 #### Docking and undocking
 
 - **Drag to dock** – drag a dockable window's title bar within 24px of a screen edge; a highlight shows the target edge and releasing docks the window there.
-- **Dock button** – the title bar dock button docks the window to the right edge; `ref.dock(edge)` docks to any edge.
+- **Dock button** – the title bar dock button docks the window to `defaultDockEdge` (right by default), with an icon pointing to that edge; `ref.dock(edge)` docks to any edge.
 - **Drag to undock** – drag a docked window's title bar away from its edge. The window follows the pointer and can be re-docked to another edge in the same drag, without releasing the mouse.
 - **Undock button** / `ref.undock()` – returns the window to its previous floating position, moved fully on-screen if needed. A window that started docked opens below its anchor element.
 - **Close** – closing (or unmounting) a docked window removes it from the panel.

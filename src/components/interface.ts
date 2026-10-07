@@ -42,6 +42,7 @@ export interface WindowConfig {
   canDock?: boolean;
   canUndock?: boolean;
   children?: React.ReactNode;
+  defaultDockEdge?: DockEdge;
   dockable?: boolean;
   id?: string;
   initialDockEdge?: DockEdge;

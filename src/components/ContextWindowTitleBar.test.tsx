@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createMockDocking } from "./__mocks__/mockDocking";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import { DockingContext } from "./DockingContext";
-import type { WindowConfig } from "./interface";
+import type { DockEdge, WindowConfig } from "./interface";
 
 jest.mock("./ContextWindowTitleButton");
 
@@ -264,6 +264,28 @@ describe("ContextWindowTitleBar", () => {
     const dock = screen.getByTestId("mock-title-button-Dock");
     expect(dock).toHaveAttribute("data-class-name", "dockButton");
     expect(dock).toHaveAttribute("data-title", "Dock My window");
+  });
+
+  test.each<[DockEdge | undefined, string]>([
+    [undefined, "M3 7.5h3v-2L9 8"],
+    ["right", "M3 7.5h3v-2L9 8"],
+    ["bottom", "m5.5-7v3h-2L8 10"],
+    ["left", "m7 4.5h-3v-2L7 8"],
+    ["top", "m5.5 6V9h-2L8 6"],
+  ])("renders the dock icon path for edge %s", (defaultDockEdge, arrowPath) => {
+    const mockDocking = createMockDocking(new Map());
+    mockDocking.getWindowConfig = () => ({ title: "My window", canDock: true, defaultDockEdge });
+
+    render(
+      <DockingContext.Provider value={mockDocking}>
+        <ContextWindowTitleBar id="test-window" />
+      </DockingContext.Provider>,
+    );
+
+    const icon = screen.getByTestId("mock-title-button-Dock").firstElementChild;
+    expect(icon?.tagName).toBe("svg");
+    expect(icon).toHaveAttribute("width", "14");
+    expect(icon?.querySelector("path")?.getAttribute("d")).toContain(arrowPath);
   });
 
   test("Renders undock button when canUndock is true", () => {

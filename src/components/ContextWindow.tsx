@@ -27,19 +27,21 @@ const dockedEdgeClassNames: Record<DockEdge, string> = {
 };
 
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
-  id: string;
-  visible: boolean;
-  onOpen?: () => void;
-  onClose?: () => void;
-  title: string;
-  titleElement?: ReactNode;
-  style?: React.CSSProperties;
+  allowUndock?: boolean;
   children: React.ReactNode;
+  /** Edge used by the dock button while the window is floating (defaults to right) */
+  defaultDockEdge?: DockEdge;
+  /** When false, a docked window stays docked: no undock button, drag-undock or `undock()` */
   dockable?: boolean;
+  id: string;
   /** Dock into this edge's DockPanel whenever the window opens (requires `dockable`) */
   initialDockEdge?: DockEdge;
-  /** When false, a docked window stays docked: no undock button, drag-undock or `undock()` */
-  allowUndock?: boolean;
+  onClose?: () => void;
+  onOpen?: () => void;
+  style?: React.CSSProperties;
+  title: string;
+  titleElement?: ReactNode;
+  visible: boolean;
 }
 
 export interface ContextWindowHandle {
@@ -51,16 +53,17 @@ export interface ContextWindowHandle {
 export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>(
   (
     {
+      allowUndock = true,
+      children,
+      defaultDockEdge = "right",
+      dockable = true,
       id,
-      visible,
+      initialDockEdge,
+      onClose,
+      onOpen,
       title,
       titleElement,
-      children,
-      onOpen,
-      onClose,
-      dockable = true,
-      initialDockEdge,
-      allowUndock = true,
+      visible,
       ...rest
     },
     ref,
@@ -340,6 +343,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         title,
         titleElement,
         dockable,
+        defaultDockEdge,
         initialDockEdge,
         allowUndock,
         onMouseDown: onTitleMouseDown,
@@ -350,7 +354,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
           if (!dockable || isDockedRef.current) {
             return;
           }
-          handleDock("right");
+          handleDock(defaultDockEdge);
         },
         onUndock: () => {
           if (!dockable || !allowUndock || !isDockedRef.current) {
@@ -366,6 +370,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       title,
       titleElement,
       dockable,
+      defaultDockEdge,
       initialDockEdge,
       allowUndock,
       isDocked,

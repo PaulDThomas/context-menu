@@ -12,6 +12,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
   const docking = useDocking();
   const config = docking.getWindowConfig(id);
   const {
+    defaultDockEdge = "right",
     onMouseDown,
     moving,
     title,
@@ -47,7 +48,10 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           title={`Dock ${windowLabel}`}
           onClick={onDock ?? noop}
         >
-          <DockIcon size={14} />
+          <DockIcon
+            size={14}
+            edge={defaultDockEdge}
+          />
         </ContextWindowTitleButton>
       )}
       {canUndock && (
