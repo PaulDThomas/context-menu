@@ -3,15 +3,10 @@ import type {
   DockEdge,
   DockedWindow,
   DockingContextType,
+  DockingWindowController,
   WindowConfig,
   WindowRect,
 } from "../interface";
-
-interface WindowActions {
-  onClose?: () => void;
-  onUndock?: () => void;
-}
-const noop = (): void => undefined;
 
 /**
  * A minimal docking context backed by plain Maps, for tests that need to drive components
@@ -26,7 +21,7 @@ export const createMockDocking = (
   collapsedEdges: Set<DockEdge> = new Set(),
   activeWindowsByEdge: Map<DockEdge, string> = new Map(),
   windowConfigs: Map<string, WindowConfig> = new Map(),
-  windowActions: Map<string, WindowActions> = new Map(),
+  windowControllers: Map<string, DockingWindowController> = new Map(),
 ): DockingContextType => ({
   maxZIndex: MAX_Z_INDEX,
   minZIndex: MIN_Z_INDEX,
@@ -90,25 +85,19 @@ export const createMockDocking = (
 
     const fallback: WindowConfig = {
       title: id || "window",
-      onDock: noop,
-      onUndock: noop,
     };
     windowConfigs.set(id, fallback);
     return fallback;
   },
-  registerWindowActions: (id: string, actions?: WindowActions) => {
-    if (actions) {
-      windowActions.set(id, actions);
-    }
+  getWindowController: (id: string) => windowControllers.get(id),
+  registerWindowController: (id: string, controller: DockingWindowController) => {
+    windowControllers.set(id, controller);
   },
-  unregisterWindowActions: (id: string) => {
-    windowActions.delete(id);
+  unregisterWindowController: (id: string) => {
+    windowControllers.delete(id);
   },
   closeWindow: (id: string) => {
-    windowActions.get(id)?.onClose?.();
-  },
-  requestUndock: (id: string) => {
-    windowActions.get(id)?.onUndock?.();
+    windowControllers.get(id)?.onClose?.();
   },
   getWindowZIndex: () => 0,
   getPanelZIndex: () => null,

@@ -27,7 +27,7 @@ export const DockPanelTabButton = ({
       menuItems={[
         { label: "Show", action: showWindow },
         { label: "Close", action: () => docking.closeWindow(windowId) },
-        { label: "Undock", action: () => docking.requestUndock(windowId) },
+        { label: "Undock", action: () => docking.getWindowController(windowId)?.onUndock?.() },
       ]}
       style={{ display: "contents" }}
     >

@@ -2,7 +2,12 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useContext } from "react";
 import { ContextWindow } from "./ContextWindow";
 import { DockingContext, DockingProvider } from "./DockingContext";
-import type { DockEdge, DockingContextType, WindowRect } from "./interface";
+import type {
+  DockEdge,
+  DockingContextType,
+  DockingWindowController,
+  WindowRect,
+} from "./interface";
 
 type DockingTestApi = DockingContextType & {
   activateWindowOnEdge: (edge: DockEdge, id?: string) => void;
@@ -53,14 +58,10 @@ describe("DockingProvider", () => {
     );
   });
 
-  test("supplies callable no-op actions for a missing window config", () => {
+  test("supplies a fallback config for a missing window", () => {
     const config = api.getWindowConfig("");
 
     expect(config.title).toBe("window");
-    expect(() => {
-      config.onDock?.();
-      config.onUndock?.();
-    }).not.toThrow();
   });
 
   const ids = (edge: DockEdge) => api.getWindowsOnEdge(edge).map((w) => w.id);
@@ -492,38 +493,49 @@ describe("DockingProvider", () => {
   describe("window actions", () => {
     test("registers and invokes window actions", () => {
       const onClose = jest.fn();
+      const onDock = jest.fn();
       const onUndock = jest.fn();
-      api.registerWindowActions("a", { onClose, onUndock });
+      const controller: DockingWindowController = {
+        windowRef: { current: null },
+        onClose,
+        onDock,
+        onUndock,
+      };
+      api.registerWindowController("a", controller);
       api.closeWindow("a");
-      api.requestUndock("a");
+      api.getWindowController("a")?.onDock?.("left");
+      api.getWindowController("a")?.onUndock?.();
       expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onDock).toHaveBeenCalledWith("left");
       expect(onUndock).toHaveBeenCalledTimes(1);
 
-      api.unregisterWindowActions("a");
+      api.unregisterWindowController("a");
       api.closeWindow("a");
+      expect(api.getWindowController("a")).toBeUndefined();
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     test("handles registered actions without onClose callback", () => {
       const onUndock = jest.fn();
-      api.registerWindowActions("b", { onUndock });
+      api.registerWindowController("b", { windowRef: { current: null }, onUndock });
       api.closeWindow("b");
-      api.requestUndock("b");
+      api.getWindowController("b")?.onUndock?.();
       expect(onUndock).toHaveBeenCalledTimes(1);
     });
 
     test("handles registered actions without onUndock callback", () => {
       const onClose = jest.fn();
-      api.registerWindowActions("c", { onClose });
+      api.registerWindowController("c", { windowRef: { current: null }, onClose });
       api.closeWindow("c");
-      api.requestUndock("c");
+      api.getWindowController("c")?.onUndock?.();
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    test("handles registered actions with empty object", () => {
-      api.registerWindowActions("d");
+    test("handles registered controllers without actions", () => {
+      api.registerWindowController("d", { windowRef: { current: null } });
       api.closeWindow("d");
-      api.requestUndock("d");
+      api.getWindowController("d")?.onUndock?.();
+      api.getWindowController("d")?.onDock?.("right");
       // Should not throw or error
       expect(true).toBe(true);
     });

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { createMockDocking } from "./__mocks__/mockDocking";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import { DockingContext } from "./DockingContext";
-import type { DockEdge, WindowConfig } from "./interface";
+import type { DockEdge, DockingWindowController, WindowConfig } from "./interface";
 
 jest.mock("./ContextWindowTitleButton");
 
@@ -218,7 +218,8 @@ describe("ContextWindowTitleBar", () => {
 
   test("Calls closeWindow on context when close button is clicked", async () => {
     const user = userEvent.setup();
-    const windowConfig: WindowConfig = { title: "My window", canClose: true, onClose: jest.fn() };
+    const onClose = jest.fn();
+    const windowConfig: WindowConfig = { title: "My window", canClose: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -229,6 +230,10 @@ describe("ContextWindowTitleBar", () => {
       new Map(),
       windowConfigs,
     );
+    mockDocking.registerWindowController("test-window", {
+      windowRef: { current: null },
+      onClose,
+    });
     // Wrap closeWindow in jest.fn to test if it was called
     mockDocking.closeWindow = jest.fn(mockDocking.closeWindow);
 
@@ -240,11 +245,12 @@ describe("ContextWindowTitleBar", () => {
     const close = screen.getByTestId("mock-title-button-Close");
     await user.click(close);
     expect(mockDocking.closeWindow).toHaveBeenCalledWith("test-window");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("Renders dock button when canDock is true", () => {
     const onDock = jest.fn();
-    const windowConfig: WindowConfig = { title: "My window", onDock, canDock: true };
+    const windowConfig: WindowConfig = { title: "My window", canDock: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -255,6 +261,8 @@ describe("ContextWindowTitleBar", () => {
       new Map(),
       windowConfigs,
     );
+    const controller: DockingWindowController = { windowRef: { current: null }, onDock };
+    mockDocking.registerWindowController("test-window", controller);
 
     render(
       <DockingContext.Provider value={mockDocking}>
@@ -264,6 +272,8 @@ describe("ContextWindowTitleBar", () => {
     const dock = screen.getByTestId("mock-title-button-Dock");
     expect(dock).toHaveAttribute("data-class-name", "dockButton");
     expect(dock).toHaveAttribute("data-title", "Dock My window");
+    fireEvent.click(dock);
+    expect(onDock).toHaveBeenCalledWith("right");
   });
 
   test.each<[DockEdge | undefined, string]>([
@@ -290,7 +300,7 @@ describe("ContextWindowTitleBar", () => {
 
   test("Renders undock button when canUndock is true", () => {
     const onUndock = jest.fn();
-    const windowConfig: WindowConfig = { title: "My window", onUndock, canUndock: true };
+    const windowConfig: WindowConfig = { title: "My window", canUndock: true };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -301,6 +311,8 @@ describe("ContextWindowTitleBar", () => {
       new Map(),
       windowConfigs,
     );
+    const controller: DockingWindowController = { windowRef: { current: null }, onUndock };
+    mockDocking.registerWindowController("test-window", controller);
 
     render(
       <DockingContext.Provider value={mockDocking}>
@@ -310,6 +322,8 @@ describe("ContextWindowTitleBar", () => {
     const undock = screen.getByTestId("mock-title-button-Undock");
     expect(undock).toHaveAttribute("data-class-name", "undockButton");
     expect(undock).toHaveAttribute("data-title", "Undock My window");
+    fireEvent.click(undock);
+    expect(onUndock).toHaveBeenCalledTimes(1);
   });
 
   test("uses no-op handlers when dock and undock callbacks are absent", () => {
@@ -339,7 +353,7 @@ describe("ContextWindowTitleBar", () => {
   test("Calls onMouseDown handler when title bar is clicked", async () => {
     const user = userEvent.setup();
     const onMouseDown = jest.fn();
-    const windowConfig: WindowConfig = { title: "My window", onMouseDown };
+    const windowConfig: WindowConfig = { title: "My window" };
     const windowConfigs = new Map([["test-window", windowConfig]]);
     const mockDocking = createMockDocking(
       new Map(),
@@ -350,6 +364,10 @@ describe("ContextWindowTitleBar", () => {
       new Map(),
       windowConfigs,
     );
+    mockDocking.registerWindowController("test-window", {
+      windowRef: { current: null },
+      onMouseDown,
+    });
 
     const { container } = render(
       <DockingContext.Provider value={mockDocking}>

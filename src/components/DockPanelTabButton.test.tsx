@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { DockingContext } from "./DockingContext";
 import { DockPanelTabButton } from "./DockPanelTabButton";
-import type { DockingContextType, WindowConfig } from "./interface";
+import type { DockingContextType, DockingWindowController, WindowConfig } from "./interface";
 
 describe("DockPanelTabButton", () => {
   const renderTab = (
@@ -24,10 +24,10 @@ describe("DockPanelTabButton", () => {
       isEdgeCollapsed: jest.fn(() => false),
       registerWindowConfig: jest.fn(),
       getWindowConfig: jest.fn((id: string) => (id === windowId ? windowConfig : undefined)),
-      registerWindowActions: jest.fn(),
-      unregisterWindowActions: jest.fn(),
+      getWindowController: jest.fn(),
+      registerWindowController: jest.fn(),
+      unregisterWindowController: jest.fn(),
       closeWindow: jest.fn(),
-      requestUndock: jest.fn(),
       getWindowZIndex: jest.fn(() => 0),
       getPanelZIndex: jest.fn(() => null),
       getPreDockRect: jest.fn(() => null),
@@ -72,7 +72,12 @@ describe("DockPanelTabButton", () => {
 
   test("Context menu can show, close and undock the related window", async () => {
     jest.useFakeTimers();
-    const context = renderTab({}, { windowId: "win-menu", windowConfig: { title: "win-menu" } });
+    const onUndock = jest.fn();
+    const controller: DockingWindowController = { windowRef: { current: null }, onUndock };
+    const context = renderTab(
+      { getWindowController: jest.fn(() => controller) },
+      { windowId: "win-menu", windowConfig: { title: "win-menu" } },
+    );
 
     const button = screen.getByRole("button", { name: "win-menu" });
     fireEvent.contextMenu(button, { pageX: 10, pageY: 10 });
@@ -94,7 +99,7 @@ describe("DockPanelTabButton", () => {
       id: "win-menu",
     });
     expect(context.closeWindow).toHaveBeenCalledWith("win-menu");
-    expect(context.requestUndock).toHaveBeenCalledWith("win-menu");
+    expect(onUndock).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
   });
 });

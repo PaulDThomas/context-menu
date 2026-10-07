@@ -16,12 +16,12 @@ import type {
   DockEdge,
   DockedWindow,
   DockingContextType,
+  DockingWindowController,
   WindowConfig,
   WindowRect,
 } from "./interface";
 
 export const DockingContext = createContext<DockingContextType | undefined>(undefined);
-const noop = (): void => undefined;
 
 const PANEL_SETTINGS_KEY = "@asup/context-menu:dock-panels";
 const DOCK_EDGES: DockEdge[] = ["top", "left", "right", "bottom"];
@@ -73,7 +73,7 @@ export const DockingProvider = ({
   const [state, dispatch] = useReducer(dockingReducer, initialDockingState);
   const [panelSettings, setPanelSettings] = useState(readPanelSettings);
   const savedPanelSettings = useRef(panelSettings);
-  const windowActions = useRef(new Map<string, { onClose?: () => void; onUndock?: () => void }>());
+  const windowControllers = useRef(new Map<string, DockingWindowController>());
 
   const updatePanelSettings = useCallback((edge: DockEdge, settings: DockPanelSettings): void => {
     setPanelSettings((previous) => {
@@ -97,7 +97,7 @@ export const DockingProvider = ({
   }, [panelSettings]);
 
   const closeWindow = useCallback((id: string): void => {
-    windowActions.current.get(id)?.onClose?.();
+    windowControllers.current.get(id)?.onClose?.();
   }, []);
 
   const getWindowConfig = useCallback(
@@ -109,16 +109,14 @@ export const DockingProvider = ({
 
       return {
         title: id || "window",
-        onDock: noop,
-        onUndock: noop,
       };
     },
     [state.windowConfigs],
   );
 
-  const registerWindowActions = useCallback(
-    (id: string, actions?: { onClose?: () => void; onUndock?: () => void }): void => {
-      windowActions.current.set(id, actions ?? {});
+  const registerWindowController = useCallback(
+    (id: string, controller: DockingWindowController): void => {
+      windowControllers.current.set(id, controller);
     },
     [],
   );
@@ -127,12 +125,8 @@ export const DockingProvider = ({
     dispatch({ type: "registerWindowConfig", id, config });
   }, []);
 
-  const requestUndock = useCallback((id: string): void => {
-    windowActions.current.get(id)?.onUndock?.();
-  }, []);
-
-  const unregisterWindowActions = useCallback((id: string): void => {
-    windowActions.current.delete(id);
+  const unregisterWindowController = useCallback((id: string): void => {
+    windowControllers.current.delete(id);
   }, []);
 
   const contextValue = useMemo<DockingContextType>(() => {
@@ -176,13 +170,14 @@ export const DockingProvider = ({
       },
       getPreDockRect: (id: string): WindowRect | null => state.preDockRects.get(id) ?? null,
       getWindowConfig,
+      getWindowController: (id: string): DockingWindowController | undefined =>
+        windowControllers.current.get(id),
       getWindowZIndex,
       getWindowsOnEdge,
       isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
-      registerWindowActions,
+      registerWindowController,
       registerWindowConfig,
-      requestUndock,
-      unregisterWindowActions,
+      unregisterWindowController,
     };
   }, [
     closeWindow,
@@ -190,16 +185,15 @@ export const DockingProvider = ({
     minZIndex,
     dispatch,
     getWindowConfig,
-    registerWindowActions,
+    registerWindowController,
     registerWindowConfig,
-    requestUndock,
     state.activeWindowsByEdge,
     state.collapsedEdges,
     state.dockedWindows,
     state.panelContentHosts,
     state.preDockRects,
     state.zOrder,
-    unregisterWindowActions,
+    unregisterWindowController,
   ]);
 
   return (

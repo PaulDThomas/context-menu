@@ -5,7 +5,7 @@ import { ContextMenuHandler } from "./ContextMenuHandler";
 import { ContextWindow } from "./ContextWindow";
 import { DockingProvider } from "./DockingContext";
 import { DockPanel } from "./DockPanel";
-import type { DockEdge, DockingContextType, IMenuItem } from "./interface";
+import type { DockEdge, DockingContextType, DockingWindowController, IMenuItem } from "./interface";
 
 export {
   AutoHeight,
@@ -16,4 +16,4 @@ export {
   DockingProvider,
   DockPanel,
 };
-export type { DockEdge, DockingContextType, IMenuItem };
+export type { DockEdge, DockingContextType, DockingWindowController, IMenuItem };

@@ -2,7 +2,6 @@ import { classNames, useDocking } from "../functions";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleButton } from "./ContextWindowTitleButton";
 import { CloseIcon, DockIcon, UndockIcon } from "./icons";
-const noop = (): void => undefined;
 
 interface ContextWindowTitleBarProps {
   id: string;
@@ -11,14 +10,12 @@ interface ContextWindowTitleBarProps {
 export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React.ReactElement => {
   const docking = useDocking();
   const config = docking.getWindowConfig(id);
+  const controller = docking.getWindowController(id);
   const {
     defaultDockEdge = "right",
-    onMouseDown,
     moving,
     title,
     titleElement,
-    onDock,
-    onUndock,
     canDock,
     canUndock,
     canClose,
@@ -33,7 +30,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
         moving && styles.moving,
         undockDisabled && styles.undockDisabled,
       )}
-      onMouseDown={onMouseDown}
+      onMouseDown={controller?.onMouseDown}
     >
       <div
         className={styles.contextWindowTitleText}
@@ -46,7 +43,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           className={styles.dockButton}
           label="Dock"
           title={`Dock ${windowLabel}`}
-          onClick={onDock ?? noop}
+          onClick={() => controller?.onDock?.(defaultDockEdge)}
         >
           <DockIcon
             size={14}
@@ -59,7 +56,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           className={styles.undockButton}
           label="Undock"
           title={`Undock ${windowLabel}`}
-          onClick={onUndock ?? noop}
+          onClick={() => controller?.onUndock?.()}
         >
           <UndockIcon size={14} />
         </ContextWindowTitleButton>

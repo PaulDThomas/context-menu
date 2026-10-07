@@ -18,6 +18,7 @@ export { parseTranslate } from "./parseTranslate";
 export { UNDOCK_THRESHOLD, shouldUndockFromEdge } from "./shouldUndockFromEdge";
 export { sizeDelta } from "./sizeDelta";
 export { useAutoHide } from "./useAutoHide";
+export { useContextWindow } from "./useContextWindow";
 export { useContextWindowDrag } from "./useContextWindowDrag";
 export { useDocking } from "./useDocking";
 export { useDockPanelResize } from "./useDockPanelResize";

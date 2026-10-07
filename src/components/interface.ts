@@ -41,16 +41,20 @@ export interface WindowConfig {
   id?: string;
   initialDockEdge?: DockEdge;
   moving?: boolean;
-  onClose?: () => void;
-  onDock?: () => void;
-  onMouseDown?: (e: React.MouseEvent<HTMLElement>) => void;
-  onOpen?: () => void;
-  onUndock?: () => void;
   style?: React.CSSProperties;
   title: string;
   titleElement?: React.ReactNode;
   visible?: boolean;
   windowVisible?: boolean;
+}
+
+export interface DockingWindowController {
+  windowRef: React.RefObject<HTMLDivElement | null>;
+  onClose?: () => void;
+  onMouseDown?: (event: React.MouseEvent<HTMLElement>) => void;
+  onOpen?: () => void;
+  onDock?: (edge: DockEdge) => void;
+  onUndock?: () => void;
 }
 
 export interface DockingContextType {
@@ -62,6 +66,7 @@ export interface DockingContextType {
   getDockedWindow: (id: string) => DockedWindow | undefined;
   /** Retrieve a window's configuration by ID */
   getWindowConfig: (id: string) => WindowConfig;
+  getWindowController: (id: string) => DockingWindowController | undefined;
   getPanelContentHost: (edge: DockEdge) => HTMLDivElement | null;
   /** The z-index of the edge panel, taken from the window it is showing */
   getPanelZIndex: (edge: DockEdge) => number | null;
@@ -70,12 +75,8 @@ export interface DockingContextType {
   /** Returns the stacking slot, defaulting to the provider minimum for unregistered IDs. */
   getWindowZIndex: (id: string) => number;
   isEdgeCollapsed: (edge: DockEdge) => boolean;
-  registerWindowActions: (
-    id: string,
-    actions?: { onClose?: () => void; onUndock?: () => void },
-  ) => void;
+  registerWindowController: (id: string, controller: DockingWindowController) => void;
   /** Register or update a window's configuration; partial updates are merged into the stored config */
   registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
-  requestUndock: (id: string) => void;
-  unregisterWindowActions: (id: string) => void;
+  unregisterWindowController: (id: string) => void;
 }
