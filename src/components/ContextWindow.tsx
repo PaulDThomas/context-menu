@@ -85,19 +85,16 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     const dockPanelContentHost =
       isDocked && dockedWindow ? (docking.getPanelContentHost(dockedWindow.edge) ?? null) : null;
     const portalTarget = dockPanelContentHost ?? document.body;
-    const minZIndex = docking.minZIndex;
-    const maxZIndex = docking.maxZIndex;
-
-    // Without a DockingProvider a window cannot stack, so it sits on its own floor
-    const zIndex = docking.getWindowZIndex(id) ?? minZIndex;
+    const zIndex = docking.getWindowZIndex(id);
     const dispatch = docking.dispatch;
     const registerWindowConfig = docking.registerWindowConfig;
+    // Register this ID so the provider includes it in the shared order after mount.
     useEffect(() => {
-      dispatch({ type: "registerWindow", id, zRange: { minZIndex, maxZIndex } });
+      dispatch({ type: "registerWindow", id });
       return () => {
         dispatch({ type: "unregisterWindow", id });
       };
-    }, [dispatch, id, maxZIndex, minZIndex]);
+    }, [dispatch, id]);
 
     // Live docked state for document-level drag handlers; set eagerly on drag-undock so a
     // single drag can undock and then re-dock without releasing the mouse

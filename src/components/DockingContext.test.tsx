@@ -2,14 +2,14 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useContext } from "react";
 import { ContextWindow } from "./ContextWindow";
 import { DockingContext, DockingProvider } from "./DockingContext";
-import type { DockEdge, DockingContextType, WindowRect, WindowZRange } from "./interface";
+import type { DockEdge, DockingContextType, WindowRect } from "./interface";
 
 type DockingTestApi = DockingContextType & {
   activateWindowOnEdge: (edge: DockEdge, id?: string) => void;
   dock: (id: string, edge: DockEdge, preDockRect?: WindowRect | null) => void;
   endDockDrag: (id: string) => void;
   raiseWindow: (id: string) => void;
-  registerWindow: (id: string, zRange: WindowZRange) => void;
+  registerWindow: (id: string) => void;
   setActiveWindowOnEdge: (edge: DockEdge, id: string) => void;
   setDockDragEdge: (edge: DockEdge | null) => void;
   setPanelContentHost: (edge: DockEdge, host: HTMLDivElement | null) => void;
@@ -26,7 +26,7 @@ const withDispatchHelpers = (api: DockingContextType): DockingTestApi => ({
   dock: (id, edge, preDockRect) => api.dispatch({ type: "dock", id, edge, preDockRect }),
   endDockDrag: (id) => api.dispatch({ type: "endDockDrag", id }),
   raiseWindow: (id) => api.dispatch({ type: "raiseWindow", id }),
-  registerWindow: (id, zRange) => api.dispatch({ type: "registerWindow", id, zRange }),
+  registerWindow: (id) => api.dispatch({ type: "registerWindow", id }),
   setActiveWindowOnEdge: (edge, id) => api.dispatch({ type: "setActiveWindowOnEdge", edge, id }),
   setDockDragEdge: (edge) => api.dispatch({ type: "setDockDragEdge", edge }),
   setPanelContentHost: (edge, host) => api.dispatch({ type: "setPanelContentHost", edge, host }),
@@ -308,8 +308,8 @@ describe("DockingProvider", () => {
 
     test("re-activating the active window still raises it above the rest", () => {
       act(() => {
-        api.registerWindow("a", { minZIndex: 100, maxZIndex: 200 });
-        api.registerWindow("b", { minZIndex: 100, maxZIndex: 200 });
+        api.registerWindow("a");
+        api.registerWindow("b");
         api.dock("a", "left");
         api.raiseWindow("b");
       });
@@ -354,12 +354,10 @@ describe("DockingProvider", () => {
   });
 
   describe("stacking order", () => {
-    const zRange = { minZIndex: 3000, maxZIndex: 3010 };
-
     test("registered windows stack in registration order and can be raised", () => {
       act(() => {
-        api.registerWindow("a", zRange);
-        api.registerWindow("b", zRange);
+        api.registerWindow("a");
+        api.registerWindow("b");
       });
       expect(api.getWindowZIndex("a")).toBe(3000);
       expect(api.getWindowZIndex("b")).toBe(3001);
@@ -373,8 +371,8 @@ describe("DockingProvider", () => {
 
     test("raising the top window or an unknown window changes nothing", () => {
       act(() => {
-        api.registerWindow("a", zRange);
-        api.registerWindow("b", zRange);
+        api.registerWindow("a");
+        api.registerWindow("b");
       });
       const getterBefore = api.getWindowZIndex;
       act(() => {
@@ -384,41 +382,50 @@ describe("DockingProvider", () => {
       expect(api.getWindowZIndex).toBe(getterBefore);
     });
 
-    test("re-registering the same range is a no-op but a changed range is applied", () => {
+    test("re-registering a window is a no-op", () => {
       act(() => {
-        api.registerWindow("a", zRange);
+        api.registerWindow("a");
       });
       const getterBefore = api.getWindowZIndex;
       act(() => {
-        api.registerWindow("a", zRange);
+        api.registerWindow("a");
       });
       expect(api.getWindowZIndex).toBe(getterBefore);
-
-      act(() => {
-        api.registerWindow("a", { minZIndex: 5000, maxZIndex: 5010 });
-      });
-      expect(api.getWindowZIndex("a")).toBe(5000);
     });
 
-    test("windows beyond the available range share the top slot", () => {
+    test("all registered windows use the provider range and share its top slot", () => {
+      const CaptureCustomRange = (): null => {
+        api = withDispatchHelpers(useContext(DockingContext)!);
+        return null;
+      };
+      render(
+        <DockingProvider
+          minZIndex={100}
+          maxZIndex={101}
+        >
+          <CaptureCustomRange />
+        </DockingProvider>,
+      );
+
       act(() => {
-        api.registerWindow("a", { minZIndex: 100, maxZIndex: 101 });
-        api.registerWindow("b", { minZIndex: 100, maxZIndex: 101 });
-        api.registerWindow("c", { minZIndex: 100, maxZIndex: 101 });
+        api.registerWindow("a");
+        api.registerWindow("b");
+        api.registerWindow("c");
       });
+      expect(api.getWindowZIndex("a")).toBe(100);
       expect(api.getWindowZIndex("b")).toBe(101);
       expect(api.getWindowZIndex("c")).toBe(101);
     });
 
     test("unregistering removes a window from the order, and unknown ids are ignored", () => {
       act(() => {
-        api.registerWindow("a", zRange);
-        api.registerWindow("b", zRange);
+        api.registerWindow("a");
+        api.registerWindow("b");
       });
       act(() => {
         api.unregisterWindow("a");
       });
-      expect(api.getWindowZIndex("a")).toBeNull();
+      expect(api.getWindowZIndex("a")).toBe(3000);
       expect(api.getWindowZIndex("b")).toBe(3000);
 
       const getterBefore = api.getWindowZIndex;
@@ -430,7 +437,7 @@ describe("DockingProvider", () => {
 
     test("unregistering a window drops its stored floating rect", () => {
       act(() => {
-        api.registerWindow("a", zRange);
+        api.registerWindow("a");
         api.dock("a", "left", rect);
       });
       expect(api.getPreDockRect("a")).toEqual(rect);
@@ -443,8 +450,8 @@ describe("DockingProvider", () => {
 
     test("docking and activating a window raises it", () => {
       act(() => {
-        api.registerWindow("a", zRange);
-        api.registerWindow("b", zRange);
+        api.registerWindow("a");
+        api.registerWindow("b");
       });
       act(() => {
         api.dock("a", "left");
@@ -465,8 +472,8 @@ describe("DockingProvider", () => {
 
     test("a panel takes the z-index of the window it is showing", () => {
       act(() => {
-        api.registerWindow("a", zRange);
-        api.registerWindow("b", zRange);
+        api.registerWindow("a");
+        api.registerWindow("b");
         api.dock("a", "left");
         api.dock("b", "right");
       });
@@ -477,8 +484,8 @@ describe("DockingProvider", () => {
       expect(api.getPanelZIndex("top")).toBeNull();
     });
 
-    test("an unregistered window has no z-index", () => {
-      expect(api.getWindowZIndex("never-registered")).toBeNull();
+    test("an unregistered window uses the provider minimum z-index", () => {
+      expect(api.getWindowZIndex("never-registered")).toBe(api.minZIndex);
     });
   });
 

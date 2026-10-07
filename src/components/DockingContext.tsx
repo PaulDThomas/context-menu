@@ -152,14 +152,13 @@ export const DockingProvider = ({
       return getWindowsOnEdge(edge)[0]?.id ?? null;
     };
 
-    const getWindowZIndex = (id: string): number | null => {
+    const getWindowZIndex = (id: string): number => {
       const index = state.zOrder.indexOf(id);
-      const zRange = state.zRanges.get(id);
-      if (index === -1 || !zRange) {
-        return null;
+      if (index === -1) {
+        return minZIndex;
       }
       // More windows than the available range simply share the top slot
-      return Math.min(zRange.maxZIndex, zRange.minZIndex + index);
+      return Math.min(maxZIndex, minZIndex + index);
     };
 
     return {
@@ -200,7 +199,6 @@ export const DockingProvider = ({
     state.panelContentHosts,
     state.preDockRects,
     state.zOrder,
-    state.zRanges,
     unregisterWindowActions,
   ]);
 

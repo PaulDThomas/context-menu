@@ -110,7 +110,7 @@ export const createMockDocking = (
   requestUndock: (id: string) => {
     windowActions.get(id)?.onUndock?.();
   },
-  getWindowZIndex: () => null,
+  getWindowZIndex: () => 0,
   getPanelZIndex: () => null,
   getPreDockRect: (id: string) => preDockRects.get(id) ?? null,
   ...overrides,

@@ -2,14 +2,13 @@ import { registerWindow } from "./registerWindow";
 import { initialDockingState } from "./types";
 
 describe("registerWindow", () => {
-  test("registers a window with its z-index range", () => {
+  test("registers a window in the shared z-order", () => {
     const state = initialDockingState;
     const result = registerWindow(state, {
       type: "registerWindow",
       id: "window-1",
-      zRange: { minZIndex: 1000, maxZIndex: 5000 },
     });
-    expect(result.zRanges.get("window-1")).toEqual({ minZIndex: 1000, maxZIndex: 5000 });
+    expect(result.zOrder).toEqual(["window-1"]);
   });
 
   test("adds the window to zOrder if not already present", () => {
@@ -18,7 +17,6 @@ describe("registerWindow", () => {
     const result = registerWindow(state, {
       type: "registerWindow",
       id: "window-1",
-      zRange: { minZIndex: 1000, maxZIndex: 5000 },
     });
     expect(result.zOrder).toContain("window-1");
   });
@@ -29,36 +27,17 @@ describe("registerWindow", () => {
     const result = registerWindow(state, {
       type: "registerWindow",
       id: "window-1",
-      zRange: { minZIndex: 2000, maxZIndex: 6000 },
     });
     expect(result.zOrder.filter((id) => id === "window-1").length).toBe(1);
   });
 
-  test("returns the original state if the window is already registered with the same range", () => {
+  test("returns the original state if the window is already registered", () => {
     let state = initialDockingState;
-    state = {
-      ...state,
-      zRanges: new Map([["window-1", { minZIndex: 1000, maxZIndex: 5000 }]]),
-    };
+    state = { ...state, zOrder: ["window-1"] };
     const result = registerWindow(state, {
       type: "registerWindow",
       id: "window-1",
-      zRange: { minZIndex: 1000, maxZIndex: 5000 },
     });
     expect(result).toBe(state);
-  });
-
-  test("updates the z-index range if it changes", () => {
-    let state = initialDockingState;
-    state = {
-      ...state,
-      zRanges: new Map([["window-1", { minZIndex: 1000, maxZIndex: 5000 }]]),
-    };
-    const result = registerWindow(state, {
-      type: "registerWindow",
-      id: "window-1",
-      zRange: { minZIndex: 2000, maxZIndex: 6000 },
-    });
-    expect(result.zRanges.get("window-1")).toEqual({ minZIndex: 2000, maxZIndex: 6000 });
   });
 });

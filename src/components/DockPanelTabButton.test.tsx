@@ -28,7 +28,7 @@ describe("DockPanelTabButton", () => {
       unregisterWindowActions: jest.fn(),
       closeWindow: jest.fn(),
       requestUndock: jest.fn(),
-      getWindowZIndex: jest.fn(() => null),
+      getWindowZIndex: jest.fn(() => 0),
       getPanelZIndex: jest.fn(() => null),
       getPreDockRect: jest.fn(() => null),
       ...overrides,

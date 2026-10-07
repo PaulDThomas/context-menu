@@ -28,12 +28,6 @@ export interface WindowRect {
   y: number;
 }
 
-/** The z-index range a window may occupy, provided by DockingProvider */
-export interface WindowZRange {
-  maxZIndex: number;
-  minZIndex: number;
-}
-
 /** Window configuration and metadata stored in DockingContext */
 export interface WindowConfig {
   className?: string;
@@ -73,7 +67,8 @@ export interface DockingContextType {
   getPanelZIndex: (edge: DockEdge) => number | null;
   getPreDockRect: (id: string) => WindowRect | null;
   getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
-  getWindowZIndex: (id: string) => number | null;
+  /** Returns the stacking slot, defaulting to the provider minimum for unregistered IDs. */
+  getWindowZIndex: (id: string) => number;
   isEdgeCollapsed: (edge: DockEdge) => boolean;
   registerWindowActions: (
     id: string,

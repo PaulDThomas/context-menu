@@ -1,10 +1,4 @@
-import type {
-  DockEdge,
-  DockedWindow,
-  WindowConfig,
-  WindowRect,
-  WindowZRange,
-} from "../components/interface";
+import type { DockEdge, DockedWindow, WindowConfig, WindowRect } from "../components/interface";
 
 export interface DockingState {
   /** Every docked window, keyed by window id */
@@ -21,8 +15,6 @@ export interface DockingState {
   windowConfigs: Map<string, WindowConfig>;
   /** Shared stacking order for every registered window, lowest first */
   zOrder: string[];
-  /** The z-index range each registered window may occupy */
-  zRanges: Map<string, WindowZRange>;
   /** The window being dragged towards an edge, if any */
   dragWindowId: string | null;
   /** The edge the dragged window would dock into if released now */
@@ -37,7 +29,7 @@ export type DockingAction =
   | { type: "setPanelContentHost"; edge: DockEdge; host: HTMLDivElement | null }
   | { type: "toggleEdgeCollapse"; edge: DockEdge }
   | { type: "toggleAndRaiseEdge"; edge: DockEdge }
-  | { type: "registerWindow"; id: string; zRange: WindowZRange }
+  | { type: "registerWindow"; id: string }
   | { type: "registerWindowConfig"; id: string; config: Partial<WindowConfig> }
   | { type: "unregisterWindow"; id: string }
   | { type: "raiseWindow"; id: string }
@@ -54,10 +46,9 @@ export const initialDockingState: DockingState = {
   preDockRects: new Map(),
   windowConfigs: new Map(),
   zOrder: [],
-  zRanges: new Map(),
   dragWindowId: null,
   dragSnapEdge: null,
 };
 
 // Re-export types that action handlers need
-export type { WindowRect, WindowZRange };
+export type { WindowRect };
