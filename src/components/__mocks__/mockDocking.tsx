@@ -70,6 +70,7 @@ export const createMockDocking = (
   getWindowsOnEdge: (edge: DockEdge) =>
     Array.from(dockedWindows.values()).filter((window) => window.edge === edge),
   getActiveWindowOnEdge: (edge: DockEdge) => activeWindowsByEdge.get(edge) ?? null,
+  showWindowById: () => {},
   getPanelContentHost: () => null,
   isEdgeCollapsed: (edge: DockEdge) => collapsedEdges.has(edge),
   registerWindowConfig: (id: string, config: Partial<WindowConfig>) => {

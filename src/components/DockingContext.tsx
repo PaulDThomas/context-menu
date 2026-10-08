@@ -155,6 +155,12 @@ export const DockingProvider = ({
       return Math.min(maxZIndex, minZIndex + index);
     };
 
+    const showWindowById = (id: string): void => {
+      if (state.zOrder.includes(id)) {
+        dispatch({ type: "raiseWindow", id });
+      }
+    };
+
     return {
       maxZIndex,
       minZIndex,
@@ -162,6 +168,7 @@ export const DockingProvider = ({
       dispatch,
       getActiveWindowOnEdge,
       getDockedWindow,
+      showWindowById,
       getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
         state.panelContentHosts.get(edge) ?? null,
       getPanelZIndex: (edge: DockEdge): number | null => {

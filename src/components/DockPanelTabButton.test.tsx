@@ -20,6 +20,7 @@ describe("DockPanelTabButton", () => {
       getDockedWindow: jest.fn(),
       getWindowsOnEdge: jest.fn(() => []),
       getActiveWindowOnEdge: jest.fn(() => null),
+      showWindowById: jest.fn(),
       getPanelContentHost: jest.fn(() => null),
       isEdgeCollapsed: jest.fn(() => false),
       registerWindowConfig: jest.fn(),

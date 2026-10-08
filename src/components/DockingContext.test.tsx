@@ -322,6 +322,32 @@ describe("DockingProvider", () => {
       expect(api.getActiveWindowOnEdge("left")).toBe("a");
       expect(api.getWindowZIndex("a")).toBeGreaterThan(api.getWindowZIndex("b") as number);
     });
+
+    test("showWindowById raises the matching window", () => {
+      act(() => {
+        api.registerWindow("a");
+        api.registerWindow("b");
+      });
+      act(() => {
+        api.showWindowById("a");
+      });
+
+      expect(api.getWindowZIndex("a")).toBeGreaterThan(api.getWindowZIndex("b"));
+    });
+
+    test("showWindowById does nothing when no window matches", () => {
+      act(() => {
+        api.registerWindow("a");
+        api.registerWindow("b");
+      });
+      const zIndexBefore = api.getWindowZIndex("b");
+
+      act(() => {
+        api.showWindowById("missing");
+      });
+
+      expect(api.getWindowZIndex("b")).toBe(zIndexBefore);
+    });
   });
 
   describe("panel content hosts", () => {

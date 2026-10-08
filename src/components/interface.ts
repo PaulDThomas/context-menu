@@ -63,6 +63,7 @@ export interface DockingContextType {
   dispatch: React.Dispatch<DockingAction>;
   closeWindow: (id: string) => void;
   getActiveWindowOnEdge: (edge: DockEdge) => string | null;
+  showWindowById: (id: string) => void;
   getDockedWindow: (id: string) => DockedWindow | undefined;
   /** Retrieve a window's configuration by ID */
   getWindowConfig: (id: string) => WindowConfig;
