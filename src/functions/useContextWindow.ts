@@ -355,7 +355,7 @@ export const useContextWindow = (
       const width = pending.width ?? 200;
       left = Math.max(0, pointer.x - width / 2) + window.scrollX;
       top = Math.max(0, pointer.y - 14) + window.scrollY;
-    } else if (undockViaActionRef.current) {
+    } else {
       const padding = 16;
       const width = pending.width ?? element.offsetWidth;
       const height = pending.height ?? element.offsetHeight;

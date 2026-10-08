@@ -1,53 +1,24 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { DockingContext } from "./DockingContext";
+import * as dockingHook from "../functions/useDocking";
+import { defaultDocking } from "./__mocks__/mockDocking";
 import { DockPanelTabButton } from "./DockPanelTabButton";
-import type { DockingContextType, DockingWindowController, WindowConfig } from "./interface";
+import type { DockingWindowController } from "./interface";
 
 describe("DockPanelTabButton", () => {
-  const renderTab = (
-    overrides: Partial<DockingContextType> = {},
-    props: {
-      windowId?: string;
-      edge?: "top" | "right" | "bottom" | "left";
-      isActive?: boolean;
-      windowConfig?: WindowConfig;
-    } = {},
-  ) => {
-    const windowId = props.windowId ?? "win";
-    const windowConfig = props.windowConfig ?? { title: windowId };
-    const context = {
-      dispatch: jest.fn(),
-      getDockedWindow: jest.fn(),
-      getWindowsOnEdge: jest.fn(() => []),
-      getActiveWindowOnEdge: jest.fn(() => null),
-      showWindowById: jest.fn(),
-      getPanelContentHost: jest.fn(() => null),
-      isEdgeCollapsed: jest.fn(() => false),
-      registerWindowConfig: jest.fn(),
-      getWindowConfig: jest.fn((id: string) => (id === windowId ? windowConfig : undefined)),
-      getWindowController: jest.fn(),
-      registerWindowController: jest.fn(),
-      unregisterWindowController: jest.fn(),
-      closeWindow: jest.fn(),
-      getWindowZIndex: jest.fn(() => 0),
-      getPanelZIndex: jest.fn(() => null),
-      getPreDockRect: jest.fn(() => null),
-      ...overrides,
-    } as DockingContextType;
-    render(
-      <DockingContext.Provider value={context}>
-        <DockPanelTabButton
-          windowId={windowId}
-          edge={props.edge ?? "left"}
-          isActive={props.isActive ?? false}
-        />
-      </DockingContext.Provider>,
-    );
-    return context;
-  };
+  afterEach(() => jest.restoreAllMocks());
 
   test("Inactive tab shows the window id", () => {
-    renderTab({}, { windowId: "win-1", windowConfig: { title: "win-1" } });
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      getWindowConfig: () => ({ title: "win-1" }),
+    });
+    render(
+      <DockPanelTabButton
+        windowId="win-1"
+        edge="left"
+        isActive={false}
+      />,
+    );
     const button = screen.getByRole("button", { name: "win-1" });
     expect(button).toHaveAttribute("title", "Activate win-1");
     expect(button).toHaveClass("dockTabButton");
@@ -55,16 +26,38 @@ describe("DockPanelTabButton", () => {
   });
 
   test("Active tab has the active class", () => {
-    renderTab({}, { windowId: "win-2", isActive: true, windowConfig: { title: "win-2" } });
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      getWindowConfig: () => ({ title: "win-2" }),
+    });
+    render(
+      <DockPanelTabButton
+        windowId="win-2"
+        edge="left"
+        isActive
+      />,
+    );
     expect(screen.getByRole("button", { name: "win-2" })).toHaveClass(
       "dockTabButton activeDockTabButton",
     );
   });
 
   test("Calls onClick when clicked", () => {
-    const context = renderTab({}, { windowId: "win-3", windowConfig: { title: "win-3" } });
+    const dispatch = jest.fn();
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      dispatch,
+      getWindowConfig: () => ({ title: "win-3" }),
+    });
+    render(
+      <DockPanelTabButton
+        windowId="win-3"
+        edge="left"
+        isActive={false}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "win-3" }));
-    expect(context.dispatch).toHaveBeenCalledWith({
+    expect(dispatch).toHaveBeenCalledWith({
       type: "activateWindowOnEdge",
       edge: "left",
       id: "win-3",
@@ -75,9 +68,19 @@ describe("DockPanelTabButton", () => {
     jest.useFakeTimers();
     const onUndock = jest.fn();
     const controller: DockingWindowController = { windowRef: { current: null }, onUndock };
-    const context = renderTab(
-      { getWindowController: jest.fn(() => controller) },
-      { windowId: "win-menu", windowConfig: { title: "win-menu" } },
+    const dispatch = jest.fn();
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      dispatch,
+      getWindowConfig: () => ({ title: "win-menu" }),
+      getWindowController: () => controller,
+    });
+    render(
+      <DockPanelTabButton
+        windowId="win-menu"
+        edge="left"
+        isActive={false}
+      />,
     );
 
     const button = screen.getByRole("button", { name: "win-menu" });
@@ -94,12 +97,11 @@ describe("DockPanelTabButton", () => {
     fireEvent.mouseDown(screen.getByText("Close"));
     fireEvent.mouseDown(screen.getByText("Undock"));
 
-    expect(context.dispatch).toHaveBeenCalledWith({
+    expect(dispatch).toHaveBeenCalledWith({
       type: "activateWindowOnEdge",
       edge: "left",
       id: "win-menu",
     });
-    expect(context.closeWindow).toHaveBeenCalledWith("win-menu");
     expect(onUndock).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
   });

@@ -1,15 +1,19 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { useContext } from "react";
+import * as dockingHook from "../functions/useDocking";
+import { useDocking } from "../functions/useDocking";
+import { initialDockingState } from "../reducer";
 import { ContextWindow, type ContextWindowHandle, type ContextWindowProps } from "./ContextWindow";
-import { DockingContext, DockingProvider } from "./DockingContext";
-import { createMockDocking } from "./__mocks__/mockDocking";
+import { DockingProvider } from "./DockingContext";
+import { createDockingMock } from "./__mocks__/mockDocking";
 import type { DockEdge, DockingContextType } from "./interface";
 
 describe("ContextWindow", () => {
+  afterEach(() => jest.restoreAllMocks());
+
   let docking: DockingContextType;
 
   const CaptureDocking = (): null => {
-    docking = useContext(DockingContext)!;
+    docking = useDocking();
     return null;
   };
 
@@ -63,6 +67,13 @@ describe("ContextWindow", () => {
     expect(document.getElementById("test-window")).toBeNull();
   });
 
+  test("fades the window while it is moving", () => {
+    renderWindow();
+    fireEvent.mouseDown(screen.getByText("Test window"));
+
+    expect(document.getElementById("test-window")).toHaveStyle({ opacity: "0.8" });
+  });
+
   test.each<DockEdge>(["right", "bottom", "left", "top"])(
     "the dock button targets the default %s edge after floating and undocking",
     (edge) => {
@@ -80,24 +91,23 @@ describe("ContextWindow", () => {
 
   test("uses the document body when a docked edge has no portal host", () => {
     const dockedWindow = { id: "hostless-window", edge: "left" as const, order: 0 };
-    const mockDocking: DockingContextType = createMockDocking(
-      new Map([[dockedWindow.id, dockedWindow]]),
-      {
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue(
+      createDockingMock(initialDockingState, {
+        getActiveWindowOnEdge: () => dockedWindow.id,
+        getDockedWindow: () => dockedWindow,
         getWindowConfig: () => ({ title: "Hostless window", windowVisible: true }),
-        getPanelContentHost: () => null,
-      },
+        getWindowsOnEdge: () => [dockedWindow],
+      }),
     );
 
     render(
-      <DockingContext.Provider value={mockDocking}>
-        <ContextWindow
-          id="hostless-window"
-          title="Hostless window"
-          visible
-        >
-          Hostless content
-        </ContextWindow>
-      </DockingContext.Provider>,
+      <ContextWindow
+        id="hostless-window"
+        title="Hostless window"
+        visible
+      >
+        Hostless content
+      </ContextWindow>,
     );
 
     expect(document.getElementById("hostless-window")?.parentElement).toBe(document.body);
@@ -105,24 +115,23 @@ describe("ContextWindow", () => {
 
   test("does not apply floating position to a window that is already docked", () => {
     const dockedWindow = { id: "pre-docked-window", edge: "top" as const, order: 0 };
-    const mockDocking: DockingContextType = createMockDocking(
-      new Map([[dockedWindow.id, dockedWindow]]),
-      {
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue(
+      createDockingMock(initialDockingState, {
+        getActiveWindowOnEdge: () => dockedWindow.id,
+        getDockedWindow: () => dockedWindow,
         getWindowConfig: () => ({ title: "Pre-docked", windowVisible: false }),
-        getPanelContentHost: () => null,
-      },
+        getWindowsOnEdge: () => [dockedWindow],
+      }),
     );
 
     render(
-      <DockingContext.Provider value={mockDocking}>
-        <ContextWindow
-          id="pre-docked-window"
-          title="Pre-docked"
-          visible
-        >
-          Pre-docked content
-        </ContextWindow>
-      </DockingContext.Provider>,
+      <ContextWindow
+        id="pre-docked-window"
+        title="Pre-docked"
+        visible
+      >
+        Pre-docked content
+      </ContextWindow>,
     );
 
     expect(document.getElementById("pre-docked-window")?.style.left).toBe("");

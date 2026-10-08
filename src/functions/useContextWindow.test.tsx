@@ -1,9 +1,11 @@
-import { act, fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render, renderHook } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { DockingProvider } from "../components/DockingContext";
 import type { DockEdge, DockingContextType } from "../components/interface";
+import type { DockingAction } from "../reducer";
 import { useContextWindow, type ContextWindowController } from "./useContextWindow";
+import * as dockingHook from "./useDocking";
 import { useDocking } from "./useDocking";
 
 interface HookWindowProps {
@@ -101,6 +103,8 @@ const HookWindow = ({
 describe("useContextWindow", () => {
   let docking: DockingContextType;
 
+  afterEach(() => jest.restoreAllMocks());
+
   const CaptureDocking = (): null => {
     const context = useDocking();
     useLayoutEffect(() => {
@@ -132,6 +136,14 @@ describe("useContextWindow", () => {
         view.rerender(tree({ ...initialProps, ...nextProps })),
     };
   };
+
+  test("uses default lifecycle options when omitted", () => {
+    const { result } = renderHook(() => useContextWindow("default-options"), {
+      wrapper: ({ children }) => <DockingProvider>{children}</DockingProvider>,
+    });
+
+    expect(result.current.isDocked).toBe(false);
+  });
 
   test("opens, saves its floating rect when closed, and restores it on reopen", () => {
     const onOpen = jest.fn();
@@ -165,6 +177,61 @@ describe("useContextWindow", () => {
 
     expect(getDocking().getDockedWindow("hook-window")).toBeUndefined();
     expect(document.getElementById("hook-window")).toHaveStyle({ left: "25px", top: "55px" });
+  });
+
+  test("undocks without an anchor using fallback coordinates", () => {
+    const id = "anchorless-window";
+    let dockedWindow: { id: string; edge: DockEdge; order: number } | undefined;
+    const dispatch: DockingContextType["dispatch"] = (action: DockingAction) => {
+      if (action.type === "dock") {
+        dockedWindow = { id, edge: action.edge, order: 0 };
+      } else if (action.type === "undock") {
+        dockedWindow = undefined;
+      }
+    };
+    const dispatchSpy = jest.fn(dispatch);
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      maxZIndex: 3100,
+      minZIndex: 3000,
+      dispatch: dispatchSpy,
+      closeWindow: jest.fn(),
+      getActiveWindowOnEdge: () => null,
+      showWindowById: jest.fn(),
+      getDockedWindow: () => dockedWindow,
+      getWindowConfig: (windowId) => ({ title: windowId }),
+      getWindowController: () => undefined,
+      getPanelContentHost: () => null,
+      getPanelZIndex: () => null,
+      getPreDockRect: () => null,
+      getWindowsOnEdge: () => [],
+      getWindowZIndex: () => 3000,
+      isEdgeCollapsed: () => false,
+      registerWindowController: jest.fn(),
+      registerWindowConfig: jest.fn(),
+      unregisterWindowController: jest.fn(),
+    });
+    const { result, rerender } = renderHook(() => useContextWindow(id));
+
+    act(() => result.current.dock("left"));
+    rerender();
+    expect(result.current.isDocked).toBe(true);
+    act(() => result.current.undock());
+    rerender();
+
+    expect(result.current.isDocked).toBe(false);
+    expect(dispatchSpy).toHaveBeenCalledWith({ type: "undock", id, viaDrag: false });
+  });
+
+  test("does not undock a floating window or act on non-dockable controller requests", () => {
+    const { docking: getDocking, contextWindow: getWindow } = renderWindow({ dockable: false });
+
+    act(() => {
+      getWindow().undock();
+      getDocking().getWindowController("hook-window")?.onDock?.("left");
+      getDocking().getWindowController("hook-window")?.onUndock?.();
+    });
+
+    expect(getDocking().getDockedWindow("hook-window")).toBeUndefined();
   });
 
   test("captures floating rect, switches dock sides, and clamps action-undock", () => {
@@ -213,6 +280,61 @@ describe("useContextWindow", () => {
     act(() => document.dispatchEvent(move));
 
     expect(element.style.transform).toBe("translate(28px, 24px)");
+  });
+
+  test("skips pointer movement when the window node is unavailable", () => {
+    const { contextWindow: getWindow } = renderWindow();
+    const element = document.getElementById("hook-window")!;
+    const transform = element.style.transform;
+    act(() => getWindow().setWindowNode(null));
+
+    fireEvent.mouseDown(document.querySelector(".contextWindowTitle")!);
+    fireEvent.mouseMove(document, { clientX: 400, clientY: 300, movementX: 12, movementY: 8 });
+
+    expect(element.style.transform).toBe(transform);
+  });
+
+  test("opens a window that was already docked without applying floating placement", () => {
+    const id = "already-docked";
+    const dockedWindow = { id, edge: "left" as const, order: 0 };
+    const dispatch = jest.fn();
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      maxZIndex: 3100,
+      minZIndex: 3000,
+      dispatch,
+      closeWindow: jest.fn(),
+      getDockedWindow: () => dockedWindow,
+      getActiveWindowOnEdge: () => null,
+      showWindowById: jest.fn(),
+      getWindowConfig: () => ({
+        title: id,
+        visible: true,
+        windowVisible: false,
+        initialDockEdge: "left",
+      }),
+      getWindowController: () => undefined,
+      getPanelContentHost: () => null,
+      getPanelZIndex: () => null,
+      getPreDockRect: () => null,
+      getWindowsOnEdge: () => [dockedWindow],
+      getWindowZIndex: () => 3000,
+      isEdgeCollapsed: () => false,
+      registerWindowController: jest.fn(),
+      registerWindowConfig: jest.fn(),
+      unregisterWindowController: jest.fn(),
+    });
+
+    render(
+      <HookWindow
+        id={id}
+        visible
+        initialDockEdge="left"
+      />,
+    );
+
+    expect(document.getElementById(id)).toBeInTheDocument();
+    expect(dispatch).toHaveBeenCalledWith({ type: "raiseWindow", id });
+    expect(dispatch).not.toHaveBeenCalledWith({ type: "dock", id, edge: "left" });
   });
 
   test.each<DockEdge>(["right", "bottom", "left", "top"])(

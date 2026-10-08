@@ -12,16 +12,9 @@ import { MAX_Z_INDEX, MIN_Z_INDEX } from "../functions/contextWindowConstants";
 import { dockingReducer, initialDockingState } from "../reducer";
 import { DockPanel, type DockPanelSettings } from "./DockPanel";
 import { DockZoneIndicator } from "./DockZoneIndicator";
-import type {
-  DockEdge,
-  DockedWindow,
-  DockingContextType,
-  DockingWindowController,
-  WindowConfig,
-  WindowRect,
-} from "./interface";
+import type { DockEdge, DockingContextValue, DockingWindowController } from "./interface";
 
-export const DockingContext = createContext<DockingContextType | undefined>(undefined);
+export const DockingContext = createContext<DockingContextValue | undefined>(undefined);
 
 const PANEL_SETTINGS_KEY = "@asup/context-menu:dock-panels";
 const DOCK_EDGES: DockEdge[] = ["top", "left", "right", "bottom"];
@@ -96,112 +89,16 @@ export const DockingProvider = ({
     }
   }, [panelSettings]);
 
-  const closeWindow = useCallback((id: string): void => {
-    windowControllers.current.get(id)?.onClose?.();
-  }, []);
-
-  const getWindowConfig = useCallback(
-    (id: string): WindowConfig => {
-      const existing = state.windowConfigs.get(id);
-      if (existing) {
-        return existing;
-      }
-
-      return {
-        title: id || "window",
-      };
-    },
-    [state.windowConfigs],
-  );
-
-  const registerWindowController = useCallback(
-    (id: string, controller: DockingWindowController): void => {
-      windowControllers.current.set(id, controller);
-    },
-    [],
-  );
-
-  const registerWindowConfig = useCallback((id: string, config: Partial<WindowConfig>): void => {
-    dispatch({ type: "registerWindowConfig", id, config });
-  }, []);
-
-  const unregisterWindowController = useCallback((id: string): void => {
-    windowControllers.current.delete(id);
-  }, []);
-
-  const contextValue = useMemo<DockingContextType>(() => {
-    const getDockedWindow = (id: string): DockedWindow | undefined => state.dockedWindows.get(id);
-
-    const getWindowsOnEdge = (edge: DockEdge): DockedWindow[] =>
-      Array.from(state.dockedWindows.values())
-        .filter((window) => window.edge === edge)
-        .sort((a, b) => a.order - b.order);
-
-    const getActiveWindowOnEdge = (edge: DockEdge): string | null => {
-      const activeId = state.activeWindowsByEdge.get(edge);
-      if (activeId && state.dockedWindows.get(activeId)?.edge === edge) {
-        return activeId;
-      }
-      // The active window has left this edge, so the first remaining window takes over
-      return getWindowsOnEdge(edge)[0]?.id ?? null;
-    };
-
-    const getWindowZIndex = (id: string): number => {
-      const index = state.zOrder.indexOf(id);
-      if (index === -1) {
-        return minZIndex;
-      }
-      // More windows than the available range simply share the top slot
-      return Math.min(maxZIndex, minZIndex + index);
-    };
-
-    const showWindowById = (id: string): void => {
-      if (state.zOrder.includes(id)) {
-        dispatch({ type: "raiseWindow", id });
-      }
-    };
-
-    return {
+  const contextValue = useMemo<DockingContextValue>(
+    () => ({
+      dispatch,
       maxZIndex,
       minZIndex,
-      closeWindow,
-      dispatch,
-      getActiveWindowOnEdge,
-      getDockedWindow,
-      showWindowById,
-      getPanelContentHost: (edge: DockEdge): HTMLDivElement | null =>
-        state.panelContentHosts.get(edge) ?? null,
-      getPanelZIndex: (edge: DockEdge): number | null => {
-        const activeId = getActiveWindowOnEdge(edge);
-        return activeId ? getWindowZIndex(activeId) : null;
-      },
-      getPreDockRect: (id: string): WindowRect | null => state.preDockRects.get(id) ?? null,
-      getWindowConfig,
-      getWindowController: (id: string): DockingWindowController | undefined =>
-        windowControllers.current.get(id),
-      getWindowZIndex,
-      getWindowsOnEdge,
-      isEdgeCollapsed: (edge: DockEdge): boolean => state.collapsedEdges.has(edge),
-      registerWindowController,
-      registerWindowConfig,
-      unregisterWindowController,
-    };
-  }, [
-    closeWindow,
-    maxZIndex,
-    minZIndex,
-    dispatch,
-    getWindowConfig,
-    registerWindowController,
-    registerWindowConfig,
-    state.activeWindowsByEdge,
-    state.collapsedEdges,
-    state.dockedWindows,
-    state.panelContentHosts,
-    state.preDockRects,
-    state.zOrder,
-    unregisterWindowController,
-  ]);
+      state,
+      windowControllers,
+    }),
+    [dispatch, maxZIndex, minZIndex, state],
+  );
 
   return (
     <DockingContext.Provider value={contextValue}>

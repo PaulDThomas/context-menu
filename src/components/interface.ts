@@ -1,4 +1,4 @@
-import type { DockingAction } from "../reducer";
+import type { DockingAction, DockingState } from "../reducer";
 
 export interface IMenuItem {
   label: string | React.ReactElement;
@@ -57,27 +57,51 @@ export interface DockingWindowController {
   onUndock?: () => void;
 }
 
+/** Public docking operations and state selectors returned by `useDocking`. */
 export interface DockingContextType {
+  /** Highest z-index available to a managed window. */
+  maxZIndex: number;
+  /** Lowest z-index assigned to an unregistered or bottom-most window. */
+  minZIndex: number;
+  /** Dispatch a reducer action for advanced docking integrations. */
+  dispatch: React.Dispatch<DockingAction>;
+  /** Invoke the registered close callback for a window, if it has one. */
+  closeWindow: (id: string) => void;
+  /** Return the active window ID on an edge, or `null` when no window is docked there. */
+  getActiveWindowOnEdge: (edge: DockEdge) => string | null;
+  /** Raise a registered window to the top of the shared stacking order. */
+  showWindowById: (id: string) => void;
+  /** Return a window's dock information, or `undefined` if it is floating. */
+  getDockedWindow: (id: string) => DockedWindow | undefined;
+  /** Retrieve a window's configuration by ID, with an ID-based fallback title. */
+  getWindowConfig: (id: string) => WindowConfig;
+  /** Return the controller registered for a window, if present. */
+  getWindowController: (id: string) => DockingWindowController | undefined;
+  /** Return the portal host for an edge panel, or `null` when it has no host. */
+  getPanelContentHost: (edge: DockEdge) => HTMLDivElement | null;
+  /** Return the active window's z-index for an edge panel, or `null` when empty. */
+  getPanelZIndex: (edge: DockEdge) => number | null;
+  /** Return the floating position saved before docking, or `null` if none is saved. */
+  getPreDockRect: (id: string) => WindowRect | null;
+  /** Return docked windows on an edge ordered from first to last tab. */
+  getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
+  /** Return a window's stacking slot, defaulting to `minZIndex` when unregistered. */
+  getWindowZIndex: (id: string) => number;
+  /** Return whether an edge's dock panel is collapsed. */
+  isEdgeCollapsed: (edge: DockEdge) => boolean;
+  /** Register or replace callbacks used by window controls and title bars. */
+  registerWindowController: (id: string, controller: DockingWindowController) => void;
+  /** Register or update a window's configuration; partial values merge with the stored config. */
+  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
+  /** Remove the registered controller for a window. */
+  unregisterWindowController: (id: string) => void;
+}
+
+/** Internal value provided by `DockingProvider` and consumed by `useDocking`. */
+export interface DockingContextValue {
+  dispatch: React.Dispatch<DockingAction>;
   maxZIndex: number;
   minZIndex: number;
-  dispatch: React.Dispatch<DockingAction>;
-  closeWindow: (id: string) => void;
-  getActiveWindowOnEdge: (edge: DockEdge) => string | null;
-  showWindowById: (id: string) => void;
-  getDockedWindow: (id: string) => DockedWindow | undefined;
-  /** Retrieve a window's configuration by ID */
-  getWindowConfig: (id: string) => WindowConfig;
-  getWindowController: (id: string) => DockingWindowController | undefined;
-  getPanelContentHost: (edge: DockEdge) => HTMLDivElement | null;
-  /** The z-index of the edge panel, taken from the window it is showing */
-  getPanelZIndex: (edge: DockEdge) => number | null;
-  getPreDockRect: (id: string) => WindowRect | null;
-  getWindowsOnEdge: (edge: DockEdge) => DockedWindow[];
-  /** Returns the stacking slot, defaulting to the provider minimum for unregistered IDs. */
-  getWindowZIndex: (id: string) => number;
-  isEdgeCollapsed: (edge: DockEdge) => boolean;
-  registerWindowController: (id: string, controller: DockingWindowController) => void;
-  /** Register or update a window's configuration; partial updates are merged into the stored config */
-  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
-  unregisterWindowController: (id: string) => void;
+  state: DockingState;
+  windowControllers: React.RefObject<Map<string, DockingWindowController>>;
 }

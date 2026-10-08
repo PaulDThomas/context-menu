@@ -1,13 +1,14 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { useContext } from "react";
+import * as dockingHook from "../functions/useDocking";
+import { useDocking } from "../functions/useDocking";
 import {
   DOCK_PANEL_AUTOHIDE_DISTANCE,
   DOCK_PANEL_MIN_SIZE,
   DOCK_PANEL_VIEWPORT_GAP,
   DockPanel,
 } from "./DockPanel";
-import { DockingContext, DockingProvider } from "./DockingContext";
-import { createMockDocking } from "./__mocks__/mockDocking";
+import { DockingProvider } from "./DockingContext";
+import { defaultDocking } from "./__mocks__/mockDocking";
 import type { DockEdge, DockedWindow, DockingContextType, WindowRect } from "./interface";
 
 const buildDockedWindow = (
@@ -36,19 +37,14 @@ describe("DockPanel", () => {
     localStorage.clear();
   });
 
-  test("does not render when no windows are docked on the target edge", () => {
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
-      getDockedWindow: () => undefined,
-      getWindowsOnEdge: () => [],
-      isEdgeCollapsed: () => false,
-    };
+  afterEach(() => jest.restoreAllMocks());
 
-    const { container } = render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge="left" />
-      </DockingContext.Provider>,
-    );
+  test("does not render when no windows are docked on the target edge", () => {
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      getWindowsOnEdge: () => [],
+    });
+    const { container } = render(<DockPanel edge="left" />);
 
     expect(container.firstChild).toBeNull();
   });
@@ -60,21 +56,14 @@ describe("DockPanel", () => {
       buildDockedWindow("window-b", "right", 1),
     ];
 
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
       dispatch,
       getActiveWindowOnEdge: () => "window-a",
-      getPanelContentHost: () => null,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
-      isEdgeCollapsed: () => false,
-    };
-
-    render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge="right" />
-      </DockingContext.Provider>,
-    );
+    });
+    render(<DockPanel edge="right" />);
 
     const firstButton = screen.getByRole("button", { name: "window-a" });
     const secondButton = screen.getByRole("button", { name: "window-b" });
@@ -96,18 +85,13 @@ describe("DockPanel", () => {
       buildDockedWindow("window-a", "right", 0),
       buildDockedWindow("window-b", "right", 1),
     ];
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
       getActiveWindowOnEdge: () => null,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
-    };
-
-    render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge="right" />
-      </DockingContext.Provider>,
-    );
+    });
+    render(<DockPanel edge="right" />);
 
     expect(screen.getByRole("button", { name: "window-a" })).toHaveClass("activeDockTabButton");
     expect(screen.getByRole("button", { name: "window-b" })).not.toHaveClass("activeDockTabButton");
@@ -120,16 +104,13 @@ describe("DockPanel", () => {
     ["bottom", "M4 9h8v6", "L8 4"],
   ] as const)("layout icons match the %s edge", (edge, coveringPane, pushArrow) => {
     const windows = [buildDockedWindow("window-a", edge, 0)];
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      getActiveWindowOnEdge: () => "window-a",
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
-    };
-    render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge={edge} />
-      </DockingContext.Provider>,
-    );
+    });
+    render(<DockPanel edge={edge} />);
     const toggle = screen.getByRole("button", { name: `Push content with ${edge} dock panel` });
     expect(toggle).toHaveAttribute("title", "Push content");
     expect(toggle.querySelector("path")?.getAttribute("d")).toContain(pushArrow);
@@ -140,37 +121,22 @@ describe("DockPanel", () => {
 
   test("applies the z-index of the visible window to the panel", () => {
     const windows = [buildDockedWindow("window-a", "top", 0)];
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
-      getPanelZIndex: (edge) => (edge === "top" ? 3005 : null),
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
+      getActiveWindowOnEdge: () => "window-a",
       getDockedWindow: (id) => windows.find((window) => window.id === id),
+      getPanelZIndex: () => 3005,
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
-      isEdgeCollapsed: () => false,
-    };
+    });
 
-    const { container } = render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge="top" />
-      </DockingContext.Provider>,
-    );
+    const { container } = render(<DockPanel edge="top" />);
 
     expect((container.firstChild as HTMLElement).style.zIndex).toBe("3005");
   });
 
   describe("resizing", () => {
     const renderPanel = (edge: DockedWindow["edge"]) => {
-      const windows = [buildDockedWindow("window-a", edge, 0)];
-      const contextValue: DockingContextType = {
-        ...createMockDocking(new Map()),
-        getDockedWindow: (id) => windows.find((window) => window.id === id),
-        getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
-        isEdgeCollapsed: () => false,
-      };
-      const utils = render(
-        <DockingContext.Provider value={contextValue}>
-          <DockPanel edge={edge} />
-        </DockingContext.Provider>,
-      );
+      const utils = render(<DockPanel edge={edge} />);
       const panel = utils.container.firstChild as HTMLElement;
       jest.spyOn(panel, "getBoundingClientRect").mockReturnValue({
         left: 0,
@@ -214,6 +180,13 @@ describe("DockPanel", () => {
     ] as const)(
       "dragging the inner edge of a %s panel resizes it",
       (edge, moveTo, dimension, expected) => {
+        const windows = [buildDockedWindow("window-a", edge, 0)];
+        jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+          ...defaultDocking,
+          getActiveWindowOnEdge: () => "window-a",
+          getDockedWindow: (id) => windows.find((window) => window.id === id),
+          getWindowsOnEdge: (target) => windows.filter((window) => window.edge === target),
+        });
         const { panel, handle } = renderPanel(edge);
         const isHorizontal = edge === "left" || edge === "right";
         expect(handle.getAttribute("aria-orientation")).toBe(
@@ -239,6 +212,13 @@ describe("DockPanel", () => {
     );
 
     test("panel size is clamped between the minimum and the viewport", () => {
+      const windows = [buildDockedWindow("window-a", "left", 0)];
+      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        ...defaultDocking,
+        getActiveWindowOnEdge: () => "window-a",
+        getDockedWindow: (id) => windows.find((window) => window.id === id),
+        getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      });
       const { panel, handle } = renderPanel("left");
 
       fireEvent.mouseDown(handle, { button: 0, clientX: 300, clientY: 0 });
@@ -250,6 +230,13 @@ describe("DockPanel", () => {
     });
 
     test("ignores non-primary mouse buttons", () => {
+      const windows = [buildDockedWindow("window-a", "left", 0)];
+      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        ...defaultDocking,
+        getActiveWindowOnEdge: () => "window-a",
+        getDockedWindow: (id) => windows.find((window) => window.id === id),
+        getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      });
       const { panel, handle } = renderPanel("left");
 
       fireEvent.mouseDown(handle, { button: 2, clientX: 300, clientY: 0 });
@@ -258,6 +245,13 @@ describe("DockPanel", () => {
     });
 
     test("arrow keys resize the panel towards and away from the viewport centre", () => {
+      const windows = [buildDockedWindow("window-a", "bottom", 0)];
+      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        ...defaultDocking,
+        getActiveWindowOnEdge: () => "window-a",
+        getDockedWindow: (id) => windows.find((window) => window.id === id),
+        getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      });
       const { panel, handle } = renderPanel("bottom");
 
       fireEvent.keyDown(handle, { key: "ArrowUp" });
@@ -273,20 +267,14 @@ describe("DockPanel", () => {
     test("mouse and keyboard interaction on the handle raises the panel", () => {
       const dispatch = jest.fn();
       const windows = [buildDockedWindow("window-a", "right", 0)];
-      const contextValue: DockingContextType = {
-        ...createMockDocking(new Map()),
+      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        ...defaultDocking,
         dispatch,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
         getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
-        isEdgeCollapsed: () => false,
-      };
-
-      render(
-        <DockingContext.Provider value={contextValue}>
-          <DockPanel edge="right" />
-        </DockingContext.Provider>,
-      );
+      });
+      render(<DockPanel edge="right" />);
 
       const handle = screen.getByRole("separator", { name: "Resize right dock panel" });
 
@@ -306,6 +294,13 @@ describe("DockPanel", () => {
     });
 
     test("releases document listeners when unmounted mid-resize", () => {
+      const windows = [buildDockedWindow("window-a", "right", 0)];
+      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        ...defaultDocking,
+        getActiveWindowOnEdge: () => "window-a",
+        getDockedWindow: (id) => windows.find((window) => window.id === id),
+        getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
+      });
       const { handle, unmount } = renderPanel("right");
 
       fireEvent.mouseDown(handle, { button: 0, clientX: 300, clientY: 0 });
@@ -319,8 +314,7 @@ describe("DockPanel", () => {
     let dockingApi: DockingTestApi | undefined;
 
     const CaptureDocking = (): null => {
-      const context = useContext(DockingContext);
-      dockingApi = context ? withDispatchHelpers(context) : undefined;
+      dockingApi = withDispatchHelpers(useDocking());
       return null;
     };
 
@@ -487,8 +481,7 @@ describe("DockPanel", () => {
     let dockingApi: DockingTestApi | undefined;
 
     const CaptureDocking = (): null => {
-      const context = useContext(DockingContext);
-      dockingApi = context ? withDispatchHelpers(context) : undefined;
+      dockingApi = withDispatchHelpers(useDocking());
       return null;
     };
 
@@ -838,19 +831,13 @@ describe("DockPanel", () => {
       buildDockedWindow("window-a", "left", 0),
       buildDockedWindow("window-b", "left", 1),
     ];
-    const contextValue: DockingContextType = {
-      ...createMockDocking(new Map()),
+    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      ...defaultDocking,
       dispatch,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
       getWindowsOnEdge: (edge) => windows.filter((window) => window.edge === edge),
-      isEdgeCollapsed: () => false,
-    };
-
-    render(
-      <DockingContext.Provider value={contextValue}>
-        <DockPanel edge="left" />
-      </DockingContext.Provider>,
-    );
+    });
+    render(<DockPanel edge="left" />);
 
     expect(screen.getByRole("button", { name: "window-a" }).className).toContain(
       "activeDockTabButton",

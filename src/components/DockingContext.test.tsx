@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { useContext } from "react";
+import { useDocking } from "../functions/useDocking";
 import { ContextWindow } from "./ContextWindow";
-import { DockingContext, DockingProvider } from "./DockingContext";
+import { DockingProvider } from "./DockingContext";
 import type {
   DockEdge,
   DockingContextType,
@@ -46,7 +46,7 @@ describe("DockingProvider", () => {
   let api: DockingTestApi;
 
   const Capture = (): null => {
-    api = withDispatchHelpers(useContext(DockingContext)!);
+    api = withDispatchHelpers(useDocking());
     return null;
   };
 
@@ -422,7 +422,7 @@ describe("DockingProvider", () => {
 
     test("all registered windows use the provider range and share its top slot", () => {
       const CaptureCustomRange = (): null => {
-        api = withDispatchHelpers(useContext(DockingContext)!);
+        api = withDispatchHelpers(useDocking());
         return null;
       };
       render(
