@@ -12,21 +12,33 @@ const dockedEdgeClassNames: Record<DockEdge, string> = {
   right: styles.dockedRight,
 };
 
+/** Props for a floating or docked window inside a DockingProvider. Other HTML attributes reach the window element. */
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Allow a docked window to be undocked by its button, dragging, or imperative handle. Defaults to true. */
   allowUndock?: boolean;
+  /** Content rendered inside the scrollable window body. */
   children: React.ReactNode;
-  /** Edge used by the dock button while the window is floating (defaults to right) */
+  /** Edge targeted by the dock button while floating. Defaults to right. */
   defaultDockEdge?: DockEdge;
-  /** When false, a docked window stays docked: no undock button, drag-undock or `undock()` */
+  /** Enable drag docking and title-bar dock/undock controls. Defaults to true. */
   dockable?: boolean;
+  /** Stable, unique window ID used for the DOM element and provider registration. */
   id: string;
-  /** Dock into this edge's DockPanel whenever the window opens (requires `dockable`) */
+  /** Dock into this edge's DockPanel whenever the window becomes visible. Omit to open floating. */
   initialDockEdge?: DockEdge;
+  /** Called when closing is requested. Supplying it shows the close button; update visible to hide the window. */
   onClose?: () => void;
+  /** Called when the window opens, after its initial position is applied. */
   onOpen?: () => void;
+  /** Inline styles for the floating window. Docked layout is controlled by its panel. */
   style?: React.CSSProperties;
+  /** Title text used in the title bar, dock-panel tab, and control tooltips. */
   title: string;
+  /** Custom controls rendered after dock/undock and before close. */
+  titleBarButtons?: ReactNode;
+  /** Optional title-bar content rendered instead of title text; title remains the label and tooltip. */
   titleElement?: ReactNode;
+  /** Control whether the window is rendered. Hiding a docked window removes it from its panel. */
   visible: boolean;
 }
 
@@ -48,6 +60,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       onClose,
       onOpen,
       title,
+      titleBarButtons,
       titleElement,
       visible,
       ...rest
@@ -62,6 +75,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         id,
         visible,
         title,
+        titleBarButtons,
         titleElement,
         dockable,
         defaultDockEdge,
@@ -79,6 +93,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       initialDockEdge,
       onClose,
       title,
+      titleBarButtons,
       titleElement,
       visible,
       isDocked,
@@ -136,7 +151,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
                 rest.onClickCapture?.(event);
               }}
             >
-              <ContextWindowTitleBar id={id} />
+              <ContextWindowTitleBar window={window} />
               <div className={styles.contextWindowBody}>
                 <div>{children}</div>
               </div>

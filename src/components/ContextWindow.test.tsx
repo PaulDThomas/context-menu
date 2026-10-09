@@ -74,6 +74,45 @@ describe("ContextWindow", () => {
     expect(document.getElementById("test-window")).toHaveStyle({ opacity: "0.8" });
   });
 
+  test.each<DockEdge | undefined>([undefined, "left"])(
+    "renders custom title controls after dock/undock without starting a drag (edge=%s)",
+    (initialDockEdge) => {
+      const onUndo = jest.fn();
+      const onRedo = jest.fn();
+      renderWindow({
+        initialDockEdge,
+        onClose: jest.fn(),
+        titleBarButtons: (
+          <>
+            <button onClick={onUndo}>Undo</button>
+            <button onClick={onRedo}>Redo</button>
+          </>
+        ),
+      });
+
+      const undo = screen.getByRole("button", { name: "Undo" });
+      const redo = screen.getByRole("button", { name: "Redo" });
+      const dockButton = screen.getByRole("button", {
+        name: initialDockEdge ? "Undock" : "Dock",
+      });
+      const closeButton = screen.getByRole("button", { name: "Close" });
+      expect(dockButton.nextElementSibling).toBe(undo.parentElement);
+      expect(closeButton.previousElementSibling).toBe(undo.parentElement);
+      expect(undo.nextElementSibling).toBe(redo);
+
+      fireEvent.pointerDown(undo);
+      fireEvent.mouseDown(undo);
+      fireEvent.click(undo);
+      fireEvent.click(redo);
+
+      expect(onUndo).toHaveBeenCalledTimes(1);
+      expect(onRedo).toHaveBeenCalledTimes(1);
+      expect(docking.getWindowConfig("test-window").moving).not.toBe(true);
+      expect(document.getElementById("test-window")).toHaveStyle({ opacity: "1" });
+      expect(document.getElementById("test-window")).not.toHaveAttribute("titleBarButtons");
+    },
+  );
+
   test.each<DockEdge>(["right", "bottom", "left", "top"])(
     "the dock button targets the default %s edge after floating and undocking",
     (edge) => {

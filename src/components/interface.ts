@@ -43,6 +43,7 @@ export interface WindowConfig {
   moving?: boolean;
   style?: React.CSSProperties;
   title: string;
+  titleBarButtons?: React.ReactNode;
   titleElement?: React.ReactNode;
   visible?: boolean;
   windowVisible?: boolean;

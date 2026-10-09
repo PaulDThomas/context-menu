@@ -33,8 +33,10 @@ export interface ContextWindowController {
   registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
   onDock: (edge: DockEdge) => void;
   onUndock: () => void;
+  onClose?: () => void;
   setWindowNode: (node: HTMLDivElement | null) => void;
   undock: () => void;
+  windowConfig: WindowConfig;
   windowVisible: boolean;
   windowRef: React.RefObject<HTMLDivElement | null>;
   zIndex: number;
@@ -444,8 +446,10 @@ export const useContextWindow = (
     registerWindowConfig,
     onDock,
     onUndock,
+    onClose,
     setWindowNode,
     undock,
+    windowConfig,
     windowVisible,
     windowRef,
     zIndex,

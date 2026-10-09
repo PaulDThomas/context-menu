@@ -1,27 +1,32 @@
-import { classNames, useDocking } from "../functions";
+import { classNames } from "../functions";
+import type { ContextWindowController } from "../functions/useContextWindow";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleButton } from "./ContextWindowTitleButton";
 import { CloseIcon, DockIcon, UndockIcon } from "./icons";
 
 interface ContextWindowTitleBarProps {
-  id: string;
+  window: Pick<
+    ContextWindowController,
+    "windowConfig" | "isDocked" | "onTitleMouseDown" | "onDock" | "onUndock" | "onClose"
+  >;
 }
 
-export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React.ReactElement => {
-  const docking = useDocking();
-  const config = docking.getWindowConfig(id);
-  const controller = docking.getWindowController(id);
+export const ContextWindowTitleBar = ({
+  window,
+}: ContextWindowTitleBarProps): React.ReactElement => {
+  const config = window.windowConfig;
   const {
     defaultDockEdge = "right",
     moving,
     title,
+    titleBarButtons,
     titleElement,
     canDock,
     canUndock,
     canClose,
   } = config;
   const windowLabel = title && title.trim() !== "" ? title : "window";
-  const undockDisabled = config.allowUndock === false && !!docking.getDockedWindow(id);
+  const undockDisabled = config.allowUndock === false && window.isDocked;
 
   return (
     <div
@@ -30,7 +35,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
         moving && styles.moving,
         undockDisabled && styles.undockDisabled,
       )}
-      onMouseDown={controller?.onMouseDown}
+      onMouseDown={window.onTitleMouseDown}
     >
       <div
         className={styles.contextWindowTitleText}
@@ -43,7 +48,7 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           className={styles.dockButton}
           label="Dock"
           title={`Dock ${windowLabel}`}
-          onClick={() => controller?.onDock?.(defaultDockEdge)}
+          onClick={() => window.onDock(defaultDockEdge)}
         >
           <DockIcon
             size={14}
@@ -56,17 +61,27 @@ export const ContextWindowTitleBar = ({ id }: ContextWindowTitleBarProps): React
           className={styles.undockButton}
           label="Undock"
           title={`Undock ${windowLabel}`}
-          onClick={() => controller?.onUndock?.()}
+          onClick={window.onUndock}
         >
           <UndockIcon size={14} />
         </ContextWindowTitleButton>
+      )}
+      {titleBarButtons !== undefined && titleBarButtons !== null && (
+        <div
+          className={styles.contextWindowTitleButtons}
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {titleBarButtons}
+        </div>
       )}
       {canClose && (
         <ContextWindowTitleButton
           className={styles.contextWindowTitleClose}
           label="Close"
           title={`Close ${windowLabel}`}
-          onClick={() => docking.closeWindow(id)}
+          onClick={window.onClose}
         >
           <CloseIcon />
         </ContextWindowTitleButton>

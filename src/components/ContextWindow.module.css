@@ -114,11 +114,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: calc(100% - 16px);
+  flex: 1;
+  min-width: 0;
+}
+
+.contextWindowTitleButtons {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: 2px;
 }
 
 .contextWindowTitleClose {
   display: flex;
+  flex-shrink: 0;
   color: black;
   height: 16px;
   width: 16px;
@@ -135,6 +145,7 @@
 
 .dockButton {
   display: flex;
+  flex-shrink: 0;
   color: black;
   height: 16px;
   width: 16px;
@@ -153,6 +164,7 @@
 
 .undockButton {
   display: flex;
+  flex-shrink: 0;
   color: black;
   height: 16px;
   width: 16px;
