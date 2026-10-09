@@ -1,7 +1,7 @@
 import type { DockEdge } from "../components/interface";
 
 export const SNAP_THRESHOLD = 24;
-export const SNAP_HYSTERESIS = 40; // px threshold to UN-snap once snapped (larger than SNAP_THRESHOLD)
+export const SNAP_HYSTERESIS = 40;
 
 /**
  * Detect if the cursor is near an edge for snapping to dock.

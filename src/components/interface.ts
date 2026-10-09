@@ -49,6 +49,38 @@ export interface WindowConfig {
   windowVisible?: boolean;
 }
 
+export interface PendingFloatingStyle {
+  left: number;
+  top: number;
+  width?: number;
+  height?: number;
+  anchorToPointer?: boolean;
+  centerInViewport?: boolean;
+}
+
+export interface ContextWindowController {
+  dock: (edge: DockEdge) => void;
+  dockedWindow: DockedWindow | undefined;
+  divRef: React.RefObject<HTMLDivElement | null>;
+  handleWindowClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  isActiveDockedWindow: boolean;
+  isDocked: boolean;
+  moving: boolean;
+  onTitleMouseDown: (event: React.MouseEvent<HTMLElement>) => void;
+  portalTarget: Element | DocumentFragment;
+  pushToTop: () => void;
+  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
+  onDock: (edge: DockEdge) => void;
+  onUndock: () => void;
+  onClose?: () => void;
+  setWindowNode: (node: HTMLDivElement | null) => void;
+  undock: () => void;
+  windowConfig: WindowConfig;
+  windowVisible: boolean;
+  windowRef: React.RefObject<HTMLDivElement | null>;
+  zIndex: number;
+}
+
 export interface DockingWindowController {
   windowRef: React.RefObject<HTMLDivElement | null>;
   onClose?: () => void;

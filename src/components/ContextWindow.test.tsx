@@ -1,11 +1,200 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import * as dockingHook from "../functions/useDocking";
+import { StrictMode } from "react";
 import { useDocking } from "../functions/useDocking";
+import * as dockingHook from "../functions/useOptionalDocking";
 import { initialDockingState } from "../reducer";
 import { ContextWindow, type ContextWindowHandle, type ContextWindowProps } from "./ContextWindow";
 import { DockingProvider } from "./DockingContext";
 import { createDockingMock } from "./__mocks__/mockDocking";
 import type { DockEdge, DockingContextType } from "./interface";
+
+describe("standalone ContextWindow", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    [
+      "data-acm-min-z-index",
+      "data-acm-max-z-index",
+      "data-context-window-reset-counter",
+      "data-context-window-reset-source",
+    ].forEach((attribute) => document.body.removeAttribute(attribute));
+  });
+
+  const firstRef = (): React.RefObject<ContextWindowHandle | null> => ({ current: null });
+  const pair = (ref: React.RefObject<ContextWindowHandle | null>, title = "First") => (
+    <>
+      <ContextWindow
+        id="standalone-first"
+        title={title}
+        visible
+        ref={ref}
+      >
+        First content
+      </ContextWindow>
+      <ContextWindow
+        id="standalone-second"
+        title="Second"
+        visible
+      >
+        Second content
+      </ContextWindow>
+    </>
+  );
+  const node = (id: string): HTMLElement => document.getElementById(id)!;
+
+  test("opens without a provider and hides docking controls even with an initial edge", () => {
+    const ref = firstRef();
+    const onOpen = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <ContextWindow
+        id="standalone"
+        title="Standalone"
+        visible
+        initialDockEdge="left"
+        onOpen={onOpen}
+        onClose={onClose}
+        ref={ref}
+      >
+        Content
+      </ContextWindow>,
+    );
+    expect(node("standalone").parentElement).toBe(document.body);
+    expect(node("standalone")).toHaveStyle({ visibility: "visible", opacity: "1", zIndex: "3000" });
+    expect(screen.queryByRole("button", { name: "Dock" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Undock" })).not.toBeInTheDocument();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    act(() => {
+      ref.current?.dock("right");
+      ref.current?.undock();
+    });
+    expect(node("standalone").parentElement).toBe(document.body);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("raises on opening, surface click, title mousedown and imperative action", () => {
+    const ref = firstRef();
+    render(pair(ref));
+    const first = node("standalone-first");
+    const second = node("standalone-second");
+    expect(first.style.zIndex).toBe("3001");
+    expect(second.style.zIndex).toBe("3002");
+    fireEvent.click(first);
+    expect(first.style.zIndex).toBe("3003");
+    fireEvent.click(second);
+    fireEvent.mouseDown(screen.getByText("First"));
+    expect(first.style.zIndex).toBe("3005");
+    fireEvent.mouseUp(document);
+    fireEvent.click(second);
+    act(() => ref.current?.pushToTop());
+    expect(first.style.zIndex).toBe("3007");
+    act(() => ref.current?.pushToTop());
+    expect(first.style.zIndex).toBe("3007");
+  });
+
+  test("resets peers at the custom body limit and preserves React state after rerender", () => {
+    document.body.setAttribute("data-acm-min-z-index", "4000");
+    document.body.setAttribute("data-acm-max-z-index", "4003");
+    const ref = firstRef();
+    const view = render(pair(ref));
+    act(() => ref.current?.pushToTop());
+    expect(node("standalone-first").style.zIndex).toBe("4003");
+    fireEvent.click(node("standalone-second"));
+    expect(node("standalone-first").style.zIndex).toBe("4000");
+    expect(node("standalone-second").style.zIndex).toBe("4001");
+    view.rerender(pair(ref, "Renamed first"));
+    expect(node("standalone-first").style.zIndex).toBe("4000");
+    expect(node("standalone-second").style.zIndex).toBe("4001");
+    expect(document.body.getAttribute("data-context-window-reset-counter")).toBe("1");
+    document.body.setAttribute("data-acm-min-z-index", "5000");
+    document.body.setAttribute("data-acm-max-z-index", "5100");
+    act(() => ref.current?.pushToTop());
+    expect(node("standalone-first").style.zIndex).toBe("5000");
+  });
+
+  test("drags without snapping or modifying panel targets and restores overflow", () => {
+    render(pair(firstRef()));
+    const first = node("standalone-first");
+    const panel = document.createElement("div");
+    panel.setAttribute("data-dock-panel-edge", "left");
+    panel.setAttribute("data-dock-target", "");
+    document.body.appendChild(panel);
+    const previousOverflow = document.body.style.overflow;
+    fireEvent.mouseDown(screen.getByText("First"));
+    expect(document.body.style.overflow).toBe("hidden");
+    const move = new MouseEvent("mousemove", { bubbles: true, clientX: 1, clientY: 200 });
+    Object.defineProperties(move, { movementX: { value: 12 }, movementY: { value: 8 } });
+    fireEvent(document, move);
+    expect(first.style.transform).toBe("translate(28px, 24px)");
+    fireEvent.mouseUp(document);
+    expect(first.parentElement).toBe(document.body);
+    expect(panel).toHaveAttribute("data-dock-target");
+    expect(document.body.style.overflow).toBe(previousOverflow);
+    panel.remove();
+  });
+
+  test("saves the floating rect and reopens with lifecycle callbacks", () => {
+    const onOpen = jest.fn();
+    const tree = (visible: boolean) => (
+      <ContextWindow
+        id="reopening"
+        title="Reopening"
+        visible={visible}
+        onOpen={onOpen}
+      >
+        Content
+      </ContextWindow>
+    );
+    const view = render(tree(true));
+    jest
+      .spyOn(node("reopening"), "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(80, 90, 300, 200));
+    view.rerender(tree(false));
+    expect(document.getElementById("reopening")).toBeNull();
+    view.rerender(tree(true));
+    expect(node("reopening")).toHaveStyle({
+      left: "80px",
+      top: "90px",
+      width: "300px",
+      height: "200px",
+      visibility: "visible",
+    });
+    expect(onOpen).toHaveBeenCalledTimes(2);
+  });
+
+  test("does not reset provider windows and removes reset listeners on unmount in StrictMode", () => {
+    const removeListener = jest.spyOn(document, "removeEventListener");
+    document.body.setAttribute("data-acm-max-z-index", "3002");
+    const ref = firstRef();
+    const view = render(
+      <StrictMode>
+        {pair(ref)}
+        <DockingProvider
+          minZIndex={6000}
+          maxZIndex={6100}
+        >
+          <ContextWindow
+            id="managed"
+            title="Managed"
+            visible
+          >
+            Managed content
+          </ContextWindow>
+        </DockingProvider>
+      </StrictMode>,
+    );
+    const managed = node("managed");
+    expect(managed).not.toHaveAttribute("data-context-window");
+    act(() => ref.current?.pushToTop());
+    fireEvent.click(node("standalone-second"));
+    expect(managed.style.zIndex).toBe("6000");
+    view.unmount();
+    expect(removeListener).toHaveBeenCalledWith(
+      "context-window-reset-z-index",
+      expect.any(Function),
+    );
+  });
+});
 
 describe("ContextWindow", () => {
   afterEach(() => jest.restoreAllMocks());
@@ -130,7 +319,7 @@ describe("ContextWindow", () => {
 
   test("uses the document body when a docked edge has no portal host", () => {
     const dockedWindow = { id: "hostless-window", edge: "left" as const, order: 0 };
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue(
+    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
       createDockingMock(initialDockingState, {
         getActiveWindowOnEdge: () => dockedWindow.id,
         getDockedWindow: () => dockedWindow,
@@ -154,7 +343,7 @@ describe("ContextWindow", () => {
 
   test("does not apply floating position to a window that is already docked", () => {
     const dockedWindow = { id: "pre-docked-window", edge: "top" as const, order: 0 };
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue(
+    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
       createDockingMock(initialDockingState, {
         getActiveWindowOnEdge: () => dockedWindow.id,
         getDockedWindow: () => dockedWindow,

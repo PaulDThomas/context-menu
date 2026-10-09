@@ -12,7 +12,7 @@ const dockedEdgeClassNames: Record<DockEdge, string> = {
   right: styles.dockedRight,
 };
 
-/** Props for a floating or docked window inside a DockingProvider. Other HTML attributes reach the window element. */
+/** Props for a floating window, optionally dockable inside a DockingProvider. Other HTML attributes reach the window element. */
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Allow a docked window to be undocked by its button, dragging, or imperative handle. Defaults to true. */
   allowUndock?: boolean;
@@ -22,7 +22,7 @@ export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement>
   defaultDockEdge?: DockEdge;
   /** Enable drag docking and title-bar dock/undock controls. Defaults to true. */
   dockable?: boolean;
-  /** Stable, unique window ID used for the DOM element and provider registration. */
+  /** Stable, unique window ID used for the DOM element and optional provider registration. */
   id: string;
   /** Dock into this edge's DockPanel whenever the window becomes visible. Omit to open floating. */
   initialDockEdge?: DockEdge;

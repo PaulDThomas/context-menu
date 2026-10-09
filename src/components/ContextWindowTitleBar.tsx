@@ -1,8 +1,8 @@
 import { classNames } from "../functions";
-import type { ContextWindowController } from "../functions/useContextWindow";
 import styles from "./ContextWindow.module.css";
 import { ContextWindowTitleButton } from "./ContextWindowTitleButton";
 import { CloseIcon, DockIcon, UndockIcon } from "./icons";
+import type { ContextWindowController } from "./interface";
 
 interface ContextWindowTitleBarProps {
   window: Pick<

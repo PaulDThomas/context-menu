@@ -2,11 +2,18 @@ import { act, fireEvent, render, renderHook } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { DockingProvider } from "../components/DockingContext";
-import type { DockEdge, DockingContextType } from "../components/interface";
+import type {
+  ContextWindowController,
+  DockEdge,
+  DockingContextType,
+} from "../components/interface";
 import type { DockingAction } from "../reducer";
-import { useContextWindow, type ContextWindowController } from "./useContextWindow";
-import * as dockingHook from "./useDocking";
+import { WINDOW_Z_INDEX_RESET_EVENT } from "./contextWindowConstants";
+import { useContextWindow } from "./useContextWindow";
 import { useDocking } from "./useDocking";
+import * as dockingHook from "./useOptionalDocking";
+import { useStandaloneContextWindowState } from "./useStandaloneContextWindowState";
+import { useStandaloneWindowZIndex } from "./useStandaloneWindowZIndex";
 
 interface HookWindowProps {
   id?: string;
@@ -104,6 +111,51 @@ describe("useContextWindow", () => {
   let docking: DockingContextType;
 
   afterEach(() => jest.restoreAllMocks());
+
+  test("keeps standalone configuration and saved rectangles scoped to the current ID", () => {
+    const { result, rerender } = renderHook(({ id }) => useStandaloneContextWindowState(id), {
+      initialProps: { id: "" },
+    });
+    expect(result.current.windowConfig.title).toBe("window");
+    act(() => result.current.registerWindowConfig("other", { visible: true }));
+    expect(result.current.windowConfig.title).toBe("window");
+    rerender({ id: "other" });
+    expect(result.current.windowConfig.title).toBe("other");
+    rerender({ id: "new-window" });
+    expect(result.current.windowConfig.title).toBe("new-window");
+    act(() => result.current.registerWindowConfig("", { visible: false, canDock: true }));
+    rerender({ id: "" });
+    expect(result.current.windowConfig).toMatchObject({ title: "window", canDock: false });
+    const rect = { x: 80, y: 90, width: 300, height: 200 };
+    act(() => {
+      result.current.dispatch({ type: "raiseWindow", id: "" });
+      result.current.dispatch({ type: "saveWindowPosition", id: "", rect });
+    });
+    expect(result.current.getPreDockRect("")).toEqual(rect);
+    expect(result.current.getPreDockRect("other")).toBeNull();
+  });
+
+  test("handles reset events and raise calls while a standalone node is absent", () => {
+    const windowRef: React.RefObject<HTMLDivElement | null> = { current: null };
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useStandaloneWindowZIndex(enabled, windowRef),
+      { initialProps: { enabled: true } },
+    );
+    act(() => {
+      result.current.pushToTop();
+      document.dispatchEvent(new Event(WINDOW_Z_INDEX_RESET_EVENT));
+    });
+    expect(result.current.zIndex).toBe(3000);
+    windowRef.current = document.createElement("div");
+    act(() => document.dispatchEvent(new Event(WINDOW_Z_INDEX_RESET_EVENT)));
+    expect(result.current.zIndex).toBe(3000);
+    windowRef.current.style.zIndex = "3005";
+    act(() => document.dispatchEvent(new Event(WINDOW_Z_INDEX_RESET_EVENT)));
+    expect(result.current.zIndex).toBe(3005);
+    rerender({ enabled: false });
+    act(() => result.current.pushToTop());
+    expect(result.current.zIndex).toBe(3005);
+  });
 
   const CaptureDocking = (): null => {
     const context = useDocking();
@@ -259,7 +311,7 @@ describe("useContextWindow", () => {
       }
     };
     const dispatchSpy = jest.fn(dispatch);
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
       maxZIndex: 3100,
       minZIndex: 3000,
       dispatch: dispatchSpy,
@@ -390,7 +442,7 @@ describe("useContextWindow", () => {
     const id = "already-docked";
     const dockedWindow = { id, edge: "left" as const, order: 0 };
     const dispatch = jest.fn();
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
       maxZIndex: 3100,
       minZIndex: 3000,
       dispatch,

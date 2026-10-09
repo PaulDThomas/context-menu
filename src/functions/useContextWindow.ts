@@ -1,46 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type {
+  ContextWindowController,
   DockEdge,
-  DockedWindow,
   DockingWindowController,
-  WindowConfig,
+  PendingFloatingStyle,
 } from "../components/interface";
 import { checkPosition } from "./checkPosition";
-import { chkPosition } from "./chkPosition";
+import { WINDOW_DATA_ATTRIBUTE } from "./contextWindowConstants";
+import { positionFloatingWindow } from "./positionFloatingWindow";
+import { restoreFloatingWindow } from "./restoreFloatingWindow";
 import { useContextWindowDrag } from "./useContextWindowDrag";
-import { useDocking } from "./useDocking";
-
-interface PendingFloatingStyle {
-  left: number;
-  top: number;
-  width?: number;
-  height?: number;
-  anchorToPointer?: boolean;
-  centerInViewport?: boolean;
-}
-
-export interface ContextWindowController {
-  dock: (edge: DockEdge) => void;
-  dockedWindow: DockedWindow | undefined;
-  divRef: React.RefObject<HTMLDivElement | null>;
-  handleWindowClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-  isActiveDockedWindow: boolean;
-  isDocked: boolean;
-  moving: boolean;
-  onTitleMouseDown: (event: React.MouseEvent<HTMLElement>) => void;
-  portalTarget: Element | DocumentFragment;
-  pushToTop: () => void;
-  registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
-  onDock: (edge: DockEdge) => void;
-  onUndock: () => void;
-  onClose?: () => void;
-  setWindowNode: (node: HTMLDivElement | null) => void;
-  undock: () => void;
-  windowConfig: WindowConfig;
-  windowVisible: boolean;
-  windowRef: React.RefObject<HTMLDivElement | null>;
-  zIndex: number;
-}
+import { useOptionalDocking } from "./useOptionalDocking";
+import { useStandaloneContextWindowState } from "./useStandaloneContextWindowState";
+import { useStandaloneWindowZIndex } from "./useStandaloneWindowZIndex";
 
 interface UseContextWindowOptions {
   onClose?: () => void;
@@ -52,31 +24,40 @@ export const useContextWindow = (
   id: string,
   { onClose, onOpen }: UseContextWindowOptions = {},
 ): ContextWindowController => {
-  const docking = useDocking();
-  const windowConfig = docking.getWindowConfig(id);
+  const divRef = useRef<HTMLDivElement | null>(null);
+  const windowRef = useRef<HTMLDivElement | null>(null);
+  const docking = useOptionalDocking();
+  const hasDocking = !!docking;
+  const standalone = useStandaloneContextWindowState(id);
+  const stacking = useStandaloneWindowZIndex(!docking, windowRef);
+  const windowConfig = docking?.getWindowConfig(id) ?? standalone.windowConfig;
   const allowUndock = windowConfig.allowUndock ?? true;
-  const dockable = windowConfig.dockable ?? true;
-  const initialDockEdge = windowConfig.initialDockEdge;
+  const dockable = !!docking && (windowConfig.dockable ?? true);
+  const initialDockEdge = docking ? windowConfig.initialDockEdge : undefined;
   const visible = windowConfig.visible ?? false;
   const windowVisible = windowConfig.windowVisible ?? false;
   const moving = windowConfig.moving ?? false;
-  const dockedWindow = docking.getDockedWindow(id);
+  const dockedWindow = docking?.getDockedWindow(id);
   const isDocked = !!dockedWindow;
   const activeDockedWindowId =
-    isDocked && dockedWindow ? (docking.getActiveWindowOnEdge(dockedWindow.edge) ?? null) : null;
+    isDocked && dockedWindow ? (docking?.getActiveWindowOnEdge(dockedWindow.edge) ?? null) : null;
   const isActiveDockedWindow =
     !isDocked || !dockedWindow || !activeDockedWindowId || activeDockedWindowId === id;
   const dockPanelContentHost =
-    isDocked && dockedWindow ? (docking.getPanelContentHost(dockedWindow.edge) ?? null) : null;
+    isDocked && dockedWindow ? (docking?.getPanelContentHost(dockedWindow.edge) ?? null) : null;
   const portalTarget = dockPanelContentHost ?? document.body;
-  const zIndex = docking.getWindowZIndex(id);
-  const dispatch = docking.dispatch;
-  const registerWindowConfig = docking.registerWindowConfig;
-  const registerWindowController = docking.registerWindowController;
-  const unregisterWindowController = docking.unregisterWindowController;
+  const zIndex = docking?.getWindowZIndex(id) ?? stacking.zIndex;
+  const dispatch = docking?.dispatch ?? standalone.dispatch;
+  const registerWindowConfig = docking?.registerWindowConfig ?? standalone.registerWindowConfig;
+  const registerWindowController = docking?.registerWindowController;
+  const unregisterWindowController = docking?.unregisterWindowController;
+  const getPreDockRect = docking?.getPreDockRect ?? standalone.getPreDockRect;
+  const raiseStandalone = stacking.pushToTop;
+  const pushToTop = useCallback(() => {
+    if (docking) dispatch({ type: "raiseWindow", id });
+    else raiseStandalone();
+  }, [docking, dispatch, id, raiseStandalone]);
 
-  const divRef = useRef<HTMLDivElement | null>(null);
-  const windowRef = useRef<HTMLDivElement | null>(null);
   const positionedWindowRef = useRef<HTMLDivElement | null>(null);
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDockedRef = useRef<boolean>(isDocked);
@@ -86,9 +67,10 @@ export const useContextWindow = (
 
   // Keep the window in the provider's global z-order for its mounted lifetime.
   useEffect(() => {
+    if (!hasDocking) return;
     dispatch({ type: "registerWindow", id });
     return () => dispatch({ type: "unregisterWindow", id });
-  }, [dispatch, id]);
+  }, [dispatch, hasDocking, id]);
 
   // Make the current docked state available to document-level drag handlers immediately.
   useLayoutEffect(() => {
@@ -104,7 +86,7 @@ export const useContextWindow = (
   useEffect(
     () => () => {
       if (isDockedRef.current) {
-        dockingRef.current.dispatch({ type: "undock", id });
+        dockingRef.current?.dispatch({ type: "undock", id });
       }
     },
     [id],
@@ -133,6 +115,7 @@ export const useContextWindow = (
   // Preserve the floating rect before docking so the window can be restored later.
   const handleDock = useCallback(
     (edge: DockEdge) => {
+      if (!hasDocking) return;
       if (!windowRef.current) {
         dispatch({ type: "dock", id, edge });
         return;
@@ -151,7 +134,7 @@ export const useContextWindow = (
         },
       });
     },
-    [dispatch, id, isDocked],
+    [dispatch, hasDocking, id, isDocked],
   );
 
   // Capture the pending floating placement before removing the window from its panel.
@@ -161,7 +144,7 @@ export const useContextWindow = (
         return;
       }
 
-      const restoreState = dockingRef.current.getPreDockRect(id);
+      const restoreState = getPreDockRect(id);
       if (pointer) {
         pendingFloatingStyleRef.current = {
           left: pointer.x,
@@ -188,7 +171,7 @@ export const useContextWindow = (
       undockViaActionRef.current = !pointer;
       dispatch({ type: "undock", id, viaDrag: !!pointer });
     },
-    [allowUndock, dispatch, id, isDocked],
+    [allowUndock, dispatch, getPreDockRect, id, isDocked],
   );
 
   // Guard controller docking actions against stale controls and non-dockable windows.
@@ -210,6 +193,8 @@ export const useContextWindow = (
   const { onTitleMouseDown, armInteractionEnd, lastMousePosRef } = useContextWindowDrag({
     id,
     dockable,
+    dockingEnabled: !!docking,
+    pushToTop,
     allowUndock,
     isDocked,
     dockedEdge: dockedWindow?.edge,
@@ -262,6 +247,8 @@ export const useContextWindow = (
       if (!node) {
         return;
       }
+      if (!hasDocking) node.setAttribute(WINDOW_DATA_ATTRIBUTE, "true");
+      else node.removeAttribute(WINDOW_DATA_ATTRIBUTE);
       return () => {
         windowRef.current = null;
         if (isDockedRef.current || positionedWindowRef.current !== node) {
@@ -284,47 +271,23 @@ export const useContextWindow = (
         });
       };
     },
-    [dispatch, id],
+    [dispatch, hasDocking, id],
   );
 
   // Place and reveal the window when it opens, before the browser paints.
   useLayoutEffect(() => {
     if (visible && !windowVisible && windowRef.current) {
       if (!isDockedRef.current) {
-        const savedRect = dockingRef.current.getPreDockRect(id);
-        let left: number;
-        let top: number;
-        const width = savedRect?.width ?? windowRef.current.offsetWidth ?? 300;
-        const height = savedRect?.height ?? windowRef.current.offsetHeight ?? 200;
-
-        if (savedRect) {
-          left = savedRect.x;
-          top = savedRect.y;
-        } else {
-          left = Math.max(16, (window.innerWidth - width) / 2) + window.scrollX;
-          top = Math.max(16, (window.innerHeight - height) / 2) + window.scrollY;
-        }
-
-        windowRef.current.style.left = `${left}px`;
-        windowRef.current.style.top = `${top}px`;
-        if (savedRect?.width !== undefined) {
-          windowRef.current.style.width = `${savedRect.width}px`;
-        }
-        if (savedRect?.height !== undefined) {
-          windowRef.current.style.height = `${savedRect.height}px`;
-        }
-        windowRef.current.style.transform = "";
-        const position = chkPosition(windowRef);
-        windowRef.current.style.transform = `translate(${position.translateX}px, ${position.translateY}px)`;
-        windowPos.current = { x: position.translateX, y: position.translateY };
+        const savedRect = getPreDockRect(id);
+        windowPos.current = positionFloatingWindow(windowRef.current, savedRect);
         positionedWindowRef.current = windowRef.current;
       }
 
       onOpen?.();
-      dispatch({ type: "raiseWindow", id });
+      pushToTop();
       setWindowVisible(true);
     }
-  }, [dispatch, id, onOpen, setWindowVisible, visible, windowVisible]);
+  }, [getPreDockRect, id, onOpen, pushToTop, setWindowVisible, visible, windowVisible]);
 
   // Defer viewport correction until a CSS resize interaction is released.
   useEffect(() => {
@@ -355,33 +318,7 @@ export const useContextWindow = (
     }
     pendingFloatingStyleRef.current = null;
     const element = windowRef.current;
-    let { left, top } = pending;
-    if (pending.anchorToPointer) {
-      const pointer = lastMousePosRef.current;
-      const width = pending.width ?? 200;
-      left = Math.max(0, pointer.x - width / 2) + window.scrollX;
-      top = Math.max(0, pointer.y - 14) + window.scrollY;
-    } else if (pending.centerInViewport) {
-      left = Math.max(16, (window.innerWidth - element.offsetWidth) / 2) + window.scrollX;
-      top = Math.max(16, (window.innerHeight - element.offsetHeight) / 2) + window.scrollY;
-    } else {
-      const padding = 16;
-      const width = pending.width ?? element.offsetWidth;
-      const height = pending.height ?? element.offsetHeight;
-      const viewLeft = left - window.scrollX;
-      const viewTop = top - window.scrollY;
-      if (viewLeft + width > window.innerWidth) {
-        left = Math.max(padding, window.innerWidth - width - padding) + window.scrollX;
-      }
-      if (viewTop + height > window.innerHeight) {
-        top = Math.max(padding, window.innerHeight - height - padding) + window.scrollY;
-      }
-    }
-    element.style.left = `${left}px`;
-    element.style.top = `${top}px`;
-    element.style.transform = "";
-    if (pending.width !== undefined) element.style.width = `${pending.width}px`;
-    if (pending.height !== undefined) element.style.height = `${pending.height}px`;
+    restoreFloatingWindow(element, pending, lastMousePosRef.current);
     windowPos.current = { x: 0, y: 0 };
     if (undockViaActionRef.current) {
       undockViaActionRef.current = false;
@@ -397,14 +334,12 @@ export const useContextWindow = (
         if (isDocked && dockedWindow && activeDockedWindowId !== id) {
           dispatch({ type: "setActiveWindowOnEdge", edge: dockedWindow.edge, id });
         }
-        dispatch({ type: "raiseWindow", id });
+        pushToTop();
       }
     },
-    [activeDockedWindowId, dispatch, dockedWindow, id, isDocked],
+    [activeDockedWindowId, dispatch, dockedWindow, id, isDocked, pushToTop],
   );
 
-  // Raise the window when invoked through its imperative handle.
-  const pushToTop = useCallback(() => dispatch({ type: "raiseWindow", id }), [dispatch, id]);
   // Preserve the action-based undock behavior for the imperative handle.
   const undock = useCallback(() => handleUndock(), [handleUndock]);
 
@@ -418,8 +353,8 @@ export const useContextWindow = (
       onDock,
       onUndock,
     };
-    registerWindowController(id, controller);
-    return () => unregisterWindowController(id);
+    registerWindowController?.(id, controller);
+    return () => unregisterWindowController?.(id);
   }, [
     id,
     onClose,

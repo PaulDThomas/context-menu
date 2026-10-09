@@ -10,6 +10,8 @@ const UNDOCK_THRESHOLD = 20;
 interface UseContextWindowDragProps {
   id: string;
   dockable: boolean;
+  dockingEnabled?: boolean;
+  pushToTop?: () => void;
   allowUndock: boolean;
   isDocked: boolean;
   dockedEdge?: DockEdge;
@@ -46,6 +48,8 @@ const parseTranslate = (transform?: string): { x: number; y: number } => {
 export const useContextWindowDrag = ({
   id,
   dockable,
+  dockingEnabled = true,
+  pushToTop,
   allowUndock,
   isDocked,
   dockedEdge,
@@ -84,12 +88,13 @@ export const useContextWindowDrag = ({
       hasMovedRef.current = false;
       windowPosRef.current = parseTranslate(windowRef.current?.style.transform);
       setMoving(true);
-      dispatch({ type: "startDockDrag", id });
+      if (dockingEnabled) dispatch({ type: "startDockDrag", id });
       if (!windowVisible) {
         setWindowVisible(true);
       }
       armInteractionEnd();
-      dispatch({ type: "raiseWindow", id });
+      if (pushToTop) pushToTop();
+      else dispatch({ type: "raiseWindow", id });
     },
     onMouseMove: (e: MouseEvent) => {
       hasMovedRef.current = true;
@@ -107,7 +112,7 @@ export const useContextWindowDrag = ({
         }
       }
 
-      if (!isDockedRef.current && dockable) {
+      if (dockingEnabled && !isDockedRef.current && dockable) {
         let topPanel: HTMLElement | null = null;
         let topZ = -Infinity;
         const panels = document.querySelectorAll<HTMLElement>("[data-dock-panel-edge]");
@@ -157,10 +162,12 @@ export const useContextWindowDrag = ({
     onMouseUp: () => {
       setMoving(false);
       isInInteractionRef.current = false;
-      dispatch({ type: "setDockDragEdge", edge: null });
-      document
-        .querySelectorAll("[data-dock-target]")
-        .forEach((panel) => panel.removeAttribute("data-dock-target"));
+      if (dockingEnabled) {
+        dispatch({ type: "setDockDragEdge", edge: null });
+        document
+          .querySelectorAll("[data-dock-target]")
+          .forEach((panel) => panel.removeAttribute("data-dock-target"));
+      }
     },
     onInteractionEnd: () => {
       if (!isInInteractionRef.current || interactionProcessedRef.current) {
@@ -175,7 +182,7 @@ export const useContextWindowDrag = ({
         isDocking = true;
       }
 
-      dispatch({ type: "endDockDrag", id });
+      if (dockingEnabled) dispatch({ type: "endDockDrag", id });
       targetSnapEdgeRef.current = null;
       isInInteractionRef.current = false;
       const shouldCheckPosition = !isDocking && !isDockedNow && hasMovedRef.current;

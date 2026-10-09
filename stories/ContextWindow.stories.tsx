@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { ContextWindow, ContextWindowHandle } from "../src/components/ContextWindow";
-import { DockingProvider } from "../src/components/DockingContext";
 
 const meta = {
   title: "Components/ContextWindow",
@@ -10,13 +9,6 @@ const meta = {
   parameters: {
     layout: "centered",
   },
-  decorators: [
-    (Story) => (
-      <DockingProvider>
-        <Story />
-      </DockingProvider>
-    ),
-  ],
 } satisfies Meta<typeof ContextWindow>;
 
 export default meta;
@@ -105,6 +97,11 @@ export const MultipleWindows: Story = {
     };
     return <MultiWindowDemo />;
   },
+};
+
+export const Standalone: Story = {
+  ...MultipleWindows,
+  parameters: { layout: "fullscreen" },
 };
 
 export const ControlledVisibility: Story = {

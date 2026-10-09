@@ -133,19 +133,18 @@ A floating, draggable window rendered in a portal. Clicking a window brings it t
 
 #### `ContextWindow` properties
 
-| Property                | Type                                     | Default       | Description                                                                                                                   |
-| ----------------------- | ---------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `id`                    | `string`                                 | —             | Unique window id (also used as the label of its DockPanel tab).                                                               |
-| `visible`               | `boolean`                                | —             | Shows/hides the window. Hiding a docked window removes it from its DockPanel.                                                 |
-| `title`                 | `string`                                 | —             | Title bar text.                                                                                                               |
-| `titleElement`          | `React.ReactNode`                        | —             | Optional element rendered in the title bar instead of `title`.                                                                |
-| `titleBarButtons`       | `React.ReactNode`                        | —             | Custom controls rendered after dock/undock and before close. Pointer interactions do not start a window drag.                 |
-| `onOpen` / `onClose`    | `() => void`                             | —             | Called when the window opens / when its close button is clicked.                                                              |
-| `minZIndex`/`maxZIndex` | `number`                                 | `3000`/`3010` | Z-index range used when bringing windows to the front.                                                                        |
-| `dockable`              | `boolean`                                | `false`       | Allows the window to dock into a `DockPanel` (requires a `DockingProvider`).                                                  |
-| `defaultDockEdge`       | `"top" \| "right" \| "bottom" \| "left"` | `"right"`     | Edge targeted by the dock button while floating. The button icon reflects this edge. Requires `dockable`.                     |
-| `initialDockEdge`       | `"top" \| "right" \| "bottom" \| "left"` | —             | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                 |
-| `allowUndock`           | `boolean`                                | `true`        | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing. |
+| Property             | Type                                     | Default   | Description                                                                                                                   |
+| -------------------- | ---------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | `string`                                 | —         | Unique window id (also used as the label of its DockPanel tab).                                                               |
+| `visible`            | `boolean`                                | —         | Shows/hides the window. Hiding a docked window removes it from its DockPanel.                                                 |
+| `title`              | `string`                                 | —         | Title bar text.                                                                                                               |
+| `titleElement`       | `React.ReactNode`                        | —         | Optional element rendered in the title bar instead of `title`.                                                                |
+| `titleBarButtons`    | `React.ReactNode`                        | —         | Custom controls rendered after dock/undock and before close. Pointer interactions do not start a window drag.                 |
+| `onOpen` / `onClose` | `() => void`                             | —         | Called when the window opens / when its close button is clicked.                                                              |
+| `dockable`           | `boolean`                                | `true`    | Allows the window to dock into a `DockPanel` when a `DockingProvider` is present.                                             |
+| `defaultDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | `"right"` | Edge targeted by the dock button while floating. The button icon reflects this edge. Requires `dockable`.                     |
+| `initialDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | —         | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                 |
+| `allowUndock`        | `boolean`                                | `true`    | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing. |
 
 #### Imperative handle
 
@@ -157,7 +156,18 @@ Pass a `ref` to control the window from code:
 | `dock(edge)`  | Docks the window (or moves a docked window to another edge). Works even when `allowUndock={false}`. |
 | `undock()`    | Undocks the window back to its previous floating position (no-op when `allowUndock={false}`).       |
 
-> Window stacking is owned by the `DockingProvider`. Without a provider every `ContextWindow` simply uses its own `minZIndex`, and clicking a window no longer raises it above the others.
+`DockingProvider` is optional for floating windows. Without one, windows share body-based stacking and are raised on opening, clicking, title-bar dragging, or `pushToTop()`. Dock controls are hidden, `initialDockEdge` is ignored, and `dock()`/`undock()` do nothing. Centred opening and saved floating positions work in both modes.
+
+The default z-index range is **3000–3100** in both modes. For standalone windows, configure the range on the body:
+
+```html
+<body
+  data-acm-min-z-index="3000"
+  data-acm-max-z-index="3100"
+></body>
+```
+
+Body limits are read whenever a standalone window is raised. Missing or invalid values use the defaults; if the maximum is not above the minimum, it becomes minimum + 100. When another standalone window reaches the maximum, raising resets standalone windows to the minimum before bringing the requested window forward. Reset events synchronise their React state. Provider-managed windows are excluded from this reset and continue to use the provider's `minZIndex`/`maxZIndex` props and shared ordering.
 
 ### Docking
 
@@ -257,11 +267,11 @@ Exported types: `DockEdge`, `DockingContextType`.
 ### Breaking changes in v3
 
 - `DockingProvider` renders all four edge panels automatically. Remove explicit `DockPanel` elements from layouts inside the provider.
-- `DockingProvider` owns window stacking. Windows outside a provider keep a fixed z-index instead of being raised on click.
+- `DockingProvider` owns stacking for its windows. Standalone windows retain body-based raising and reset behaviour.
 - `StackDirection`, the `defaultStackDirection` prop and the third argument of `dock(id, edge, stackDirection)` have been removed; a panel's layout follows its edge.
 - The context no longer exposes `state`, `toggleCollapse`, `isCollapsed`, `setPanelZIndex` or `getWindowActivationCount`; use `isEdgeCollapsed`/`toggleEdgeCollapse` and the derived `getWindowZIndex`/`getPanelZIndex` instead.
 - `ContextWindowHandle.dock` takes a single `edge` argument.
-- Windows no longer render `data-context-window*` attributes, and the global z-index reset event has gone; stacking is derived from the provider's ordering and each window's `minZIndex`/`maxZIndex`.
+- Per-window `minZIndex`/`maxZIndex` props are replaced by provider props or standalone body attributes. Only standalone windows use `data-context-window*` attributes and the global z-index reset event.
 
 ### useMouseMove (Hook)
 

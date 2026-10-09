@@ -54,7 +54,7 @@
 const SNAP_THRESHOLD = 24; // px from edge to trigger snap
 const UNDOCK_THRESHOLD = 20; // px from edge to trigger undock when dragging docked window
 const MIN_Z_INDEX = 3000; // Minimum z-index for floating windows
-const MAX_Z_INDEX = 3010; // Maximum z-index before reset
+const MAX_Z_INDEX = 3100; // Maximum z-index before reset
 ```
 
 ---
