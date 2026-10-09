@@ -1,5 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ClickForMenu } from "./ClickForMenu";
 
 describe("ClickForMenu", () => {
@@ -12,7 +11,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Render and open menu", async () => {
-    const user = userEvent.setup({ delay: null });
     const mockClick = vi.fn();
     await act(async () =>
       render(
@@ -32,7 +30,7 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -42,7 +40,7 @@ describe("ClickForMenu", () => {
     expect(menuItem).toHaveTextContent("Test Action");
 
     // Clicking the menu item should close the menu
-    await user.click(menuItem!);
+    await act(async () => fireEvent.mouseDown(menuItem!));
     expect(mockClick).toHaveBeenCalled();
     await act(async () => {
       vi.runAllTimers();
@@ -51,7 +49,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Normal click if there are no menu items", async () => {
-    const user = userEvent.setup({ delay: null });
     const mockClick = vi.fn();
     const mockClick2 = vi.fn();
     await act(async () =>
@@ -66,7 +63,7 @@ describe("ClickForMenu", () => {
     );
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -75,7 +72,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Click outside to close menu", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -94,7 +90,7 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -104,7 +100,7 @@ describe("ClickForMenu", () => {
     expect(menuItem).toBeVisible();
 
     // Click outside the menu
-    await user.click(document.body);
+    await act(async () => fireEvent.mouseDown(document.body));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -113,7 +109,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Click outside with non-Element target closes menu", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -132,7 +127,7 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -184,7 +179,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Rapid re-open aborts pending hide and keeps menu visible", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -198,7 +192,7 @@ describe("ClickForMenu", () => {
 
     // Open menu
     const trigger = screen.getByText("Trigger");
-    await user.click(trigger);
+    await act(async () => fireEvent.click(trigger));
     await act(async () => {
       // run the 1ms open timer and flush any pending
       vi.runAllTimers();
@@ -207,10 +201,10 @@ describe("ClickForMenu", () => {
     expect(item).toBeInTheDocument();
 
     // Close via menu selection (schedules 300ms hide)
-    await user.click(item);
+    await act(async () => fireEvent.mouseDown(item));
 
     // Re-open quickly before 300ms elapses
-    await user.click(trigger);
+    await act(async () => fireEvent.click(trigger));
     await act(async () => {
       // run the 1ms opener (aborts previous hide) and the 300ms hide safely
       vi.runAllTimers();

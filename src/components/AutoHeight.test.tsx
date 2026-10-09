@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { AutoHeight } from "./AutoHeight";
 
 describe("AutoHeight Component", () => {
@@ -132,7 +132,7 @@ describe("AutoHeight Component", () => {
       cb?.(performance.now());
     });
 
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
+    expect(wrapper).toHaveStyle("height: 1px");
 
     await act(async () => {
       const cb = getRafCb();
@@ -580,13 +580,13 @@ describe("AutoHeight Component", () => {
       cb?.(performance.now());
     });
 
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
+    expect(wrapper).toHaveStyle("height: 1px");
 
     // Fire inner RAF callback (expands to content height)
     await act(async () => {
       const cb2 = getRafCb();
       cb2?.(performance.now());
     });
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 160px"));
+    expect(wrapper).toHaveStyle("height: 160px");
   });
 });
