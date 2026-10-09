@@ -145,6 +145,67 @@ describe("useContextWindow", () => {
     expect(result.current.isDocked).toBe(false);
   });
 
+  test("does not save a node detached before its first registered opening", () => {
+    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.id === "hook-window"
+        ? new DOMRect(
+            Number.parseFloat(this.style.left) || 0,
+            Number.parseFloat(this.style.top) || window.innerHeight,
+            320,
+            210,
+          )
+        : new DOMRect();
+    });
+
+    const UnregisteredWindow = ({ renderNode }: { renderNode: boolean }) => {
+      const { setWindowNode } = useContextWindow("hook-window");
+      return renderNode ? (
+        <div
+          id="hook-window"
+          ref={setWindowNode}
+        />
+      ) : null;
+    };
+    const tree = (renderNode: boolean) => (
+      <DockingProvider>
+        <CaptureDocking />
+        <UnregisteredWindow renderNode={renderNode} />
+      </DockingProvider>
+    );
+    const view = render(tree(true));
+    view.rerender(tree(false));
+
+    expect(docking.getPreDockRect("hook-window")).toBeNull();
+    act(() => {
+      docking.registerWindowConfig("hook-window", { visible: true });
+      view.rerender(tree(true));
+    });
+    expect(document.getElementById("hook-window")).toHaveStyle({
+      left: `${(window.innerWidth - 320) / 2}px`,
+      top: `${(window.innerHeight - 210) / 2}px`,
+    });
+  });
+
+  test("centers a newly visible window with no saved rect using its rendered size", () => {
+    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    jest.replaceProperty(window, "scrollX", 80);
+    jest.replaceProperty(window, "scrollY", 120);
+    const { docking: getDocking, rerenderWindow } = renderWindow({ visible: false });
+    expect(getDocking().getPreDockRect("hook-window")).toBeNull();
+
+    rerenderWindow({ visible: true });
+
+    expect(document.getElementById("hook-window")).toHaveStyle({
+      left: `${(window.innerWidth - 320) / 2 + 80}px`,
+      top: `${(window.innerHeight - 210) / 2 + 120}px`,
+    });
+  });
+
   test("opens, saves its floating rect when closed, and restores it on reopen", () => {
     const onOpen = jest.fn();
     const { docking: getDocking, rerenderWindow } = renderWindow({ onOpen });
@@ -168,18 +229,26 @@ describe("useContextWindow", () => {
     expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
-  test("undocks an initially docked window below its anchor", () => {
+  test("centers an initially docked window with no saved floating rect on action-undock", () => {
+    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    jest.replaceProperty(window, "scrollX", 80);
+    jest.replaceProperty(window, "scrollY", 120);
     const { docking: getDocking } = renderWindow({ initialDockEdge: "right" });
     const anchor = document.querySelector(".contextWindowAnchor")!;
-    jest.spyOn(anchor, "getBoundingClientRect").mockReturnValue(new DOMRect(25, 35, 10, 20));
+    jest.spyOn(anchor, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 700, 10, 20));
+    expect(getDocking().getPreDockRect("hook-window")).toBeNull();
 
     act(() => getDocking().getWindowController("hook-window")?.onUndock?.());
 
     expect(getDocking().getDockedWindow("hook-window")).toBeUndefined();
-    expect(document.getElementById("hook-window")).toHaveStyle({ left: "25px", top: "55px" });
+    expect(document.getElementById("hook-window")).toHaveStyle({
+      left: `${(window.innerWidth - 320) / 2 + 80}px`,
+      top: `${(window.innerHeight - 210) / 2 + 120}px`,
+    });
   });
 
-  test("undocks without an anchor using fallback coordinates", () => {
+  test("undocks without an anchor or saved rect", () => {
     const id = "anchorless-window";
     let dockedWindow: { id: string; edge: DockEdge; order: number } | undefined;
     const dispatch: DockingContextType["dispatch"] = (action: DockingAction) => {

@@ -16,6 +16,7 @@ interface PendingFloatingStyle {
   width?: number;
   height?: number;
   anchorToPointer?: boolean;
+  centerInViewport?: boolean;
 }
 
 export interface ContextWindowController {
@@ -74,6 +75,7 @@ export const useContextWindow = (
 
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
+  const positionedWindowRef = useRef<HTMLDivElement | null>(null);
   const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDockedRef = useRef<boolean>(isDocked);
   const dockingRef = useRef(docking);
@@ -174,10 +176,10 @@ export const useContextWindow = (
           height: restoreState.height,
         };
       } else {
-        const anchor = divRef.current?.getBoundingClientRect();
         pendingFloatingStyleRef.current = {
-          left: (anchor?.left ?? 16) + window.scrollX,
-          top: (anchor?.bottom ?? 16) + window.scrollY,
+          left: 0,
+          top: 0,
+          centerInViewport: true,
         };
       }
 
@@ -260,9 +262,10 @@ export const useContextWindow = (
       }
       return () => {
         windowRef.current = null;
-        if (isDockedRef.current) {
+        if (isDockedRef.current || positionedWindowRef.current !== node) {
           return;
         }
+        positionedWindowRef.current = null;
         const rect = node.getBoundingClientRect();
         if (rect.width === 0 && rect.height === 0) {
           return;
@@ -284,7 +287,7 @@ export const useContextWindow = (
 
   // Place and reveal the window when it opens, before the browser paints.
   useLayoutEffect(() => {
-    if (visible && !windowVisible && divRef.current && windowRef.current) {
+    if (visible && !windowVisible && windowRef.current) {
       if (!isDockedRef.current) {
         const savedRect = dockingRef.current.getPreDockRect(id);
         let left: number;
@@ -312,6 +315,7 @@ export const useContextWindow = (
         const position = chkPosition(windowRef);
         windowRef.current.style.transform = `translate(${position.translateX}px, ${position.translateY}px)`;
         windowPos.current = { x: position.translateX, y: position.translateY };
+        positionedWindowRef.current = windowRef.current;
       }
 
       onOpen?.();
@@ -355,6 +359,9 @@ export const useContextWindow = (
       const width = pending.width ?? 200;
       left = Math.max(0, pointer.x - width / 2) + window.scrollX;
       top = Math.max(0, pointer.y - 14) + window.scrollY;
+    } else if (pending.centerInViewport) {
+      left = Math.max(16, (window.innerWidth - element.offsetWidth) / 2) + window.scrollX;
+      top = Math.max(16, (window.innerHeight - element.offsetHeight) / 2) + window.scrollY;
     } else {
       const padding = 16;
       const width = pending.width ?? element.offsetWidth;
@@ -378,6 +385,7 @@ export const useContextWindow = (
       undockViaActionRef.current = false;
       checkPosition(windowRef, move);
     }
+    positionedWindowRef.current = element;
   });
 
   // Raise the window when its surface is clicked and activate it within its dock edge.
