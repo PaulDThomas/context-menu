@@ -1,0 +1,47 @@
+.dockZoneIndicator {
+  position: fixed;
+  pointer-events: none;
+  user-select: none;
+  z-index: 9999;
+  --dock-zone-size: 60px;
+  --dock-zone-fill: rgba(79, 172, 254, 0.3);
+  --dock-zone-border: 3px solid rgba(79, 172, 254, 0.8);
+}
+
+.top,
+.bottom {
+  left: 0;
+  right: 0;
+  height: var(--dock-zone-size);
+}
+
+.left,
+.right {
+  top: 0;
+  bottom: 0;
+  width: var(--dock-zone-size);
+}
+
+.top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--dock-zone-fill), transparent);
+  border-bottom: var(--dock-zone-border);
+}
+
+.bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--dock-zone-fill), transparent);
+  border-top: var(--dock-zone-border);
+}
+
+.left {
+  left: 0;
+  background: linear-gradient(to right, var(--dock-zone-fill), transparent);
+  border-right: var(--dock-zone-border);
+}
+
+.right {
+  right: 0;
+  background: linear-gradient(to left, var(--dock-zone-fill), transparent);
+  border-left: var(--dock-zone-border);
+}

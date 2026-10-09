@@ -99,6 +99,11 @@ export const MultipleWindows: Story = {
   },
 };
 
+export const Standalone: Story = {
+  ...MultipleWindows,
+  parameters: { layout: "fullscreen" },
+};
+
 export const ControlledVisibility: Story = {
   args: {
     id: "",

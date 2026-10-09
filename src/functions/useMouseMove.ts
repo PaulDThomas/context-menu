@@ -1,13 +1,19 @@
-import { type MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 
 interface UseMouseMoveProps {
   onMouseDown?: (e: ReactMouseEvent<HTMLElement | SVGElement>) => void;
   onMouseMove?: (e: MouseEvent) => void;
   onMouseUp?: (e: MouseEvent) => void;
   onInteractionEnd?: (e: MouseEvent | PointerEvent) => void;
-  interactionEndEnabled?: boolean;
+  interactionEndEnabled: boolean;
   onViewportResize?: (e: UIEvent) => void;
-  viewportResizeEnabled?: boolean;
+  viewportResizeEnabled: boolean;
 }
 
 interface UseMouseMoveResult {
@@ -22,9 +28,9 @@ export const useMouseMove = ({
   onMouseMove: onMouseMoveCallback,
   onMouseUp: onMouseUpCallback,
   onInteractionEnd: onInteractionEndCallback,
-  interactionEndEnabled = true,
+  interactionEndEnabled,
   onViewportResize: onViewportResizeCallback,
-  viewportResizeEnabled = true,
+  viewportResizeEnabled,
 }: UseMouseMoveProps): UseMouseMoveResult => {
   const mouseMoveRef = useRef<((e: MouseEvent) => void) | null>(null);
   const mouseUpRef = useRef<((e: MouseEvent) => void) | null>(null);
@@ -34,6 +40,18 @@ export const useMouseMove = ({
   const interactionEndRef = useRef<((e: MouseEvent | PointerEvent) => void) | null>(null);
   const interactionEndCallbackRef = useRef(onInteractionEndCallback);
   const viewportResizeCallbackRef = useRef(onViewportResizeCallback);
+  // Document listeners are attached once per interaction, so route them through refs
+  // to always invoke the latest callbacks (state can change mid-drag, e.g. undocking)
+  const mouseMoveCallbackRef = useRef(onMouseMoveCallback);
+  const mouseUpCallbackRef = useRef(onMouseUpCallback);
+
+  useLayoutEffect(() => {
+    mouseMoveCallbackRef.current = onMouseMoveCallback;
+  }, [onMouseMoveCallback]);
+
+  useLayoutEffect(() => {
+    mouseUpCallbackRef.current = onMouseUpCallback;
+  }, [onMouseUpCallback]);
 
   useEffect(() => {
     interactionEndCallbackRef.current = onInteractionEndCallback;
@@ -57,8 +75,10 @@ export const useMouseMove = ({
 
   const restoreMouseDownUserSelect = useCallback(() => {
     if (mouseDownElementRef.current) {
-      /* v8 ignore next */
-      mouseDownElementRef.current.style.userSelect = mouseDownUserSelectRef.current ?? "";
+      mouseDownElementRef.current.style.userSelect =
+        mouseDownUserSelectRef.current ??
+        // istanbul ignore next
+        "";
       mouseDownElementRef.current = null;
       mouseDownUserSelectRef.current = null;
     }
@@ -72,14 +92,11 @@ export const useMouseMove = ({
     }
   }, []);
 
-  const onMouseMove = useCallback(
-    (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onMouseMoveCallback?.(e);
-    },
-    [onMouseMoveCallback],
-  );
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mouseMoveCallbackRef.current?.(e);
+  }, []);
 
   const onMouseUp = useCallback(
     (e: MouseEvent) => {
@@ -87,9 +104,9 @@ export const useMouseMove = ({
       e.stopPropagation();
       removeMouseListeners();
       restoreMouseDownUserSelect();
-      onMouseUpCallback?.(e);
+      mouseUpCallbackRef.current?.(e);
     },
-    [onMouseUpCallback, removeMouseListeners, restoreMouseDownUserSelect],
+    [removeMouseListeners, restoreMouseDownUserSelect],
   );
 
   const onMouseDown = useCallback(

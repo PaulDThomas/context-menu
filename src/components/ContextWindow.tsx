@@ -1,380 +1,162 @@
-import {
-  forwardRef,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { forwardRef, ReactNode, useImperativeHandle, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { chkPosition } from "../functions/chkPosition";
-import { useMouseMove } from "../functions/useMouseMove";
+import { classNames, useContextWindow } from "../functions";
 import styles from "./ContextWindow.module.css";
+import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
+import type { DockEdge } from "./interface";
 
-export const MIN_Z_INDEX = 3000;
-export const MAX_Z_INDEX = 3010;
-const CONTEXT_WINDOW_DATA_ATTR = "data-context-window";
-const CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR = "data-context-window-min-z-index";
-const CONTEXT_WINDOW_RESET_EVENT = "context-window-reset-z-index";
-const CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR = "data-context-window-reset-counter";
-const CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR = "data-context-window-reset-source";
+const dockedEdgeClassNames: Record<DockEdge, string> = {
+  top: styles.dockedTop,
+  bottom: styles.dockedBottom,
+  left: styles.dockedLeft,
+  right: styles.dockedRight,
+};
 
+/** Props for a floating window, optionally dockable inside a DockingProvider. Other HTML attributes reach the window element. */
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
-  id: string;
-  visible: boolean;
-  onOpen?: () => void;
-  onClose?: () => void;
-  title: string;
-  titleElement?: ReactNode;
-  style?: React.CSSProperties;
+  /** Allow a docked window to be undocked by its button, dragging, or imperative handle. Defaults to true. */
+  allowUndock?: boolean;
+  /** Content rendered inside the scrollable window body. */
   children: React.ReactNode;
-  minZIndex?: number;
-  maxZIndex?: number;
+  /** Edge targeted by the dock button while floating. Defaults to right. */
+  defaultDockEdge?: DockEdge;
+  /** Enable drag docking and title-bar dock/undock controls. Defaults to true. */
+  dockable?: boolean;
+  /** Stable, unique window ID used for the DOM element and optional provider registration. */
+  id: string;
+  /** Dock into this edge's DockPanel whenever the window becomes visible. Omit to open floating. */
+  initialDockEdge?: DockEdge;
+  /** Called when closing is requested. Supplying it shows the close button; update visible to hide the window. */
+  onClose?: () => void;
+  /** Called when the window opens, after its initial position is applied. */
+  onOpen?: () => void;
+  /** Inline styles for the floating window. Docked layout is controlled by its panel. */
+  style?: React.CSSProperties;
+  /** Title text used in the title bar, dock-panel tab, and control tooltips. */
+  title: string;
+  /** Custom controls rendered after dock/undock and before close. */
+  titleBarButtons?: ReactNode;
+  /** Optional title-bar content rendered instead of title text; title remains the label and tooltip. */
+  titleElement?: ReactNode;
+  /** Control whether the window is rendered. Hiding a docked window removes it from its panel. */
+  visible: boolean;
 }
 
 export interface ContextWindowHandle {
   pushToTop: () => void;
+  dock: (edge: DockEdge) => void;
+  undock: () => void;
 }
-
-// Helper function to get the highest zIndex from all context windows in the DOM
-const getMaxZIndex = (componentMinZIndex: number, currentWindow?: HTMLElement | null): number => {
-  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
-  let maxZIndex = componentMinZIndex - 1;
-  windows.forEach((win) => {
-    if (currentWindow && win === currentWindow) {
-      return;
-    }
-    const zIndexStr = (win as HTMLElement).style.zIndex;
-    if (zIndexStr) {
-      const zIndex = parseInt(zIndexStr, 10);
-      if (!isNaN(zIndex) && zIndex > maxZIndex) {
-        maxZIndex = zIndex;
-      }
-    }
-  });
-  return maxZIndex;
-};
-
-const getWindowMinZIndex = (windowElement: HTMLElement, fallbackMinZIndex: number): number => {
-  const minZIndexAttr = windowElement.getAttribute(CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR);
-  const parsedMinZIndex = minZIndexAttr ? parseInt(minZIndexAttr, 10) : NaN;
-  return Number.isNaN(parsedMinZIndex) ? fallbackMinZIndex : parsedMinZIndex;
-};
-
-const markBodyResetState = (sourceWindowId?: string): void => {
-  const currentCounter = parseInt(
-    document.body.getAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR) ?? "0",
-    10,
-  );
-  const nextCounter = Number.isNaN(currentCounter) ? 1 : currentCounter + 1;
-  document.body.setAttribute(CONTEXT_WINDOW_RESET_COUNTER_DATA_ATTR, `${nextCounter}`);
-
-  if (sourceWindowId) {
-    document.body.setAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR, sourceWindowId);
-    return;
-  }
-
-  document.body.removeAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
-};
-
-const resetAllWindowZIndexes = (fallbackMinZIndex: number, sourceWindowId?: string): void => {
-  const windows = document.body.querySelectorAll(`[${CONTEXT_WINDOW_DATA_ATTR}]`);
-  windows.forEach((win) => {
-    const element = win as HTMLElement;
-    element.style.zIndex = `${getWindowMinZIndex(element, fallbackMinZIndex)}`;
-  });
-
-  markBodyResetState(sourceWindowId);
-  document.dispatchEvent(new Event(CONTEXT_WINDOW_RESET_EVENT));
-};
 
 export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>(
   (
     {
-      id,
-      visible,
-      title,
-      titleElement,
+      allowUndock = true,
       children,
-      onOpen,
+      defaultDockEdge = "right",
+      dockable = true,
+      id,
+      initialDockEdge,
       onClose,
-      minZIndex = MIN_Z_INDEX,
-      maxZIndex = MAX_Z_INDEX,
+      onOpen,
+      title,
+      titleBarButtons,
+      titleElement,
+      visible,
       ...rest
     },
     ref,
   ): React.ReactElement => {
-    const divRef = useRef<HTMLDivElement | null>(null);
-    const windowRef = useRef<HTMLDivElement | null>(null);
-    const [zIndex, setZIndex] = useState<number>(minZIndex);
+    const window = useContextWindow(id, { onClose, onOpen });
+    const { isDocked, registerWindowConfig } = window;
 
-    // Track internal state: whether window is in DOM and whether it's been positioned
-    const [windowInDOM, setWindowInDOM] = useState<boolean>(false);
-    const [windowVisible, setWindowVisible] = useState<boolean>(false);
-    const [, startTransition] = useTransition();
-
-    // Position
-    const windowPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    const [moving, setMoving] = useState<boolean>(false);
-
-    const move = useCallback((x: number, y: number) => {
-      if (windowRef.current) {
-        windowPos.current.x += x;
-        windowPos.current.y += y;
-        windowRef.current.style.transform = `translate(${windowPos.current.x}px, ${windowPos.current.y}px)`;
-      }
-    }, []);
-
-    const fitToViewport = useCallback(() => {
-      if (!windowRef.current) {
-        return;
-      }
-
-      const viewportPadding = 32;
-      const availableWidth = Math.max(0, window.innerWidth - viewportPadding);
-      const availableHeight = Math.max(0, window.innerHeight - viewportPadding);
-      const rect = windowRef.current.getBoundingClientRect();
-      const horizontalChrome = rect.width - windowRef.current.clientWidth;
-      const verticalChrome = rect.height - windowRef.current.clientHeight;
-
-      if (rect.width > availableWidth) {
-        windowRef.current.style.width = `${Math.max(0, availableWidth - horizontalChrome)}px`;
-      }
-
-      if (rect.height > availableHeight) {
-        windowRef.current.style.height = `${Math.max(0, availableHeight - verticalChrome)}px`;
-      }
-    }, []);
-
-    const checkPosition = useCallback(() => {
-      const chkPos = chkPosition(windowRef);
-      move(chkPos.translateX, chkPos.translateY);
-      fitToViewport();
-    }, [fitToViewport, move]);
-
-    const getRecalculatedMaxZIndex = useCallback(() => {
-      let maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
-      let resetApplied = false;
-
-      if (typeof maxZIndex === "number" && maxZIndexInUse >= maxZIndex) {
-        resetAllWindowZIndexes(minZIndex, id);
-        maxZIndexInUse = getMaxZIndex(minZIndex, windowRef.current);
-        resetApplied = true;
-      }
-
-      return { maxZIndexInUse, resetApplied };
-    }, [id, maxZIndex, minZIndex]);
-
-    // Helper function to push this window to the top
-    const pushToTop = useCallback(() => {
-      const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
-      const nextZIndex = maxZIndexInUse + 1;
-      if (resetApplied && windowRef.current) {
-        windowRef.current.style.zIndex = `${nextZIndex}`;
-      }
-      setZIndex((currentZIndex) => {
-        return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
+    useLayoutEffect(() => {
+      registerWindowConfig(id, {
+        id,
+        visible,
+        title,
+        titleBarButtons,
+        titleElement,
+        dockable,
+        defaultDockEdge,
+        initialDockEdge,
+        allowUndock,
+        canClose: onClose !== undefined,
+        canDock: dockable && !isDocked,
+        canUndock: dockable && isDocked && allowUndock,
       });
-    }, [getRecalculatedMaxZIndex]);
+    }, [
+      allowUndock,
+      defaultDockEdge,
+      dockable,
+      id,
+      initialDockEdge,
+      onClose,
+      title,
+      titleBarButtons,
+      titleElement,
+      visible,
+      isDocked,
+      registerWindowConfig,
+    ]);
 
-    const parseTranslate = (transform?: string): { x: number; y: number } => {
-      const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
-      if (match) {
-        return {
-          x: Number.parseFloat(match[1]),
-          y: Number.parseFloat(match[2]),
-        };
-      }
-      /* v8 ignore next */
-      return { x: 0, y: 0 };
-    };
-
-    const { onMouseDown, armInteractionEnd } = useMouseMove({
-      onMouseDown: () => {
-        windowPos.current = parseTranslate(windowRef.current?.style.transform);
-        setMoving(true);
-        pushToTop();
-      },
-      onMouseMove: (e: MouseEvent) => {
-        move(e.movementX, e.movementY);
-      },
-      onMouseUp: () => {
-        checkPosition();
-        setMoving(false);
-      },
-      onInteractionEnd: () => {
-        checkPosition();
-      },
-      interactionEndEnabled: windowVisible,
-      onViewportResize: () => {
-        checkPosition();
-      },
-      viewportResizeEnabled: windowVisible,
-    });
-
-    // Expose pushToTop method via ref
     useImperativeHandle(
       ref,
       () => ({
-        pushToTop,
+        pushToTop: window.pushToTop,
+        dock: window.dock,
+        undock: window.undock,
       }),
-      [pushToTop],
+      [window.dock, window.pushToTop, window.undock],
     );
-
-    // Sync windowInDOM with visible prop using a layout effect to avoid ESLint warnings
-    // This effect derives state from props, which is acceptable when there's no synchronous setState
-    useEffect(() => {
-      if (visible && !windowInDOM) {
-        // Window should be in DOM when visible becomes true
-        startTransition(() => {
-          setWindowInDOM(true);
-        });
-      } else if (!visible && windowInDOM) {
-        // Window should leave DOM when visible becomes false
-        startTransition(() => {
-          setWindowInDOM(false);
-          setWindowVisible(false);
-        });
-      }
-    }, [visible, windowInDOM, startTransition]);
-
-    useEffect(() => {
-      const handleResetZIndex = (): void => {
-        const sourceWindowId = document.body.getAttribute(CONTEXT_WINDOW_RESET_SOURCE_DATA_ATTR);
-        if (sourceWindowId === id) {
-          return;
-        }
-        setZIndex(minZIndex);
-      };
-
-      document.addEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
-      return () => {
-        document.removeEventListener(CONTEXT_WINDOW_RESET_EVENT, handleResetZIndex);
-      };
-    }, [id, minZIndex]);
-
-    // Position and show window after it's added to DOM
-    useEffect(() => {
-      if (windowInDOM && !windowVisible && visible && divRef.current && windowRef.current) {
-        // Position the window
-        const parentPos = divRef.current.getBoundingClientRect();
-        const pos = windowRef.current.getBoundingClientRect();
-        const windowHeight = pos.bottom - pos.top;
-        windowRef.current.style.left = `${parentPos.left}px`;
-        windowRef.current.style.top = `${
-          parentPos.bottom + windowHeight < window.innerHeight
-            ? parentPos.bottom
-            : Math.max(0, parentPos.top - windowHeight)
-        }px`;
-        windowRef.current.style.transform = "";
-        const checkedPosition = chkPosition(windowRef);
-        windowRef.current.style.transform = `translate(${checkedPosition.translateX}px, ${checkedPosition.translateY}px)`;
-        if (windowPos && windowPos.current) {
-          windowPos.current = {
-            x: checkedPosition.translateX,
-            y: checkedPosition.translateY,
-          };
-        }
-
-        // Update z-index and make visible - use startTransition
-        const { maxZIndexInUse, resetApplied } = getRecalculatedMaxZIndex();
-        onOpen?.();
-        startTransition(() => {
-          const nextZIndex = maxZIndexInUse + 1;
-          if (resetApplied && windowRef.current) {
-            windowRef.current.style.zIndex = `${nextZIndex}`;
-          }
-          setZIndex((currentZIndex) => {
-            return resetApplied || currentZIndex <= maxZIndexInUse ? nextZIndex : currentZIndex;
-          });
-          setWindowVisible(true);
-        });
-      }
-    }, [getRecalculatedMaxZIndex, onOpen, startTransition, visible, windowInDOM, windowVisible]);
-
-    // When CSS resize handle is used, defer checkPosition until resize interaction ends.
-    useEffect(() => {
-      if (!windowVisible || !windowRef.current || typeof ResizeObserver === "undefined") {
-        return;
-      }
-
-      const observer = new ResizeObserver(() => {
-        armInteractionEnd();
-      });
-
-      observer.observe(windowRef.current);
-
-      return () => {
-        observer.disconnect();
-      };
-    }, [armInteractionEnd, windowVisible]);
 
     return (
       <div
         className={styles.contextWindowAnchor}
-        ref={divRef}
+        ref={window.divRef}
       >
-        {windowInDOM &&
+        {visible &&
           createPortal(
             <div
               {...rest}
-              ref={windowRef}
+              ref={window.setWindowNode}
               id={id}
-              {...{ [CONTEXT_WINDOW_DATA_ATTR]: "true" }}
-              {...{ [CONTEXT_WINDOW_MIN_Z_INDEX_DATA_ATTR]: `${minZIndex}` }}
-              className={[styles.contextWindow, rest.className].filter((c) => c).join(" ")}
+              className={classNames(
+                styles.contextWindow,
+                window.isDocked && styles.docked,
+                window.isDocked &&
+                  window.dockedWindow &&
+                  dockedEdgeClassNames[window.dockedWindow.edge],
+                rest.className,
+              )}
               style={{
-                ...rest.style,
-                opacity: moving ? 0.8 : windowVisible ? 1 : 0,
-                visibility: windowVisible ? "visible" : "hidden",
-                zIndex: zIndex,
-                minHeight: rest.style?.minHeight ?? "150px",
-                minWidth: rest.style?.minWidth ?? "200px",
-                maxHeight: rest.style?.maxHeight ?? "1000px",
-                maxWidth: rest.style?.maxWidth ?? "1000px",
+                ...(window.isDocked ? {} : rest.style),
+                opacity: window.moving ? 0.8 : window.windowVisible ? 1 : 0,
+                visibility: window.windowVisible ? "visible" : "hidden",
+                display: window.isDocked
+                  ? window.isActiveDockedWindow
+                    ? "flex"
+                    : "none"
+                  : rest.style?.display,
+                zIndex: window.zIndex,
+                minHeight: window.isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
+                minWidth: window.isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
+                maxHeight: window.isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
+                maxWidth: window.isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
+                width: window.isDocked ? "100%" : rest.style?.width,
+                height: window.isDocked ? "100%" : rest.style?.height,
               }}
-              onClickCapture={(e) => {
-                pushToTop();
-                rest.onClickCapture?.(e);
+              onClickCapture={(event) => {
+                window.handleWindowClick(event);
+                rest.onClickCapture?.(event);
               }}
             >
-              <div
-                className={[styles.contextWindowTitle, moving ? styles.moving : ""]
-                  .filter((c) => c !== "")
-                  .join(" ")}
-                onMouseDown={onMouseDown}
-              >
-                <div
-                  className={styles.contextWindowTitleText}
-                  title={title}
-                >
-                  {titleElement ? titleElement : title}
-                </div>
-                <div
-                  className={styles.contextWindowTitleClose}
-                  role="button"
-                  aria-label="Close"
-                  onClick={onClose}
-                  title={`Close ${title && title.trim() !== "" ? title : "window"}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-                  </svg>
-                </div>
-              </div>
+              <ContextWindowTitleBar window={window} />
               <div className={styles.contextWindowBody}>
                 <div>{children}</div>
               </div>
             </div>,
-            document.body,
+            window.portalTarget,
           )}
       </div>
     );

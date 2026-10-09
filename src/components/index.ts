@@ -3,7 +3,17 @@ import { ClickForMenu } from "./ClickForMenu";
 import { ContextMenu } from "./ContextMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { ContextWindow } from "./ContextWindow";
-import { IMenuItem } from "./interface";
+import { DockingProvider } from "./DockingContext";
+import { DockPanel } from "./DockPanel";
+import type { DockEdge, DockingContextType, DockingWindowController, IMenuItem } from "./interface";
 
-export { AutoHeight, ClickForMenu, ContextMenu, ContextMenuHandler, ContextWindow };
-export type { IMenuItem };
+export {
+  AutoHeight,
+  ClickForMenu,
+  ContextMenu,
+  ContextMenuHandler,
+  ContextWindow,
+  DockingProvider,
+  DockPanel,
+};
+export type { DockEdge, DockingContextType, DockingWindowController, IMenuItem };
