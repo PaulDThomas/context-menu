@@ -329,6 +329,29 @@ describe("useContextWindow", () => {
     });
   });
 
+  test("uses the rendered size to clamp action-undock when saved dimensions are missing", () => {
+    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    const { docking: getDocking } = renderWindow({ initialDockEdge: "left" });
+    const savedRect = Object.defineProperties(
+      { x: window.innerWidth - 10, y: window.innerHeight - 10, width: 320, height: 210 },
+      { width: { value: undefined }, height: { value: undefined } },
+    );
+
+    act(() =>
+      getDocking().dispatch({ type: "saveWindowPosition", id: "hook-window", rect: savedRect }),
+    );
+    act(() => getDocking().getWindowController("hook-window")?.onUndock?.());
+
+    expect(getDocking().getDockedWindow("hook-window")).toBeUndefined();
+    expect(document.getElementById("hook-window")).toHaveStyle({
+      left: `${window.innerWidth - 320 - 16}px`,
+      top: `${window.innerHeight - 210 - 16}px`,
+    });
+    expect(document.getElementById("hook-window")?.style.width).toBe("");
+    expect(document.getElementById("hook-window")?.style.height).toBe("");
+  });
+
   test("anchors a drag-undocked window to the pointer", () => {
     const { docking: getDocking } = renderWindow({ initialDockEdge: "left" });
 
