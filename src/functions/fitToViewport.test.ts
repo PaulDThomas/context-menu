@@ -10,7 +10,7 @@ describe("fitToViewport", () => {
     const rectWidth = window.innerWidth + 100;
     Object.defineProperty(element, "clientWidth", { value: rectWidth - 40, configurable: true });
     Object.defineProperty(element, "clientHeight", { value: 200, configurable: true });
-    element.getBoundingClientRect = jest.fn(() => ({
+    element.getBoundingClientRect = vi.fn(() => ({
       x: 0,
       y: 0,
       top: 0,
@@ -32,7 +32,7 @@ describe("fitToViewport", () => {
     const rectHeight = window.innerHeight + 100;
     Object.defineProperty(element, "clientWidth", { value: 320, configurable: true });
     Object.defineProperty(element, "clientHeight", { value: rectHeight - 80, configurable: true });
-    element.getBoundingClientRect = jest.fn(() => ({
+    element.getBoundingClientRect = vi.fn(() => ({
       x: 0,
       y: 0,
       top: 0,
@@ -53,7 +53,7 @@ describe("fitToViewport", () => {
     const element = document.createElement("div");
     Object.defineProperty(element, "clientWidth", { value: 200, configurable: true });
     Object.defineProperty(element, "clientHeight", { value: 160, configurable: true });
-    element.getBoundingClientRect = jest.fn(() => ({
+    element.getBoundingClientRect = vi.fn(() => ({
       x: 0,
       y: 0,
       top: 0,

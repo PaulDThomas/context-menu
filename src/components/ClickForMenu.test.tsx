@@ -4,16 +4,16 @@ import { ClickForMenu } from "./ClickForMenu";
 
 describe("ClickForMenu", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test("Render and open menu", async () => {
     const user = userEvent.setup({ delay: null });
-    const mockClick = jest.fn();
+    const mockClick = vi.fn();
     await act(async () =>
       render(
         <ClickForMenu
@@ -34,7 +34,7 @@ describe("ClickForMenu", () => {
     expect(c4mButton).toBeInTheDocument();
     await user.click(c4mButton!);
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const menuItem = screen.queryByText("Test Action");
     expect(menuItem).toBeInTheDocument();
@@ -45,15 +45,15 @@ describe("ClickForMenu", () => {
     await user.click(menuItem!);
     expect(mockClick).toHaveBeenCalled();
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(menuItem).not.toBeInTheDocument();
   });
 
   test("Normal click if there are no menu items", async () => {
     const user = userEvent.setup({ delay: null });
-    const mockClick = jest.fn();
-    const mockClick2 = jest.fn();
+    const mockClick = vi.fn();
+    const mockClick2 = vi.fn();
     await act(async () =>
       render(
         <ClickForMenu
@@ -68,7 +68,7 @@ describe("ClickForMenu", () => {
     expect(c4mButton).toBeInTheDocument();
     await user.click(c4mButton!);
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(mockClick).toHaveBeenCalled();
     expect(mockClick2).toHaveBeenCalled();
@@ -83,7 +83,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: jest.fn(),
+              action: vi.fn(),
             },
           ]}
         >
@@ -96,7 +96,7 @@ describe("ClickForMenu", () => {
     expect(c4mButton).toBeInTheDocument();
     await user.click(c4mButton!);
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     const menuItem = screen.queryByText("Test Action");
@@ -106,7 +106,7 @@ describe("ClickForMenu", () => {
     // Click outside the menu
     await user.click(document.body);
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(menuItem).not.toBeInTheDocument();
@@ -121,7 +121,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: jest.fn(),
+              action: vi.fn(),
             },
           ]}
         >
@@ -134,7 +134,7 @@ describe("ClickForMenu", () => {
     expect(c4mButton).toBeInTheDocument();
     await user.click(c4mButton!);
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     const menuItem = screen.queryByText("Test Action");
@@ -152,14 +152,14 @@ describe("ClickForMenu", () => {
     });
     await act(async () => {
       document.dispatchEvent(mouseEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(menuItem).not.toBeInTheDocument();
   });
 
   test("Unmount cleanup clears pending hide timeout and aborts controller", async () => {
-    const abortSpy = jest.spyOn(AbortController.prototype, "abort");
+    const abortSpy = vi.spyOn(AbortController.prototype, "abort");
 
     let unmount: () => void = () => {};
     await act(async () => {
@@ -201,7 +201,7 @@ describe("ClickForMenu", () => {
     await user.click(trigger);
     await act(async () => {
       // run the 1ms open timer and flush any pending
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const item = screen.getByText("Action");
     expect(item).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe("ClickForMenu", () => {
     await user.click(trigger);
     await act(async () => {
       // run the 1ms opener (aborts previous hide) and the 300ms hide safely
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(screen.getByText("Action")).toBeInTheDocument();

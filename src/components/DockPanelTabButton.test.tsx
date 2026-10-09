@@ -5,10 +5,10 @@ import { DockPanelTabButton } from "./DockPanelTabButton";
 import type { DockingWindowController } from "./interface";
 
 describe("DockPanelTabButton", () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   test("Inactive tab shows the window id", () => {
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getWindowConfig: () => ({ title: "win-1" }),
     });
@@ -26,7 +26,7 @@ describe("DockPanelTabButton", () => {
   });
 
   test("Active tab has the active class", () => {
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getWindowConfig: () => ({ title: "win-2" }),
     });
@@ -43,8 +43,8 @@ describe("DockPanelTabButton", () => {
   });
 
   test("Calls onClick when clicked", () => {
-    const dispatch = jest.fn();
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    const dispatch = vi.fn();
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       dispatch,
       getWindowConfig: () => ({ title: "win-3" }),
@@ -65,11 +65,11 @@ describe("DockPanelTabButton", () => {
   });
 
   test("Context menu can show, close and undock the related window", async () => {
-    jest.useFakeTimers();
-    const onUndock = jest.fn();
+    vi.useFakeTimers();
+    const onUndock = vi.fn();
     const controller: DockingWindowController = { windowRef: { current: null }, onUndock };
-    const dispatch = jest.fn();
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    const dispatch = vi.fn();
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       dispatch,
       getWindowConfig: () => ({ title: "win-menu" }),
@@ -86,7 +86,7 @@ describe("DockPanelTabButton", () => {
     const button = screen.getByRole("button", { name: "win-menu" });
     fireEvent.contextMenu(button, { pageX: 10, pageY: 10 });
     await act(async () => {
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
     });
 
     expect(screen.getByText("Show")).toBeVisible();
@@ -103,6 +103,6 @@ describe("DockPanelTabButton", () => {
       id: "win-menu",
     });
     expect(onUndock).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

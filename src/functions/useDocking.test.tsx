@@ -6,7 +6,7 @@ import { useDocking } from "./useDocking";
 
 describe("useDocking", () => {
   test("raises a registered window by ID and ignores an unknown ID", () => {
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
     const value: DockingContextValue = {
       dispatch,
       maxZIndex: 3100,
@@ -29,7 +29,7 @@ describe("useDocking", () => {
   });
 
   test("Throws outside a DockingProvider", () => {
-    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderHook(() => useDocking())).toThrow(
       "useDocking must be used within a DockingProvider",
     );

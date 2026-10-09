@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ContextSubMenu } from "./ContextSubMenu";
 
-jest.mock("./ContextMenu");
+vi.mock("./ContextMenu");
 
 describe("ContextSubMenu", () => {
   const entries = [{ label: "One" }, { label: "Two" }];
@@ -10,7 +10,7 @@ describe("ContextSubMenu", () => {
     const { container } = render(
       <ContextSubMenu
         entries={entries}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
         visible={false}
       />,
     );
@@ -24,7 +24,7 @@ describe("ContextSubMenu", () => {
     render(
       <ContextSubMenu
         entries={entries}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
         visible={true}
       />,
     );
@@ -37,7 +37,7 @@ describe("ContextSubMenu", () => {
   });
 
   test("Passes toClose down to the ContextMenu", () => {
-    const toClose = jest.fn();
+    const toClose = vi.fn();
     render(
       <ContextSubMenu
         entries={entries}
