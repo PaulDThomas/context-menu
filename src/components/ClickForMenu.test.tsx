@@ -1,19 +1,17 @@
-import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ClickForMenu } from "./ClickForMenu";
 
 describe("ClickForMenu", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test("Render and open menu", async () => {
-    const user = userEvent.setup({ delay: null });
-    const mockClick = jest.fn();
+    const mockClick = vi.fn();
     await act(async () =>
       render(
         <ClickForMenu
@@ -32,9 +30,9 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const menuItem = screen.queryByText("Test Action");
     expect(menuItem).toBeInTheDocument();
@@ -42,18 +40,17 @@ describe("ClickForMenu", () => {
     expect(menuItem).toHaveTextContent("Test Action");
 
     // Clicking the menu item should close the menu
-    await user.click(menuItem!);
+    await act(async () => fireEvent.mouseDown(menuItem!));
     expect(mockClick).toHaveBeenCalled();
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(menuItem).not.toBeInTheDocument();
   });
 
   test("Normal click if there are no menu items", async () => {
-    const user = userEvent.setup({ delay: null });
-    const mockClick = jest.fn();
-    const mockClick2 = jest.fn();
+    const mockClick = vi.fn();
+    const mockClick2 = vi.fn();
     await act(async () =>
       render(
         <ClickForMenu
@@ -66,16 +63,15 @@ describe("ClickForMenu", () => {
     );
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(mockClick).toHaveBeenCalled();
     expect(mockClick2).toHaveBeenCalled();
   });
 
   test("Click outside to close menu", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -83,7 +79,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: jest.fn(),
+              action: vi.fn(),
             },
           ]}
         >
@@ -94,9 +90,9 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     const menuItem = screen.queryByText("Test Action");
@@ -104,16 +100,15 @@ describe("ClickForMenu", () => {
     expect(menuItem).toBeVisible();
 
     // Click outside the menu
-    await user.click(document.body);
+    await act(async () => fireEvent.mouseDown(document.body));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(menuItem).not.toBeInTheDocument();
   });
 
   test("Click outside with non-Element target closes menu", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -121,7 +116,7 @@ describe("ClickForMenu", () => {
           menuItems={[
             {
               label: "Test Action",
-              action: jest.fn(),
+              action: vi.fn(),
             },
           ]}
         >
@@ -132,9 +127,9 @@ describe("ClickForMenu", () => {
 
     const c4mButton = screen.queryByText("Test Child");
     expect(c4mButton).toBeInTheDocument();
-    await user.click(c4mButton!);
+    await act(async () => fireEvent.click(c4mButton!));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     const menuItem = screen.queryByText("Test Action");
@@ -152,14 +147,14 @@ describe("ClickForMenu", () => {
     });
     await act(async () => {
       document.dispatchEvent(mouseEvent);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(menuItem).not.toBeInTheDocument();
   });
 
   test("Unmount cleanup clears pending hide timeout and aborts controller", async () => {
-    const abortSpy = jest.spyOn(AbortController.prototype, "abort");
+    const abortSpy = vi.spyOn(AbortController.prototype, "abort");
 
     let unmount: () => void = () => {};
     await act(async () => {
@@ -184,7 +179,6 @@ describe("ClickForMenu", () => {
   });
 
   test("Rapid re-open aborts pending hide and keeps menu visible", async () => {
-    const user = userEvent.setup({ delay: null });
     await act(async () =>
       render(
         <ClickForMenu
@@ -198,22 +192,22 @@ describe("ClickForMenu", () => {
 
     // Open menu
     const trigger = screen.getByText("Trigger");
-    await user.click(trigger);
+    await act(async () => fireEvent.click(trigger));
     await act(async () => {
       // run the 1ms open timer and flush any pending
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const item = screen.getByText("Action");
     expect(item).toBeInTheDocument();
 
     // Close via menu selection (schedules 300ms hide)
-    await user.click(item);
+    await act(async () => fireEvent.mouseDown(item));
 
     // Re-open quickly before 300ms elapses
-    await user.click(trigger);
+    await act(async () => fireEvent.click(trigger));
     await act(async () => {
       // run the 1ms opener (aborts previous hide) and the 300ms hide safely
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(screen.getByText("Action")).toBeInTheDocument();

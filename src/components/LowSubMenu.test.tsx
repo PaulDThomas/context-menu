@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { LowSubMenu } from "./LowSubMenu";
 
-jest.mock("./ContextMenu");
+vi.mock("./ContextMenu");
 
 describe("LowSubMenu", () => {
   const entry = {

@@ -7,7 +7,7 @@ describe("DockPanelPinButton", () => {
       <DockPanelPinButton
         edge="left"
         isPinned={false}
-        onClick={jest.fn()}
+        onClick={vi.fn()}
       />,
     );
     const button = screen.getByRole("button", { name: "Pin left dock panel" });
@@ -23,7 +23,7 @@ describe("DockPanelPinButton", () => {
       <DockPanelPinButton
         edge="bottom"
         isPinned={true}
-        onClick={jest.fn()}
+        onClick={vi.fn()}
       />,
     );
     const button = screen.getByRole("button", { name: "Unpin bottom dock panel" });
@@ -33,7 +33,7 @@ describe("DockPanelPinButton", () => {
   });
 
   test("Calls onClick when clicked", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(
       <DockPanelPinButton
         edge="top"

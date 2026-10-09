@@ -69,8 +69,8 @@ describe("DockingProvider", () => {
 
   describe("docking", () => {
     test("clicking a nested window on the same edge does not activate its parent", () => {
-      const innerClick = jest.fn();
-      const outerCapture = jest.fn();
+      const innerClick = vi.fn();
+      const outerCapture = vi.fn();
       const windows = (innerVisible: boolean) => (
         <DockingProvider>
           <Capture />
@@ -518,9 +518,9 @@ describe("DockingProvider", () => {
 
   describe("window actions", () => {
     test("registers and invokes window actions", () => {
-      const onClose = jest.fn();
-      const onDock = jest.fn();
-      const onUndock = jest.fn();
+      const onClose = vi.fn();
+      const onDock = vi.fn();
+      const onUndock = vi.fn();
       const controller: DockingWindowController = {
         windowRef: { current: null },
         onClose,
@@ -542,7 +542,7 @@ describe("DockingProvider", () => {
     });
 
     test("handles registered actions without onClose callback", () => {
-      const onUndock = jest.fn();
+      const onUndock = vi.fn();
       api.registerWindowController("b", { windowRef: { current: null }, onUndock });
       api.closeWindow("b");
       api.getWindowController("b")?.onUndock?.();
@@ -550,7 +550,7 @@ describe("DockingProvider", () => {
     });
 
     test("handles registered actions without onUndock callback", () => {
-      const onClose = jest.fn();
+      const onClose = vi.fn();
       api.registerWindowController("c", { windowRef: { current: null }, onClose });
       api.closeWindow("c");
       api.getWindowController("c")?.onUndock?.();

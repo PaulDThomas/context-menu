@@ -339,8 +339,8 @@ Useful scripts (from `package.json`):
 - `npm run prepare` — run Husky (prepares Git hooks).
 - `npm run storybook` — start Storybook to view component examples.
 - `npm run build-storybook` — build a static Storybook site.
-- `npm run test` — run Jest and collect coverage (`jest --collectCoverage=true`).
-- `npm run test-watch` — run Jest in watch mode with coverage (`jest --watch --collectCoverage=true --maxWorkers=4`).
+- `npm run test` — run Vitest and collect coverage (`vitest run --coverage`).
+- `npm run test-watch` — run Vitest in watch mode with coverage (`vitest --watch --coverage --maxWorkers=4`).
 - `npm run eslint` — run ESLint over `src` (pattern: `src/**/*.{js,jsx,ts,tsx}`).
 - `npm run build` — build the library bundle with Parcel. This script clears the Parcel cache before building (`parcel build src/main.ts`).
 

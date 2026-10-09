@@ -13,8 +13,8 @@ export const createDockingMock = (
   return {
     maxZIndex: 3100,
     minZIndex: 3000,
-    dispatch: jest.fn(),
-    closeWindow: jest.fn(),
+    dispatch: vi.fn(),
+    closeWindow: vi.fn(),
     getActiveWindowOnEdge: (edge) => {
       const activeId = state.activeWindowsByEdge.get(edge);
       if (activeId && state.dockedWindows.get(activeId)?.edge === edge) {
@@ -22,7 +22,7 @@ export const createDockingMock = (
       }
       return getWindowsOnEdge(edge)[0]?.id ?? null;
     },
-    showWindowById: jest.fn(),
+    showWindowById: vi.fn(),
     getDockedWindow: (id) => state.dockedWindows.get(id),
     getWindowConfig: (id) => state.windowConfigs.get(id) ?? { title: id || "window" },
     getWindowController: () => undefined,
@@ -32,9 +32,9 @@ export const createDockingMock = (
     getWindowsOnEdge,
     getWindowZIndex: () => 3000,
     isEdgeCollapsed: (edge) => state.collapsedEdges.has(edge),
-    registerWindowController: jest.fn(),
-    registerWindowConfig: jest.fn(),
-    unregisterWindowController: jest.fn(),
+    registerWindowController: vi.fn(),
+    registerWindowConfig: vi.fn(),
+    unregisterWindowController: vi.fn(),
     ...overrides,
   };
 };

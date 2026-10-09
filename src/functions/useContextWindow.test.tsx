@@ -110,7 +110,7 @@ const HookWindow = ({
 describe("useContextWindow", () => {
   let docking: DockingContextType;
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   test("keeps standalone configuration and saved rectangles scoped to the current ID", () => {
     const { result, rerender } = renderHook(({ id }) => useStandaloneContextWindowState(id), {
@@ -198,9 +198,9 @@ describe("useContextWindow", () => {
   });
 
   test("does not save a node detached before its first registered opening", () => {
-    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
-    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
-    jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
       this: HTMLElement,
     ) {
       return this.id === "hook-window"
@@ -243,10 +243,10 @@ describe("useContextWindow", () => {
   });
 
   test("centers a newly visible window with no saved rect using its rendered size", () => {
-    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
-    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
-    jest.replaceProperty(window, "scrollX", 80);
-    jest.replaceProperty(window, "scrollY", 120);
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    vi.spyOn(window, "scrollX", "get").mockReturnValue(80);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(120);
     const { docking: getDocking, rerenderWindow } = renderWindow({ visible: false });
     expect(getDocking().getPreDockRect("hook-window")).toBeNull();
 
@@ -259,13 +259,13 @@ describe("useContextWindow", () => {
   });
 
   test("opens, saves its floating rect when closed, and restores it on reopen", () => {
-    const onOpen = jest.fn();
+    const onOpen = vi.fn();
     const { docking: getDocking, rerenderWindow } = renderWindow({ onOpen });
     const element = document.getElementById("hook-window")!;
 
     expect(element).toBeInTheDocument();
     expect(onOpen).toHaveBeenCalledTimes(1);
-    jest.spyOn(element, "getBoundingClientRect").mockReturnValue(new DOMRect(40, 60, 320, 210));
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue(new DOMRect(40, 60, 320, 210));
 
     rerenderWindow({ visible: false });
     expect(document.getElementById("hook-window")).toBeNull();
@@ -282,13 +282,13 @@ describe("useContextWindow", () => {
   });
 
   test("centers an initially docked window with no saved floating rect on action-undock", () => {
-    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
-    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
-    jest.replaceProperty(window, "scrollX", 80);
-    jest.replaceProperty(window, "scrollY", 120);
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    vi.spyOn(window, "scrollX", "get").mockReturnValue(80);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(120);
     const { docking: getDocking } = renderWindow({ initialDockEdge: "right" });
     const anchor = document.querySelector(".contextWindowAnchor")!;
-    jest.spyOn(anchor, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 700, 10, 20));
+    vi.spyOn(anchor, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 700, 10, 20));
     expect(getDocking().getPreDockRect("hook-window")).toBeNull();
 
     act(() => getDocking().getWindowController("hook-window")?.onUndock?.());
@@ -310,14 +310,14 @@ describe("useContextWindow", () => {
         dockedWindow = undefined;
       }
     };
-    const dispatchSpy = jest.fn(dispatch);
-    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
+    const dispatchSpy = vi.fn(dispatch);
+    vi.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
       maxZIndex: 3100,
       minZIndex: 3000,
       dispatch: dispatchSpy,
-      closeWindow: jest.fn(),
+      closeWindow: vi.fn(),
       getActiveWindowOnEdge: () => null,
-      showWindowById: jest.fn(),
+      showWindowById: vi.fn(),
       getDockedWindow: () => dockedWindow,
       getWindowConfig: (windowId) => ({ title: windowId }),
       getWindowController: () => undefined,
@@ -327,9 +327,9 @@ describe("useContextWindow", () => {
       getWindowsOnEdge: () => [],
       getWindowZIndex: () => 3000,
       isEdgeCollapsed: () => false,
-      registerWindowController: jest.fn(),
-      registerWindowConfig: jest.fn(),
-      unregisterWindowController: jest.fn(),
+      registerWindowController: vi.fn(),
+      registerWindowConfig: vi.fn(),
+      unregisterWindowController: vi.fn(),
     });
     const { result, rerender } = renderHook(() => useContextWindow(id));
 
@@ -358,7 +358,7 @@ describe("useContextWindow", () => {
   test("captures floating rect, switches dock sides, and clamps action-undock", () => {
     const { docking: getDocking, contextWindow: getWindow } = renderWindow();
     const element = document.getElementById("hook-window")!;
-    jest.spyOn(element, "getBoundingClientRect").mockReturnValue(new DOMRect(950, 700, 200, 100));
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue(new DOMRect(950, 700, 200, 100));
 
     act(() => getDocking().getWindowController("hook-window")?.onDock?.("left"));
     expect(getDocking().getDockedWindow("hook-window")).toMatchObject({ edge: "left" });
@@ -382,8 +382,8 @@ describe("useContextWindow", () => {
   });
 
   test("uses the rendered size to clamp action-undock when saved dimensions are missing", () => {
-    jest.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
-    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
     const { docking: getDocking } = renderWindow({ initialDockEdge: "left" });
     const savedRect = Object.defineProperties(
       { x: window.innerWidth - 10, y: window.innerHeight - 10, width: 320, height: 210 },
@@ -441,15 +441,15 @@ describe("useContextWindow", () => {
   test("opens a window that was already docked without applying floating placement", () => {
     const id = "already-docked";
     const dockedWindow = { id, edge: "left" as const, order: 0 };
-    const dispatch = jest.fn();
-    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
+    const dispatch = vi.fn();
+    vi.spyOn(dockingHook, "useOptionalDocking").mockReturnValue({
       maxZIndex: 3100,
       minZIndex: 3000,
       dispatch,
-      closeWindow: jest.fn(),
+      closeWindow: vi.fn(),
       getDockedWindow: () => dockedWindow,
       getActiveWindowOnEdge: () => null,
-      showWindowById: jest.fn(),
+      showWindowById: vi.fn(),
       getWindowConfig: () => ({
         title: id,
         visible: true,
@@ -463,9 +463,9 @@ describe("useContextWindow", () => {
       getWindowsOnEdge: () => [dockedWindow],
       getWindowZIndex: () => 3000,
       isEdgeCollapsed: () => false,
-      registerWindowController: jest.fn(),
-      registerWindowConfig: jest.fn(),
-      unregisterWindowController: jest.fn(),
+      registerWindowController: vi.fn(),
+      registerWindowConfig: vi.fn(),
+      unregisterWindowController: vi.fn(),
     });
 
     render(
@@ -528,8 +528,8 @@ describe("useContextWindow", () => {
 
   test("arms interaction-end after resize and disconnects its observer", () => {
     const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
-    const observe = jest.fn();
-    const disconnect = jest.fn();
+    const observe = vi.fn();
+    const disconnect = vi.fn();
     let onResize: ResizeObserverCallback | undefined;
     class MockResizeObserver {
       constructor(callback: ResizeObserverCallback) {
@@ -537,7 +537,7 @@ describe("useContextWindow", () => {
       }
       observe = observe;
       disconnect = disconnect;
-      unobserve = jest.fn();
+      unobserve = vi.fn();
     }
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,

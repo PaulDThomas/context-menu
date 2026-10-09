@@ -19,7 +19,7 @@ describe("ContextWindowTitleButton", () => {
   });
 
   test("Calls onClick when clicked", () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(
       <ContextWindowTitleButton
         className="myButton"
@@ -35,9 +35,9 @@ describe("ContextWindowTitleButton", () => {
   });
 
   test("Stops click and mouse events from bubbling to the parent drag handle", () => {
-    const onParentMouseDown = jest.fn();
-    const onParentClick = jest.fn();
-    const onClick = jest.fn();
+    const onParentMouseDown = vi.fn();
+    const onParentClick = vi.fn();
+    const onClick = vi.fn();
 
     render(
       <div

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ContextMenuEntry } from "./ContextMenuEntry";
 
-jest.mock("./ContextSubMenu");
+vi.mock("./ContextSubMenu");
 
 describe("ContextMenuEntry", () => {
   afterEach(() => {
@@ -13,7 +13,7 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: "Copy" }}
         selectedSpace={false}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     expect(container.firstChild).toHaveClass("contextMenuItem");
@@ -26,15 +26,15 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: <hr data-testid="divider" /> }}
         selectedSpace={false}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     expect(screen.getByTestId("divider")).toBeInTheDocument();
   });
 
   test("Mouse down calls the action and closes the menu", () => {
-    const action = jest.fn();
-    const toClose = jest.fn();
+    const action = vi.fn();
+    const toClose = vi.fn();
     render(
       <ContextMenuEntry
         entry={{ label: "Copy", action }}
@@ -47,8 +47,23 @@ describe("ContextMenuEntry", () => {
     expect(toClose).toHaveBeenCalledTimes(1);
   });
 
+  test("Mouse enter with no selection stores a null target", () => {
+    const action = vi.fn();
+    render(
+      <ContextMenuEntry
+        entry={{ label: "Copy", action }}
+        selectedSpace={false}
+        toClose={vi.fn()}
+      />,
+    );
+    const label = screen.getByLabelText("Copy");
+    fireEvent.mouseEnter(label);
+    fireEvent.mouseDown(label);
+    expect(action).toHaveBeenCalledWith(null, expect.objectContaining({ type: "mousedown" }));
+  });
+
   test("Passes the selection captured on mouse enter to the action", () => {
-    const action = jest.fn();
+    const action = vi.fn();
     const text = document.createElement("p");
     text.textContent = "Selected text";
     document.body.appendChild(text);
@@ -60,7 +75,7 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: "Copy", action }}
         selectedSpace={false}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     const label = screen.getByLabelText("Copy");
@@ -75,8 +90,8 @@ describe("ContextMenuEntry", () => {
   });
 
   test("Disabled entries neither act nor close", () => {
-    const action = jest.fn();
-    const toClose = jest.fn();
+    const action = vi.fn();
+    const toClose = vi.fn();
     const { container } = render(
       <ContextMenuEntry
         entry={{ label: "Copy", action, disabled: true }}
@@ -97,7 +112,7 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: "Copy", selected: true }}
         selectedSpace={false}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     expect(container.querySelector(".contextMenuItemCheck")).not.toBeInTheDocument();
@@ -112,7 +127,7 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: "Copy", ...flags }}
         selectedSpace={true}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     const check = container.querySelector(".contextMenuItemCheck");
@@ -125,14 +140,14 @@ describe("ContextMenuEntry", () => {
       <ContextMenuEntry
         entry={{ label: "Copy" }}
         selectedSpace={false}
-        toClose={jest.fn()}
+        toClose={vi.fn()}
       />,
     );
     expect(screen.queryByTestId("mock-context-sub-menu")).not.toBeInTheDocument();
   });
 
   test("Passes group entries and toClose down to ContextSubMenu, toggling visibility on hover", () => {
-    const toClose = jest.fn();
+    const toClose = vi.fn();
     const { container } = render(
       <ContextMenuEntry
         entry={{ label: "Colour", group: [{ label: "Red" }, { label: "Blue" }] }}

@@ -10,7 +10,7 @@ import type { DockEdge, DockingContextType } from "./interface";
 
 describe("standalone ContextWindow", () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     [
       "data-acm-min-z-index",
       "data-acm-max-z-index",
@@ -43,8 +43,8 @@ describe("standalone ContextWindow", () => {
 
   test("opens without a provider and hides docking controls even with an initial edge", () => {
     const ref = firstRef();
-    const onOpen = jest.fn();
-    const onClose = jest.fn();
+    const onOpen = vi.fn();
+    const onClose = vi.fn();
     render(
       <ContextWindow
         id="standalone"
@@ -134,7 +134,7 @@ describe("standalone ContextWindow", () => {
   });
 
   test("saves the floating rect and reopens with lifecycle callbacks", () => {
-    const onOpen = jest.fn();
+    const onOpen = vi.fn();
     const tree = (visible: boolean) => (
       <ContextWindow
         id="reopening"
@@ -146,9 +146,9 @@ describe("standalone ContextWindow", () => {
       </ContextWindow>
     );
     const view = render(tree(true));
-    jest
-      .spyOn(node("reopening"), "getBoundingClientRect")
-      .mockReturnValue(new DOMRect(80, 90, 300, 200));
+    vi.spyOn(node("reopening"), "getBoundingClientRect").mockReturnValue(
+      new DOMRect(80, 90, 300, 200),
+    );
     view.rerender(tree(false));
     expect(document.getElementById("reopening")).toBeNull();
     view.rerender(tree(true));
@@ -163,7 +163,7 @@ describe("standalone ContextWindow", () => {
   });
 
   test("does not reset provider windows and removes reset listeners on unmount in StrictMode", () => {
-    const removeListener = jest.spyOn(document, "removeEventListener");
+    const removeListener = vi.spyOn(document, "removeEventListener");
     document.body.setAttribute("data-acm-max-z-index", "3002");
     const ref = firstRef();
     const view = render(
@@ -197,7 +197,7 @@ describe("standalone ContextWindow", () => {
 });
 
 describe("ContextWindow", () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   let docking: DockingContextType;
 
@@ -266,11 +266,11 @@ describe("ContextWindow", () => {
   test.each<DockEdge | undefined>([undefined, "left"])(
     "renders custom title controls after dock/undock without starting a drag (edge=%s)",
     (initialDockEdge) => {
-      const onUndo = jest.fn();
-      const onRedo = jest.fn();
+      const onUndo = vi.fn();
+      const onRedo = vi.fn();
       renderWindow({
         initialDockEdge,
-        onClose: jest.fn(),
+        onClose: vi.fn(),
         titleBarButtons: (
           <>
             <button onClick={onUndo}>Undo</button>
@@ -319,7 +319,7 @@ describe("ContextWindow", () => {
 
   test("uses the document body when a docked edge has no portal host", () => {
     const dockedWindow = { id: "hostless-window", edge: "left" as const, order: 0 };
-    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
+    vi.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
       createDockingMock(initialDockingState, {
         getActiveWindowOnEdge: () => dockedWindow.id,
         getDockedWindow: () => dockedWindow,
@@ -343,7 +343,7 @@ describe("ContextWindow", () => {
 
   test("does not apply floating position to a window that is already docked", () => {
     const dockedWindow = { id: "pre-docked-window", edge: "top" as const, order: 0 };
-    jest.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
+    vi.spyOn(dockingHook, "useOptionalDocking").mockReturnValue(
       createDockingMock(initialDockingState, {
         getActiveWindowOnEdge: () => dockedWindow.id,
         getDockedWindow: () => dockedWindow,
@@ -367,7 +367,7 @@ describe("ContextWindow", () => {
   });
 
   test("closes through its title bar action and skips hidden rendering", () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     const { rerender } = renderWindow({ onClose });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(1);

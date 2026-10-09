@@ -62,7 +62,7 @@ describe("useAutoHide", () => {
   });
 
   test("Removes its listeners on unmount", () => {
-    const removeSpy = jest.spyOn(document, "removeEventListener");
+    const removeSpy = vi.spyOn(document, "removeEventListener");
     const { unmount } = renderHook(() => useAutoHide(true, makeRef()));
     unmount();
     expect(removeSpy).toHaveBeenCalledWith("mousemove", expect.any(Function));

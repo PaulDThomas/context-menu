@@ -1,20 +1,17 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 
 describe("Context menu", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
-  const user = userEvent.setup({ delay: null });
-
   test("Empty render, request and click context", async () => {
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -36,12 +33,12 @@ describe("Context menu", () => {
     });
     const h = screen.getByText("Hello") as HTMLSpanElement;
     expect(h).toBeVisible();
-    await user.click(h);
+    await act(async () => fireEvent.mouseDown(h));
     expect(a).toHaveBeenCalled();
   });
 
   test("Move the mouse", async () => {
-    const setColour = jest.fn();
+    const setColour = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler menuItems={menuItems(setColour)}>
@@ -61,7 +58,7 @@ describe("Context menu", () => {
     // Do nothing for more contenxt menu
     await act(async () => {
       fireEvent.contextMenu(screen.queryByText("Blue") as HTMLDivElement);
-      jest.runAllTimers();
+      vi.runAllTimers();
       fireEvent.mouseLeave(screen.queryByText("Blue") as HTMLDivElement);
     });
 
@@ -75,7 +72,7 @@ describe("Context menu", () => {
 
     await act(async () => {
       fireEvent.mouseEnter(blueCaret);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // After mouse enter, submenu should be in the DOM
@@ -84,7 +81,7 @@ describe("Context menu", () => {
 
     await act(async () => {
       fireEvent.mouseLeave(blueCaret);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // After mouse leave, submenu should be removed from DOM
@@ -93,9 +90,9 @@ describe("Context menu", () => {
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
-    await user.click(notDiv);
+    await act(async () => fireEvent.mouseDown(notDiv));
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryByText("Blue")).not.toBeInTheDocument();
 
@@ -103,13 +100,13 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const greenItem = screen.getByText("Green");
-    await user.click(greenItem);
+    await act(async () => fireEvent.mouseDown(greenItem));
     // Wait for the menu to be removed
     await act(async () => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(setColour).toHaveBeenCalledTimes(1);
     expect(setColour).toHaveBeenCalledWith("green");
@@ -134,7 +131,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(0);
@@ -144,7 +141,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv2);
       fireEvent.contextMenu(testDiv2);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryAllByText("Outer").length).toBe(1);
     expect(screen.queryAllByText("Inner").length).toBe(1);
@@ -168,7 +165,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const customLabel = screen.getByTestId("custom-label");
     expect(customLabel).toBeVisible();
@@ -194,7 +191,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv2);
       fireEvent.contextMenu(testDiv2);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryByText("Inner")).toBeInTheDocument();
   });
@@ -216,7 +213,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv2);
       fireEvent.contextMenu(testDiv2);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryByText("Inner")).toBeInTheDocument();
     expect(screen.queryByText("Outer")).toBeInTheDocument();
@@ -239,15 +236,15 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv2);
       fireEvent.contextMenu(testDiv2);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.queryByText("Inner")).toBeInTheDocument();
     expect(screen.queryByText("Outer")).toBeInTheDocument();
   });
 
   test("ContextMenuHandler with onMouseEnter and onMouseLeave callbacks", async () => {
-    const onMouseEnter = jest.fn();
-    const onMouseLeave = jest.fn();
+    const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -262,12 +259,12 @@ describe("Context menu", () => {
     const testDiv = screen.getByTestId("inside-div");
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseEnter).toHaveBeenCalled();
     await act(async () => {
       fireEvent.mouseLeave(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseLeave).toHaveBeenCalled();
   });
@@ -280,7 +277,7 @@ describe("Context menu", () => {
       value: 100,
     });
 
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -310,7 +307,7 @@ describe("Context menu", () => {
       Object.defineProperty(event, "pageY", { value: 90 });
       fireEvent.mouseEnter(testDiv);
       testDiv.dispatchEvent(event);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // Menu should be repositioned
@@ -343,7 +340,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     // Find check spans: selected=true should show ✓, others should show &nbsp;
     const selectedItem = screen.getByText("Selected Item");
@@ -370,7 +367,7 @@ describe("Context menu", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       fireEvent.contextMenu(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     const item = screen.getByText("Custom Icon Item");
     const checkSpan = item.parentElement?.querySelector("[aria-hidden='true']");
@@ -385,7 +382,7 @@ describe("Context menu", () => {
       value: 100,
     });
 
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -412,7 +409,7 @@ describe("Context menu", () => {
       Object.defineProperty(event, "pageY", { value: 10 });
       fireEvent.mouseEnter(testDiv);
       testDiv.dispatchEvent(event);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // Menu should be repositioned

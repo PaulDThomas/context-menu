@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { ContextWindowTitleBar } from "./ContextWindowTitleBar";
 import type { DockEdge, WindowConfig } from "./interface";
 
-jest.mock("./ContextWindowTitleButton");
+vi.mock("./ContextWindowTitleButton");
 
 type TitleBarWindow = React.ComponentProps<typeof ContextWindowTitleBar>["window"];
 
@@ -13,9 +13,9 @@ const renderTitleBar = (windowConfig: WindowConfig, overrides: Partial<TitleBarW
       window={{
         windowConfig,
         isDocked: false,
-        onTitleMouseDown: jest.fn(),
-        onDock: jest.fn(),
-        onUndock: jest.fn(),
+        onTitleMouseDown: vi.fn(),
+        onDock: vi.fn(),
+        onUndock: vi.fn(),
         ...overrides,
       }}
     />,
@@ -84,14 +84,14 @@ describe("ContextWindowTitleBar", () => {
 
   test("calls the hook-owned close action", async () => {
     const user = userEvent.setup();
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     renderTitleBar({ title: "My window", canClose: true }, { onClose });
     await user.click(screen.getByTestId("mock-title-button-Close"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("renders dock button and invokes the hook-owned dock action", () => {
-    const onDock = jest.fn();
+    const onDock = vi.fn();
     renderTitleBar({ title: "My window", canDock: true }, { onDock });
     const dock = screen.getByTestId("mock-title-button-Dock");
     expect(dock).toHaveAttribute("data-class-name", "dockButton");
@@ -107,7 +107,7 @@ describe("ContextWindowTitleBar", () => {
     ["left", "m7 4.5h-3v-2L7 8"],
     ["top", "m5.5 6V9h-2L8 6"],
   ])("renders the dock icon and action for edge %s", (defaultDockEdge, arrowPath) => {
-    const onDock = jest.fn();
+    const onDock = vi.fn();
     renderTitleBar({ title: "My window", canDock: true, defaultDockEdge }, { onDock });
     const dock = screen.getByTestId("mock-title-button-Dock");
     const icon = dock.firstElementChild;
@@ -119,7 +119,7 @@ describe("ContextWindowTitleBar", () => {
   });
 
   test("renders undock button and invokes the hook-owned undock action", () => {
-    const onUndock = jest.fn();
+    const onUndock = vi.fn();
     renderTitleBar({ title: "My window", canUndock: true }, { onUndock });
     const undock = screen.getByTestId("mock-title-button-Undock");
     expect(undock).toHaveAttribute("data-class-name", "undockButton");
@@ -135,15 +135,15 @@ describe("ContextWindowTitleBar", () => {
 
   test("calls the hook-owned mouse-down handler on the title bar", async () => {
     const user = userEvent.setup();
-    const onTitleMouseDown = jest.fn();
+    const onTitleMouseDown = vi.fn();
     const { container } = renderTitleBar({ title: "My window" }, { onTitleMouseDown });
     await user.click(container.querySelector(".contextWindowTitle")!);
     expect(onTitleMouseDown).toHaveBeenCalled();
   });
 
   test("isolates custom title controls from title-bar drag handlers", () => {
-    const onTitleMouseDown = jest.fn();
-    const onUndo = jest.fn();
+    const onTitleMouseDown = vi.fn();
+    const onUndo = vi.fn();
     renderTitleBar(
       {
         title: "My window",
