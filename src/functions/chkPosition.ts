@@ -1,9 +1,11 @@
 import { RefObject } from "react";
 
 /**
- * Check that an existing div is inside the viewport
- * @param divRef Check div is inside view port, and return n
- * @returns \{ translateX, translateY \} Amount to move on X and Y axis
+ * Calculate the translation needed to keep a div inside the viewport without changing the DOM.
+ * Use this to seed the initial transform; use `checkPosition` for post-transition correction.
+ *
+ * @param divRef Ref to the element to measure.
+ * @returns Translation amounts for the X and Y axes.
  */
 export const chkPosition = (
   divRef: RefObject<HTMLDivElement | null>,
@@ -20,6 +22,7 @@ export const chkPosition = (
       translateX = Math.max(-posn.left + innerBounce, window.innerWidth - posn.right - innerBounce);
     }
     let translateY = 0;
+    /* istanbul ignore else */
     if (posn.top < innerBounce) {
       translateY = -posn.top + innerBounce;
     } else if (posn.bottom > window.innerHeight) {

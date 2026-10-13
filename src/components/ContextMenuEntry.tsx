@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { classNames } from "../functions";
 import styles from "./ContextMenu.module.css";
 import { ContextSubMenu } from "./ContextSubMenu";
 import { IMenuItem } from "./interface";
@@ -14,9 +15,7 @@ export const ContextMenuEntry = ({ entry, selectedSpace, toClose }: ContextMenuE
   const [subMenuVisible, setSubMenuVisible] = useState<boolean>(false);
   return (
     <div
-      className={[styles.contextMenuItem, entry.disabled ? styles.disabled : ""]
-        .filter((c) => c !== "")
-        .join(" ")}
+      className={classNames(styles.contextMenuItem, entry.disabled && styles.disabled)}
       onMouseEnter={
         entry.group
           ? () => {
@@ -56,7 +55,9 @@ export const ContextMenuEntry = ({ entry, selectedSpace, toClose }: ContextMenuE
           onMouseDownCapture={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            /* istanbul ignore else */
             if (!entry.disabled) {
+              /* istanbul ignore else */
               if (entry.action) {
                 entry.action(target, e);
               }

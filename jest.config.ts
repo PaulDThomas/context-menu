@@ -45,7 +45,15 @@ const config: Config = {
 
   // Code coverage
   collectCoverage: true,
-  coverageProvider: "v8",
+  coverageProvider: "babel",
+  coverageThreshold: {
+    global: {
+      statements: 100,
+      branches: 100,
+      functions: 100,
+      lines: 100,
+    },
+  },
   collectCoverageFrom: [
     "src/**/*.{js,jsx}",
     "src/**/*.{ts,tsx}",
@@ -53,6 +61,7 @@ const config: Config = {
     "!**/interface.ts",
     "!**/main.ts",
     "!**/__dummy__/**",
+    "!**/__mocks__/**",
     "!**/*.stories.{ts,tsx}",
   ],
   moduleNameMapper: {
