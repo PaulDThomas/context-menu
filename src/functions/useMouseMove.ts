@@ -36,7 +36,7 @@ export const useMouseMove = ({
   const mouseUpRef = useRef<((e: MouseEvent) => void) | null>(null);
   const activeInputRef = useRef<"mouse" | "pointer" | null>(null);
   const mouseDownElementRef = useRef<HTMLElement | SVGElement | null>(null);
-  const mouseDownUserSelectRef = useRef<string | null>(null);
+  const mouseDownUserSelectRef = useRef<string>("");
   const interactionEndRef = useRef<((e: MouseEvent | PointerEvent) => void) | null>(null);
   const interactionEndCallbackRef = useRef(onInteractionEndCallback);
   const viewportResizeCallbackRef = useRef(onViewportResizeCallback);
@@ -75,12 +75,9 @@ export const useMouseMove = ({
 
   const restoreMouseDownUserSelect = useCallback(() => {
     if (mouseDownElementRef.current) {
-      mouseDownElementRef.current.style.userSelect =
-        mouseDownUserSelectRef.current ??
-        // istanbul ignore next
-        "";
+      mouseDownElementRef.current.style.userSelect = mouseDownUserSelectRef.current;
       mouseDownElementRef.current = null;
-      mouseDownUserSelectRef.current = null;
+      mouseDownUserSelectRef.current = "";
     }
   }, []);
 

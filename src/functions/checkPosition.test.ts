@@ -15,7 +15,7 @@ const mockRect = (left: number, right: number, top: number, bottom: number) => (
 
 describe("checkPosition", () => {
   it("does nothing when the ref has no current element", () => {
-    const move = jest.fn();
+    const move = vi.fn();
 
     expect(() => checkPosition({ current: null }, move)).not.toThrow();
     expect(move).toHaveBeenCalledWith(0, 0);
@@ -24,7 +24,7 @@ describe("checkPosition", () => {
   it("moves an element back inside the viewport", () => {
     const element = document.createElement("div");
     element.getBoundingClientRect = mockRect(-10, 10, -10, 10);
-    const move = jest.fn();
+    const move = vi.fn();
 
     checkPosition({ current: element }, move);
 
@@ -39,7 +39,7 @@ describe("checkPosition", () => {
     Object.defineProperty(element, "clientHeight", { value: height - 30, configurable: true });
     element.getBoundingClientRect = mockRect(0, width, 0, height);
 
-    checkPosition({ current: element }, jest.fn());
+    checkPosition({ current: element }, vi.fn());
 
     expect(element.style.width).toBe(`${window.innerWidth - 32 - 20}px`);
     expect(element.style.height).toBe(`${window.innerHeight - 32 - 30}px`);

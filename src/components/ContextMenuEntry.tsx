@@ -45,8 +45,8 @@ export const ContextMenuEntry = ({ entry, selectedSpace, toClose }: ContextMenuE
           aria-disabled={entry.disabled}
           className={styles.contextMenuItemLabel}
           onMouseEnter={() => {
-            const sel = window.getSelection();
-            const target = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+            const selection = window.getSelection();
+            const target = selection?.rangeCount ? selection.getRangeAt(0) : null;
             setTarget(target);
           }}
           onMouseLeave={() => {
