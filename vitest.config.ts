@@ -5,6 +5,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/vitest.setup.ts", "./src/setupTests.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    css: {
+      modules: {
+        classNameStrategy: "non-scoped",
+      },
+    },
     coverage: {
       provider: "v8",
       all: true,

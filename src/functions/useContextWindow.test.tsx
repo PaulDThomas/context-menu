@@ -245,8 +245,8 @@ describe("useContextWindow", () => {
   test("centers a newly visible window with no saved rect using its rendered size", () => {
     vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
     vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
-    vi.replaceProperty(window, "scrollX", 80);
-    vi.replaceProperty(window, "scrollY", 120);
+    vi.spyOn(window, "scrollX", "get").mockReturnValue(80);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(120);
     const { docking: getDocking, rerenderWindow } = renderWindow({ visible: false });
     expect(getDocking().getPreDockRect("hook-window")).toBeNull();
 
@@ -284,8 +284,8 @@ describe("useContextWindow", () => {
   test("centers an initially docked window with no saved floating rect on action-undock", () => {
     vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(320);
     vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(210);
-    vi.replaceProperty(window, "scrollX", 80);
-    vi.replaceProperty(window, "scrollY", 120);
+    vi.spyOn(window, "scrollX", "get").mockReturnValue(80);
+    vi.spyOn(window, "scrollY", "get").mockReturnValue(120);
     const { docking: getDocking } = renderWindow({ initialDockEdge: "right" });
     const anchor = document.querySelector(".contextWindowAnchor")!;
     vi.spyOn(anchor, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 700, 10, 20));

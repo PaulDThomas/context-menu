@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 
@@ -11,8 +10,6 @@ describe("Context menu", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
-  const user = userEvent.setup({ delay: null });
-
   test("Empty render, request and click context", async () => {
     const a = vi.fn();
     await act(async () =>
@@ -36,7 +33,7 @@ describe("Context menu", () => {
     });
     const h = screen.getByText("Hello") as HTMLSpanElement;
     expect(h).toBeVisible();
-    await user.click(h);
+    await act(async () => fireEvent.mouseDown(h));
     expect(a).toHaveBeenCalled();
   });
 
@@ -93,7 +90,7 @@ describe("Context menu", () => {
 
     // Click off menu
     const notDiv = screen.getByTestId("another-div");
-    await user.click(notDiv);
+    await act(async () => fireEvent.mouseDown(notDiv));
     await act(async () => {
       vi.runAllTimers();
     });
@@ -106,7 +103,7 @@ describe("Context menu", () => {
       vi.runAllTimers();
     });
     const greenItem = screen.getByText("Green");
-    await user.click(greenItem);
+    await act(async () => fireEvent.mouseDown(greenItem));
     // Wait for the menu to be removed
     await act(async () => {
       vi.runAllTimers();

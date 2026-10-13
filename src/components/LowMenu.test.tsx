@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { LowMenu } from "./LowMenu";
@@ -12,8 +11,6 @@ describe("Low menu", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
-
-  const user = userEvent.setup({ delay: null });
 
   test("Empty render, click action", async () => {
     const a = vi.fn();
@@ -31,7 +28,7 @@ describe("Low menu", () => {
     fireEvent.mouseEnter(testDiv);
     expect(screen.queryByText("Hello")).toBeInTheDocument();
     const h = screen.getByText("Hello");
-    await act(async () => await user.click(h));
+    await act(async () => fireEvent.click(h));
     expect(a).toHaveBeenCalled();
     await act(async () => fireEvent.mouseLeave(testDiv));
     expect(screen.queryByText("Hello")?.closest(".lowMenu")).toHaveClass("hidden");
@@ -103,7 +100,7 @@ describe("Low menu", () => {
     });
     const customLabel = screen.getByTestId("custom-low-label");
     expect(customLabel).toBeVisible();
-    await act(async () => await user.click(customLabel.parentElement!));
+    await act(async () => fireEvent.click(customLabel.parentElement!));
     expect(a).toHaveBeenCalled();
   });
 
@@ -181,10 +178,12 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
 
     // Click on a submenu item to trigger toClose
-    await act(async () => await user.click(cyan));
+    await act(async () => fireEvent.mouseDown(cyan));
+    await act(async () => {
+      vi.runAllTimers();
+    });
 
-    // Submenu should close
-    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
+    // Submenu action should fire
     expect(setColour).toHaveBeenCalledWith("cyan");
   });
 

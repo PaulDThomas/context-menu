@@ -47,6 +47,21 @@ describe("ContextMenuEntry", () => {
     expect(toClose).toHaveBeenCalledTimes(1);
   });
 
+  test("Mouse enter with no selection stores a null target", () => {
+    const action = vi.fn();
+    render(
+      <ContextMenuEntry
+        entry={{ label: "Copy", action }}
+        selectedSpace={false}
+        toClose={vi.fn()}
+      />,
+    );
+    const label = screen.getByLabelText("Copy");
+    fireEvent.mouseEnter(label);
+    fireEvent.mouseDown(label);
+    expect(action).toHaveBeenCalledWith(null, expect.objectContaining({ type: "mousedown" }));
+  });
+
   test("Passes the selection captured on mouse enter to the action", () => {
     const action = vi.fn();
     const text = document.createElement("p");
