@@ -112,11 +112,13 @@ describe("DockPanel", () => {
     });
     render(<DockPanel edge={edge} />);
     const toggle = screen.getByRole("button", { name: `Push content with ${edge} dock panel` });
-    expect(toggle).toHaveAttribute("title", "Push content");
-    expect(toggle.querySelector("path")?.getAttribute("d")).toContain(pushArrow);
-    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
     expect(toggle).toHaveAttribute("title", "Cover content");
     expect(toggle.querySelector("path")?.getAttribute("d")).toContain(coveringPane);
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAttribute("title", "Push content");
+    expect(toggle.querySelector("path")?.getAttribute("d")).toContain(pushArrow);
   });
 
   test("applies the z-index of the visible window to the panel", () => {
@@ -512,7 +514,7 @@ describe("DockPanel", () => {
       expect(screen.getByRole("separator")).not.toHaveAttribute("aria-valuenow");
       expect(
         screen.getByRole("button", { name: "Push content with left dock panel" }),
-      ).toHaveAttribute("aria-pressed", "false");
+      ).toHaveAttribute("aria-pressed", "true");
       expect(writes).not.toHaveBeenCalled();
     });
 
@@ -545,6 +547,9 @@ describe("DockPanel", () => {
       expect(
         screen.getByRole("button", { name: "Push content with bottom dock panel" }),
       ).toHaveAttribute("aria-pressed", "true");
+      expect(
+        screen.getByRole("button", { name: "Push content with left dock panel" }),
+      ).toHaveAttribute("aria-pressed", "false");
       unmount();
     });
 
@@ -563,10 +568,10 @@ describe("DockPanel", () => {
       act(() => dockingApi!.dock("window-a", "left"));
       const toggle = screen.getByRole("button", { name: "Push content with left dock panel" });
       fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
       expect(writes).toHaveBeenCalledTimes(1);
       fireEvent.click(toggle);
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
       unmount();
     });
 
@@ -590,12 +595,12 @@ describe("DockPanel", () => {
       expect(writes).toHaveBeenCalledTimes(1);
       expect(JSON.parse(localStorage.getItem("@asup/context-menu:dock-panels")!).left).toEqual({
         size: 320,
-        pushContent: false,
+        pushContent: true,
       });
     });
 
     test.each<DockEdge>(["left", "right", "top", "bottom"])(
-      "restores %s panel size and push mode after the provider remounts",
+      "restores %s panel size and cover mode after the provider remounts",
       (edge) => {
         const storageKey = "@asup/context-menu:dock-panels";
         const writes = jest.spyOn(Storage.prototype, "setItem");
@@ -627,7 +632,7 @@ describe("DockPanel", () => {
         const size = edge === "left" || edge === "right" ? 250 : 170;
         expect(JSON.parse(localStorage.getItem(storageKey)!)[edge]).toEqual({
           size,
-          pushContent: true,
+          pushContent: false,
         });
         const writeCount = writes.mock.calls.length;
         act(() => dockingApi!.undock("window-a"));
@@ -639,7 +644,7 @@ describe("DockPanel", () => {
         expect(screen.getByRole("separator")).toHaveAttribute("aria-valuenow", `${size}`);
         expect(
           screen.getByRole("button", { name: `Push content with ${edge} dock panel` }),
-        ).toHaveAttribute("aria-pressed", "true");
+        ).toHaveAttribute("aria-pressed", "false");
         expect(writes).toHaveBeenCalledTimes(writeCount);
         second.unmount();
       },
@@ -662,10 +667,6 @@ describe("DockPanel", () => {
         );
         act(() => dockingApi!.dock("window-a", edge));
         const toggle = screen.getByRole("button", { name: `Push content with ${edge} dock panel` });
-        expect(toggle).toHaveAttribute("aria-pressed", "false");
-        expect(document.body.style.getPropertyValue(property)).toBe("7px");
-
-        fireEvent.click(toggle);
         const size = edge === "left" || edge === "right" ? 240 : 160;
         expect(toggle).toHaveAttribute("aria-pressed", "true");
         expect(document.body.style.getPropertyValue(property)).toBe(`${size + 7}px`);
@@ -696,7 +697,6 @@ describe("DockPanel", () => {
         </DockingProvider>,
       );
       act(() => dockingApi!.dock("window-a", "left"));
-      fireEvent.click(screen.getByRole("button", { name: "Push content with left dock panel" }));
       expect(document.body.style.paddingLeft).toBe("240px");
       rect.mockReturnValue({ width: 300, height: 160 } as DOMRect);
       fireEvent.keyDown(screen.getByRole("separator"), { key: "ArrowRight" });
@@ -810,7 +810,6 @@ describe("DockPanel", () => {
           </DockingProvider>,
         );
         act(() => dockingApi!.dock("window-a", "left"));
-        fireEvent.click(screen.getByRole("button", { name: "Push content with left dock panel" }));
         expect(observe).toHaveBeenCalledWith(expect.any(HTMLElement));
 
         unmount();

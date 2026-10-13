@@ -38,7 +38,7 @@ export const DockPanel = ({
   const windows = docking.getWindowsOnEdge(edge);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentHostRef = useRef<HTMLDivElement | null>(null);
-  const [pushContent, setPushContent] = useState(initialSettings?.pushContent ?? false);
+  const [pushContent, setPushContent] = useState(initialSettings?.pushContent ?? true);
   const getActiveWindowOnEdge = docking.getActiveWindowOnEdge;
 
   // The chosen size is kept while the panel is empty so it is reused when a window docks again

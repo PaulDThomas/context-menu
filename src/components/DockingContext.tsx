@@ -21,10 +21,10 @@ const DOCK_EDGES: DockEdge[] = ["top", "left", "right", "bottom"];
 
 const readPanelSettings = (): Record<DockEdge, DockPanelSettings> => {
   const settings: Record<DockEdge, DockPanelSettings> = {
-    top: { size: null, pushContent: false },
-    left: { size: null, pushContent: false },
-    right: { size: null, pushContent: false },
-    bottom: { size: null, pushContent: false },
+    top: { size: null, pushContent: true },
+    left: { size: null, pushContent: true },
+    right: { size: null, pushContent: true },
+    bottom: { size: null, pushContent: true },
   };
   if (typeof window === "undefined") {
     return settings;
@@ -43,7 +43,7 @@ const readPanelSettings = (): Record<DockEdge, DockPanelSettings> => {
       const { size, pushContent } = panel as Record<string, unknown>;
       settings[edge] = {
         size: typeof size === "number" && Number.isFinite(size) && size > 0 ? size : null,
-        pushContent: typeof pushContent === "boolean" ? pushContent : false,
+        pushContent: typeof pushContent === "boolean" ? pushContent : true,
       };
     }
   } catch {
