@@ -37,10 +37,10 @@ describe("DockPanel", () => {
     localStorage.clear();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   test("does not render when no windows are docked on the target edge", () => {
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getWindowsOnEdge: () => [],
     });
@@ -50,13 +50,13 @@ describe("DockPanel", () => {
   });
 
   test("renders tabs and activates selected docked window", () => {
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
     const windows = [
       buildDockedWindow("window-a", "right", 0),
       buildDockedWindow("window-b", "right", 1),
     ];
 
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       dispatch,
       getActiveWindowOnEdge: () => "window-a",
@@ -85,7 +85,7 @@ describe("DockPanel", () => {
       buildDockedWindow("window-a", "right", 0),
       buildDockedWindow("window-b", "right", 1),
     ];
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getActiveWindowOnEdge: () => null,
       getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -104,7 +104,7 @@ describe("DockPanel", () => {
     ["bottom", "M4 9h8v6", "L8 4"],
   ] as const)("layout icons match the %s edge", (edge, coveringPane, pushArrow) => {
     const windows = [buildDockedWindow("window-a", edge, 0)];
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getActiveWindowOnEdge: () => "window-a",
       getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -123,7 +123,7 @@ describe("DockPanel", () => {
 
   test("applies the z-index of the visible window to the panel", () => {
     const windows = [buildDockedWindow("window-a", "top", 0)];
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       getActiveWindowOnEdge: () => "window-a",
       getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -140,7 +140,7 @@ describe("DockPanel", () => {
     const renderPanel = (edge: DockedWindow["edge"]) => {
       const utils = render(<DockPanel edge={edge} />);
       const panel = utils.container.firstChild as HTMLElement;
-      jest.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+      vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
         right: 300,
@@ -183,7 +183,7 @@ describe("DockPanel", () => {
       "dragging the inner edge of a %s panel resizes it",
       (edge, moveTo, dimension, expected) => {
         const windows = [buildDockedWindow("window-a", edge, 0)];
-        jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+        vi.spyOn(dockingHook, "useDocking").mockReturnValue({
           ...defaultDocking,
           getActiveWindowOnEdge: () => "window-a",
           getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -215,7 +215,7 @@ describe("DockPanel", () => {
 
     test("panel size is clamped between the minimum and the viewport", () => {
       const windows = [buildDockedWindow("window-a", "left", 0)];
-      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      vi.spyOn(dockingHook, "useDocking").mockReturnValue({
         ...defaultDocking,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -233,7 +233,7 @@ describe("DockPanel", () => {
 
     test("ignores non-primary mouse buttons", () => {
       const windows = [buildDockedWindow("window-a", "left", 0)];
-      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      vi.spyOn(dockingHook, "useDocking").mockReturnValue({
         ...defaultDocking,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -248,7 +248,7 @@ describe("DockPanel", () => {
 
     test("arrow keys resize the panel towards and away from the viewport centre", () => {
       const windows = [buildDockedWindow("window-a", "bottom", 0)];
-      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      vi.spyOn(dockingHook, "useDocking").mockReturnValue({
         ...defaultDocking,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -267,9 +267,9 @@ describe("DockPanel", () => {
     });
 
     test("mouse and keyboard interaction on the handle raises the panel", () => {
-      const dispatch = jest.fn();
+      const dispatch = vi.fn();
       const windows = [buildDockedWindow("window-a", "right", 0)];
-      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      vi.spyOn(dockingHook, "useDocking").mockReturnValue({
         ...defaultDocking,
         dispatch,
         getActiveWindowOnEdge: () => "window-a",
@@ -297,7 +297,7 @@ describe("DockPanel", () => {
 
     test("releases document listeners when unmounted mid-resize", () => {
       const windows = [buildDockedWindow("window-a", "right", 0)];
-      jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+      vi.spyOn(dockingHook, "useDocking").mockReturnValue({
         ...defaultDocking,
         getActiveWindowOnEdge: () => "window-a",
         getDockedWindow: (id) => windows.find((window) => window.id === id),
@@ -337,7 +337,7 @@ describe("DockPanel", () => {
       container.querySelector("[class*='dockPanelContent']") as HTMLElement;
 
     beforeEach(() => {
-      jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
         x: 0,
         y: 0,
         top: 0,
@@ -351,7 +351,7 @@ describe("DockPanel", () => {
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
       dockingApi = undefined;
     });
 
@@ -488,11 +488,11 @@ describe("DockPanel", () => {
     };
 
     beforeEach(() => {
-      jest.spyOn(console, "log").mockImplementation(() => {});
+      vi.spyOn(console, "log").mockImplementation(() => {});
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
       dockingApi = undefined;
     });
 
@@ -504,7 +504,7 @@ describe("DockPanel", () => {
       JSON.stringify({ left: { size: "240", pushContent: null } }),
     ])("ignores invalid saved preferences: %s", (saved) => {
       localStorage.setItem("@asup/context-menu:dock-panels", saved);
-      const writes = jest.spyOn(Storage.prototype, "setItem");
+      const writes = vi.spyOn(Storage.prototype, "setItem");
       render(
         <DockingProvider>
           <CaptureDocking />
@@ -554,10 +554,10 @@ describe("DockPanel", () => {
     });
 
     test("panels remain usable when storage reads and writes are blocked", () => {
-      jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
         throw new Error("Storage blocked");
       });
-      const writes = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      const writes = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
         throw new Error("Storage blocked");
       });
       const { unmount } = render(
@@ -576,11 +576,11 @@ describe("DockPanel", () => {
     });
 
     test("saves a drag resize only when the drag finishes", () => {
-      jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
         width: 240,
         height: 160,
       } as DOMRect);
-      const writes = jest.spyOn(Storage.prototype, "setItem");
+      const writes = vi.spyOn(Storage.prototype, "setItem");
       render(
         <DockingProvider>
           <CaptureDocking />
@@ -603,8 +603,8 @@ describe("DockPanel", () => {
       "restores %s panel size and cover mode after the provider remounts",
       (edge) => {
         const storageKey = "@asup/context-menu:dock-panels";
-        const writes = jest.spyOn(Storage.prototype, "setItem");
-        jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        const writes = vi.spyOn(Storage.prototype, "setItem");
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
           width: 240,
           height: 160,
         } as DOMRect);
@@ -656,7 +656,7 @@ describe("DockPanel", () => {
         const property = `padding-${edge}`;
         const inset = `--dock-panel-inset-${edge}`;
         document.body.style.setProperty(property, "7px");
-        jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
           width: 240,
           height: 160,
         } as DOMRect);
@@ -687,7 +687,7 @@ describe("DockPanel", () => {
     );
 
     test("push spacing follows panel resizing and is released while pinned", () => {
-      const rect = jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
         width: 240,
         height: 160,
       } as DOMRect);
@@ -790,13 +790,13 @@ describe("DockPanel", () => {
 
     test("observes a pushed panel and disconnects on unmount", () => {
       const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
-      const observe = jest.fn();
-      const disconnect = jest.fn();
+      const observe = vi.fn();
+      const disconnect = vi.fn();
       class MockResizeObserver {
         constructor(_callback: ResizeObserverCallback) {}
         observe = observe;
         disconnect = disconnect;
-        unobserve = jest.fn();
+        unobserve = vi.fn();
       }
       Object.defineProperty(globalThis, "ResizeObserver", {
         configurable: true,
@@ -825,12 +825,12 @@ describe("DockPanel", () => {
   });
 
   test("treats the first window as active when the provider has no active window", () => {
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
     const windows = [
       buildDockedWindow("window-a", "left", 0),
       buildDockedWindow("window-b", "left", 1),
     ];
-    jest.spyOn(dockingHook, "useDocking").mockReturnValue({
+    vi.spyOn(dockingHook, "useDocking").mockReturnValue({
       ...defaultDocking,
       dispatch,
       getDockedWindow: (id) => windows.find((window) => window.id === id),

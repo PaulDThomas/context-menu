@@ -68,7 +68,7 @@ const TestHarness = ({
 
 describe("useMouseMove", () => {
   test("invokes onMouseDown and toggles userSelect", () => {
-    const onMouseDown = jest.fn();
+    const onMouseDown = vi.fn();
 
     render(<TestHarness onMouseDown={onMouseDown} />);
 
@@ -80,7 +80,7 @@ describe("useMouseMove", () => {
   });
 
   test("invokes onMouseMove callback when document pointermove fires", () => {
-    const onMouseMove = jest.fn();
+    const onMouseMove = vi.fn();
 
     render(<TestHarness onMouseMove={onMouseMove} />);
 
@@ -97,7 +97,7 @@ describe("useMouseMove", () => {
   });
 
   test("does not double-handle movement when pointer and mouse move both fire", () => {
-    const onMouseMove = jest.fn();
+    const onMouseMove = vi.fn();
 
     render(<TestHarness onMouseMove={onMouseMove} />);
 
@@ -119,7 +119,7 @@ describe("useMouseMove", () => {
   });
 
   test("invokes onMouseUp and restores userSelect on document pointerup", () => {
-    const onMouseUp = jest.fn();
+    const onMouseUp = vi.fn();
 
     render(<TestHarness onMouseUp={onMouseUp} />);
 
@@ -133,7 +133,7 @@ describe("useMouseMove", () => {
   });
 
   test("invokes onMouseUp when a mouse drag ends with pointerup on another target", () => {
-    const onMouseUp = jest.fn();
+    const onMouseUp = vi.fn();
 
     render(<TestHarness onMouseUp={onMouseUp} />);
 
@@ -150,7 +150,7 @@ describe("useMouseMove", () => {
   });
 
   test("invokes onMouseUp when a pointer drag ends with mouseup on another target", () => {
-    const onMouseUp = jest.fn();
+    const onMouseUp = vi.fn();
 
     render(<TestHarness onMouseUp={onMouseUp} />);
 
@@ -195,10 +195,10 @@ describe("useMouseMove", () => {
   });
 
   test("cleans listeners on unmount", () => {
-    const removeDocumentSpy = jest.spyOn(document, "removeEventListener");
-    const removeWindowSpy = jest.spyOn(window, "removeEventListener");
+    const removeDocumentSpy = vi.spyOn(document, "removeEventListener");
+    const removeWindowSpy = vi.spyOn(window, "removeEventListener");
 
-    const { unmount } = render(<TestHarness onViewportResize={jest.fn()} />);
+    const { unmount } = render(<TestHarness onViewportResize={vi.fn()} />);
     fireEvent.mouseDown(screen.getByTestId("title"));
 
     unmount();
@@ -237,9 +237,9 @@ describe("useMouseMove", () => {
   });
 
   test("arms interaction-end listeners once and removes them after mouseup", () => {
-    const onInteractionEnd = jest.fn();
-    const addDocumentSpy = jest.spyOn(document, "addEventListener");
-    const removeDocumentSpy = jest.spyOn(document, "removeEventListener");
+    const onInteractionEnd = vi.fn();
+    const addDocumentSpy = vi.spyOn(document, "addEventListener");
+    const removeDocumentSpy = vi.spyOn(document, "removeEventListener");
 
     const { rerender } = render(
       <TestHarness
@@ -276,7 +276,7 @@ describe("useMouseMove", () => {
   });
 
   test("cleans pending interaction-end listeners on unmount", () => {
-    const removeDocumentSpy = jest.spyOn(document, "removeEventListener");
+    const removeDocumentSpy = vi.spyOn(document, "removeEventListener");
 
     const { unmount } = render(<TestHarness triggerInteractionEnd={true} />);
 
@@ -291,7 +291,7 @@ describe("useMouseMove", () => {
   });
 
   test("clears pending interaction-end listeners when disabled", () => {
-    const removeDocumentSpy = jest.spyOn(document, "removeEventListener");
+    const removeDocumentSpy = vi.spyOn(document, "removeEventListener");
 
     const { rerender } = render(
       <TestHarness
@@ -316,7 +316,7 @@ describe("useMouseMove", () => {
   });
 
   test("invokes viewport resize callback when window resize fires", () => {
-    const onViewportResize = jest.fn();
+    const onViewportResize = vi.fn();
 
     render(<TestHarness onViewportResize={onViewportResize} />);
 
@@ -328,11 +328,11 @@ describe("useMouseMove", () => {
   });
 
   test("does not attach viewport resize listener when disabled", () => {
-    const addWindowSpy = jest.spyOn(window, "addEventListener");
+    const addWindowSpy = vi.spyOn(window, "addEventListener");
 
     render(
       <TestHarness
-        onViewportResize={jest.fn()}
+        onViewportResize={vi.fn()}
         viewportResizeEnabled={false}
       />,
     );

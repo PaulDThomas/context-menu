@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { LowMenuButton } from "./LowMenuButton";
 
-jest.mock("./LowSubMenu");
+vi.mock("./LowSubMenu");
 
 describe("LowMenuButton", () => {
   afterEach(() => {
@@ -25,7 +25,7 @@ describe("LowMenuButton", () => {
   });
 
   test("Clicking calls the action with no selection", () => {
-    const action = jest.fn();
+    const action = vi.fn();
     render(<LowMenuButton entry={{ label: "Bold", action }} />);
     fireEvent.click(screen.getByLabelText("Bold"));
     expect(action).toHaveBeenCalledWith(null);
@@ -37,7 +37,7 @@ describe("LowMenuButton", () => {
   });
 
   test("Passes the selection captured on mouse enter to the action", () => {
-    const action = jest.fn();
+    const action = vi.fn();
     const text = document.createElement("p");
     text.textContent = "Selected text";
     document.body.appendChild(text);
@@ -58,7 +58,7 @@ describe("LowMenuButton", () => {
   });
 
   test("Disabled entries do not call the action", () => {
-    const action = jest.fn();
+    const action = vi.fn();
     render(<LowMenuButton entry={{ label: "Bold", action, disabled: true }} />);
     const button = screen.getByLabelText("Bold");
     expect(button).toHaveClass("lowMenuItem disabled");

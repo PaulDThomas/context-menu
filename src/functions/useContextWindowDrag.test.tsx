@@ -33,8 +33,8 @@ const TestHarness = ({
   moving = false,
   windowTransform,
   positionRef,
-  move = jest.fn(),
-  setWindowVisible = jest.fn(),
+  move = vi.fn(),
+  setWindowVisible = vi.fn(),
   attachWindow = true,
 }: TestHarnessProps): React.ReactElement => {
   const windowRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ const TestHarness = ({
     isDockedRef,
     dispatch,
     move,
-    setMoving: jest.fn(),
+    setMoving: vi.fn(),
     setWindowVisible,
     handleDock,
     handleUndock,
@@ -79,13 +79,13 @@ describe("useContextWindowDrag", () => {
   test("calls the dock API and dispatches drag actions when released near an edge", () => {
     const actions: DockingAction[] = [];
     const dispatch: Dispatch<DockingAction> = (action) => actions.push(action);
-    const handleDock = jest.fn();
+    const handleDock = vi.fn();
 
     render(
       <TestHarness
         dispatch={dispatch}
         handleDock={handleDock}
-        handleUndock={jest.fn()}
+        handleUndock={vi.fn()}
       />,
     );
 
@@ -104,7 +104,7 @@ describe("useContextWindowDrag", () => {
   });
 
   test("docks into a dock panel under the pointer and ignores panels the pointer is outside", () => {
-    const handleDock = jest.fn();
+    const handleDock = vi.fn();
     const makePanel = (edge: string, rect: Partial<DOMRect>) => {
       const panel = document.createElement("div");
       panel.dataset.dockPanelEdge = edge;
@@ -118,9 +118,9 @@ describe("useContextWindowDrag", () => {
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
+        dispatch={vi.fn()}
         handleDock={handleDock}
-        handleUndock={jest.fn()}
+        handleUndock={vi.fn()}
       />,
     );
 
@@ -136,7 +136,7 @@ describe("useContextWindowDrag", () => {
   });
 
   test("prefers the overlapping dock panel with the higher z-index", () => {
-    const handleDock = jest.fn();
+    const handleDock = vi.fn();
     const rect = { left: 0, right: 100, top: 0, bottom: 100 } as DOMRect;
     const makePanel = (edge: string, zIndex: string) => {
       const panel = document.createElement("div");
@@ -151,9 +151,9 @@ describe("useContextWindowDrag", () => {
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
+        dispatch={vi.fn()}
         handleDock={handleDock}
-        handleUndock={jest.fn()}
+        handleUndock={vi.fn()}
       />,
     );
 
@@ -169,13 +169,13 @@ describe("useContextWindowDrag", () => {
   });
 
   test("calls the undock API with the pointer when dragging away from a dock edge", () => {
-    const dispatch: Dispatch<DockingAction> = jest.fn();
-    const handleUndock = jest.fn();
+    const dispatch: Dispatch<DockingAction> = vi.fn();
+    const handleUndock = vi.fn();
 
     render(
       <TestHarness
         dispatch={dispatch}
-        handleDock={jest.fn()}
+        handleDock={vi.fn()}
         handleUndock={handleUndock}
         isDocked
         dockedEdge="left"
@@ -193,9 +193,9 @@ describe("useContextWindowDrag", () => {
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         positionRef={positionRef}
         windowTransform="translate(-12.5px, 9px)"
       />,
@@ -211,9 +211,9 @@ describe("useContextWindowDrag", () => {
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         positionRef={positionRef}
         windowTransform="scale(1)"
       />,
@@ -225,14 +225,14 @@ describe("useContextWindowDrag", () => {
   });
 
   test("checks position when a floating window is released away from an edge", () => {
-    const handleDock = jest.fn();
-    const move = jest.fn();
+    const handleDock = vi.fn();
+    const move = vi.fn();
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
+        dispatch={vi.fn()}
         handleDock={handleDock}
-        handleUndock={jest.fn()}
+        handleUndock={vi.fn()}
         move={move}
       />,
     );
@@ -246,13 +246,13 @@ describe("useContextWindowDrag", () => {
   });
 
   test("does not check position when a floating window is clicked without moving", () => {
-    const move = jest.fn();
+    const move = vi.fn();
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         move={move}
       />,
     );
@@ -269,13 +269,13 @@ describe("useContextWindowDrag", () => {
     ["left", 2, 100],
     ["right", window.innerWidth - 2, 100],
   ] as const)("does not undock a %s window before crossing its edge threshold", (edge, x, y) => {
-    const handleUndock = jest.fn();
-    const move = jest.fn();
+    const handleUndock = vi.fn();
+    const move = vi.fn();
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
         handleUndock={handleUndock}
         move={move}
         isDocked
@@ -297,12 +297,12 @@ describe("useContextWindowDrag", () => {
     ["left", 100, 100],
     ["right", 100, 100],
   ] as const)("undocks a %s window after it crosses the edge threshold", (edge, x, y) => {
-    const handleUndock = jest.fn();
+    const handleUndock = vi.fn();
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
         handleUndock={handleUndock}
         isDocked
         dockedEdge={edge}
@@ -316,13 +316,13 @@ describe("useContextWindowDrag", () => {
   });
 
   test("does not snap or undock when docking is disabled", () => {
-    const handleUndock = jest.fn();
-    const move = jest.fn();
+    const handleUndock = vi.fn();
+    const move = vi.fn();
 
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
         handleUndock={handleUndock}
         isDocked
         dockedEdge="left"
@@ -339,21 +339,19 @@ describe("useContextWindowDrag", () => {
   });
 
   test("restores visibility when a hidden window is dragged into the viewport", () => {
-    const setWindowVisible = jest.fn();
-    const dispatch = jest.fn();
+    const setWindowVisible = vi.fn();
+    const dispatch = vi.fn();
     const { rerender } = render(
       <TestHarness
         dispatch={dispatch}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         setWindowVisible={setWindowVisible}
         windowVisible={false}
       />,
     );
     const windowElement = screen.getByTestId("window");
-    jest
-      .spyOn(windowElement, "getBoundingClientRect")
-      .mockReturnValue(new DOMRect(10, 10, 100, 100));
+    vi.spyOn(windowElement, "getBoundingClientRect").mockReturnValue(new DOMRect(10, 10, 100, 100));
 
     fireEvent.mouseDown(screen.getByText("Window title"));
     expect(setWindowVisible).toHaveBeenCalledWith(true);
@@ -363,8 +361,8 @@ describe("useContextWindowDrag", () => {
     rerender(
       <TestHarness
         dispatch={dispatch}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         setWindowVisible={setWindowVisible}
         windowVisible={false}
         attachWindow={false}
@@ -380,17 +378,17 @@ describe("useContextWindowDrag", () => {
     new DOMRect(10, window.innerHeight, 50, 50),
     new DOMRect(window.innerWidth, 10, 50, 50),
   ])("does not reveal a hidden window outside the viewport", (rect) => {
-    const setWindowVisible = jest.fn();
+    const setWindowVisible = vi.fn();
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         setWindowVisible={setWindowVisible}
         windowVisible={false}
       />,
     );
-    jest.spyOn(screen.getByTestId("window"), "getBoundingClientRect").mockReturnValue(rect);
+    vi.spyOn(screen.getByTestId("window"), "getBoundingClientRect").mockReturnValue(rect);
 
     fireEvent.mouseDown(screen.getByText("Window title"));
     fireEvent.mouseMove(document, { clientX: 300, clientY: 300 });
@@ -399,12 +397,12 @@ describe("useContextWindowDrag", () => {
   });
 
   test("updates window position when the viewport resizes", () => {
-    const move = jest.fn();
+    const move = vi.fn();
     render(
       <TestHarness
-        dispatch={jest.fn()}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        dispatch={vi.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         move={move}
       />,
     );
@@ -417,9 +415,9 @@ describe("useContextWindowDrag", () => {
   test("restores body overflow when dragging ends", () => {
     const originalOverflow = document.body.style.overflow;
     const props = {
-      dispatch: jest.fn(),
-      handleDock: jest.fn(),
-      handleUndock: jest.fn(),
+      dispatch: vi.fn(),
+      handleDock: vi.fn(),
+      handleUndock: vi.fn(),
     };
     const { rerender } = render(
       <TestHarness
@@ -441,12 +439,12 @@ describe("useContextWindowDrag", () => {
   test("does not process an interaction end that was armed without a drag", () => {
     const actions: DockingAction[] = [];
     const dispatch: Dispatch<DockingAction> = (action) => actions.push(action);
-    const move = jest.fn();
+    const move = vi.fn();
     render(
       <TestHarness
         dispatch={dispatch}
-        handleDock={jest.fn()}
-        handleUndock={jest.fn()}
+        handleDock={vi.fn()}
+        handleUndock={vi.fn()}
         move={move}
       />,
     );

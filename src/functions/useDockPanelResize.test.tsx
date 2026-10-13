@@ -45,7 +45,7 @@ describe("useDockPanelResize", () => {
   };
 
   const setup = (edge: DockEdge, ref = makeRef()) => {
-    const onResizeStart = jest.fn();
+    const onResizeStart = vi.fn();
     const hook = renderHook(() => useDockPanelResize(edge, ref, onResizeStart));
     return { ...hook, onResizeStart };
   };
@@ -55,13 +55,13 @@ describe("useDockPanelResize", () => {
       button: 0,
       clientX: 100,
       clientY: 100,
-      preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
       ...overrides,
     }) as unknown as React.MouseEvent<HTMLElement>;
 
   const keyDown = (key: string, shiftKey = false) =>
-    ({ key, shiftKey, preventDefault: jest.fn() }) as unknown as React.KeyboardEvent<HTMLElement>;
+    ({ key, shiftKey, preventDefault: vi.fn() }) as unknown as React.KeyboardEvent<HTMLElement>;
 
   test("Starts with no chosen size and not resizing", () => {
     const { result } = setup("left");
@@ -129,7 +129,7 @@ describe("useDockPanelResize", () => {
   test("Unmounting mid-resize removes the document listeners", () => {
     const { result, unmount } = setup("left");
     act(() => result.current.handleResizeMouseDown(mouseDown()));
-    const removeSpy = jest.spyOn(document, "removeEventListener");
+    const removeSpy = vi.spyOn(document, "removeEventListener");
     unmount();
     expect(removeSpy).toHaveBeenCalledWith("mousemove", expect.any(Function));
     expect(removeSpy).toHaveBeenCalledWith("mouseup", expect.any(Function));

@@ -6,17 +6,17 @@ import { LowMenu } from "./LowMenu";
 
 describe("Low menu", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   const user = userEvent.setup({ delay: null });
 
   test("Empty render, click action", async () => {
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -38,7 +38,7 @@ describe("Low menu", () => {
   });
 
   test("Move the mouse", async () => {
-    const setColour = jest.fn();
+    const setColour = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -67,7 +67,7 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     await act(async () => {
       fireEvent.mouseLeave(lowMenuBlueSubmenu);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
     // Fire close event
@@ -75,13 +75,13 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     await act(async () => {
       fireEvent.mouseDown(cyan);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
 
   test("LowMenu button with React.ReactElement label", async () => {
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -108,8 +108,8 @@ describe("Low menu", () => {
   });
 
   test("LowMenu with onMouseEnter and onMouseLeave callbacks", async () => {
-    const onMouseEnter = jest.fn();
-    const onMouseLeave = jest.fn();
+    const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -125,12 +125,12 @@ describe("Low menu", () => {
     const testDiv = screen.getByTestId("inside-div");
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseEnter).toHaveBeenCalled();
     await act(async () => {
       fireEvent.mouseLeave(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseLeave).toHaveBeenCalled();
   });
@@ -138,7 +138,7 @@ describe("Low menu", () => {
   test("LowMenu does not render when position is off screen", async () => {
     const { container } = render(
       <LowMenu
-        entries={[{ label: "Test", action: jest.fn() }]}
+        entries={[{ label: "Test", action: vi.fn() }]}
         visible={true}
         xPos={10000}
         yPos={10000}
@@ -152,7 +152,7 @@ describe("Low menu", () => {
   });
 
   test("LowSubMenu toClose function is called when submenu item is clicked", async () => {
-    const setColour = jest.fn();
+    const setColour = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
