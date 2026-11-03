@@ -61,7 +61,7 @@ export const DockPanel = ({
     return () => {
       dispatch({ type: "setPanelContentHost", edge, host: null });
     };
-  }, [dispatch, edge, windows.length]);
+  }, [dispatch, edge]);
 
   const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
   // A pinned bar slides away to a thin line once the pointer moves away from it

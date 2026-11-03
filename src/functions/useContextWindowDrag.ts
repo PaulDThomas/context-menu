@@ -3,6 +3,7 @@ import type { DockEdge } from "../components/interface";
 import type { DockingAction } from "../reducer";
 import { checkPosition } from "./checkPosition";
 import { detectSnapEdge } from "./detectSnapEdge";
+import { parseTranslate } from "./parseTranslate";
 import { useMouseMove } from "./useMouseMove";
 
 const UNDOCK_THRESHOLD = 20;
@@ -33,17 +34,6 @@ interface UseContextWindowDragResult {
   armInteractionEnd: () => void;
   lastMousePosRef: React.RefObject<{ x: number; y: number }>;
 }
-
-const parseTranslate = (transform?: string): { x: number; y: number } => {
-  const match = transform?.match(/translate\((-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px\)/);
-  if (match) {
-    return {
-      x: Number.parseFloat(match[1]),
-      y: Number.parseFloat(match[2]),
-    };
-  }
-  return { x: 0, y: 0 };
-};
 
 export const useContextWindowDrag = ({
   id,

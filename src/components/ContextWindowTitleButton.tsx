@@ -15,21 +15,21 @@ export const ContextWindowTitleButton = ({
   onClick,
   children,
 }: ContextWindowTitleButtonProps): React.ReactElement => {
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onClick?.();
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={className}
-      role="button"
       aria-label={label}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={handleClick}
       title={title}
     >
       {children}
-    </div>
+    </button>
   );
 };

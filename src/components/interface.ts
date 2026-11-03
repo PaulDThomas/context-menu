@@ -67,7 +67,7 @@ export interface ContextWindowController {
   isDocked: boolean;
   moving: boolean;
   onTitleMouseDown: (event: React.MouseEvent<HTMLElement>) => void;
-  portalTarget: Element | DocumentFragment;
+  portalTarget: Element | DocumentFragment | null;
   pushToTop: () => void;
   registerWindowConfig: (id: string, config: Partial<WindowConfig>) => void;
   onDock: (edge: DockEdge) => void;
