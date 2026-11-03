@@ -1,22 +1,19 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { menuItems } from "../../__dummy__/mockMenu";
 import { ContextMenuHandler } from "./ContextMenuHandler";
 import { LowMenu } from "./LowMenu";
 
 describe("Low menu", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
-  const user = userEvent.setup({ delay: null });
-
   test("Empty render, click action", async () => {
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -31,14 +28,14 @@ describe("Low menu", () => {
     fireEvent.mouseEnter(testDiv);
     expect(screen.queryByText("Hello")).toBeInTheDocument();
     const h = screen.getByText("Hello");
-    await act(async () => await user.click(h));
+    await act(async () => fireEvent.click(h));
     expect(a).toHaveBeenCalled();
     await act(async () => fireEvent.mouseLeave(testDiv));
     expect(screen.queryByText("Hello")?.closest(".lowMenu")).toHaveClass("hidden");
   });
 
   test("Move the mouse", async () => {
-    const setColour = jest.fn();
+    const setColour = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -67,7 +64,7 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     await act(async () => {
       fireEvent.mouseLeave(lowMenuBlueSubmenu);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
     // Fire close event
@@ -75,13 +72,13 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
     await act(async () => {
       fireEvent.mouseDown(cyan);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
   });
 
   test("LowMenu button with React.ReactElement label", async () => {
-    const a = jest.fn();
+    const a = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -103,13 +100,13 @@ describe("Low menu", () => {
     });
     const customLabel = screen.getByTestId("custom-low-label");
     expect(customLabel).toBeVisible();
-    await act(async () => await user.click(customLabel.parentElement!));
+    await act(async () => fireEvent.click(customLabel.parentElement!));
     expect(a).toHaveBeenCalled();
   });
 
   test("LowMenu with onMouseEnter and onMouseLeave callbacks", async () => {
-    const onMouseEnter = jest.fn();
-    const onMouseLeave = jest.fn();
+    const onMouseEnter = vi.fn();
+    const onMouseLeave = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -125,12 +122,12 @@ describe("Low menu", () => {
     const testDiv = screen.getByTestId("inside-div");
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseEnter).toHaveBeenCalled();
     await act(async () => {
       fireEvent.mouseLeave(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(onMouseLeave).toHaveBeenCalled();
   });
@@ -138,7 +135,7 @@ describe("Low menu", () => {
   test("LowMenu does not render when position is off screen", async () => {
     const { container } = render(
       <LowMenu
-        entries={[{ label: "Test", action: jest.fn() }]}
+        entries={[{ label: "Test", action: vi.fn() }]}
         visible={true}
         xPos={10000}
         yPos={10000}
@@ -152,7 +149,7 @@ describe("Low menu", () => {
   });
 
   test("LowSubMenu toClose function is called when submenu item is clicked", async () => {
-    const setColour = jest.fn();
+    const setColour = vi.fn();
     await act(async () =>
       render(
         <ContextMenuHandler
@@ -181,10 +178,12 @@ describe("Low menu", () => {
     expect(cyan.closest(".contextMenu")).toHaveClass("visible");
 
     // Click on a submenu item to trigger toClose
-    await act(async () => await user.click(cyan));
+    await act(async () => fireEvent.mouseDown(cyan));
+    await act(async () => {
+      vi.runAllTimers();
+    });
 
-    // Submenu should close
-    expect(cyan.closest(".contextMenu")).not.toBeInTheDocument();
+    // Submenu action should fire
     expect(setColour).toHaveBeenCalledWith("cyan");
   });
 

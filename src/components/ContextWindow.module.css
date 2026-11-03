@@ -19,6 +19,73 @@
   overflow: auto;
   max-height: 95vh;
   max-width: 95vw;
+  box-sizing: border-box;
+}
+
+.contextWindow.docked {
+  position: relative;
+  resize: none;
+  transform: none !important;
+  box-shadow: none;
+  border-radius: 0;
+  z-index: 2500;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: none;
+}
+
+.contextWindow.dockedTop {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.contextWindow.dockedBottom {
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.contextWindow.dockedLeft {
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.contextWindow.dockedRight {
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.contextWindow.docked .contextWindowTitle {
+  cursor: move;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  margin: 0;
+  padding: 4px;
+  height: 28px;
+  line-height: 28px;
+  max-height: 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.contextWindow.docked .contextWindowTitle.undockDisabled {
+  cursor: default;
+}
+
+.contextWindow.docked .contextWindowBody {
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.contextWindow.dockedCollapsed {
+  height: 28px;
+  width: auto;
+}
+
+.contextWindow.dockedCollapsed .contextWindowBody {
+  display: none;
 }
 
 .contextWindowTitle {
@@ -47,11 +114,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: calc(100% - 16px);
+  flex: 1;
+  min-width: 0;
+}
+
+.contextWindowTitleButtons {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: 2px;
 }
 
 .contextWindowTitleClose {
   display: flex;
+  flex-shrink: 0;
   color: black;
   height: 16px;
   width: 16px;
@@ -66,11 +143,50 @@
   color: white;
 }
 
+.dockButton {
+  display: flex;
+  flex-shrink: 0;
+  color: black;
+  height: 16px;
+  width: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  cursor: pointer;
+  line-height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.dockButton:hover {
+  background-color: #e0e0e0;
+}
+
+.undockButton {
+  display: flex;
+  flex-shrink: 0;
+  color: black;
+  height: 16px;
+  width: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  cursor: pointer;
+  line-height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.undockButton:hover {
+  background-color: #e0e0e0;
+}
+
 .contextWindowBody {
   overflow: auto;
   padding-bottom: 8px;
   margin-right: 4px;
   height: calc(100% - 40px);
+  box-sizing: border-box;
 }
 
 .contextWindowBody::-webkit-scrollbar {

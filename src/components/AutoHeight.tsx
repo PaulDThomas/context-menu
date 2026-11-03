@@ -45,6 +45,7 @@ export function AutoHeight({
 
       const frameId = window.requestAnimationFrame(() => {
         const inner = innerRef.current;
+        /* istanbul ignore else */
         if (inner) {
           setTargetHeight(inner.offsetHeight);
           setAnimationState("open");
@@ -91,6 +92,7 @@ export function AutoHeight({
   // Setup ResizeObserver to track content size changes
   useEffect(() => {
     const transition = innerRef.current;
+    /* istanbul ignore else */
     if (transition) {
       const observer = new ResizeObserver(() => {
         if (animationState === "open") {

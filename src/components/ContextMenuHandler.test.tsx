@@ -8,17 +8,17 @@ describe("ContextMenuHandler edge cases", () => {
       constructor(cb: ResizeObserverCallback) {
         resizeCallback = cb;
       }
-      observe = jest.fn();
-      unobserve = jest.fn();
-      disconnect = jest.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
     };
   });
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test("uses ResizeObserver when available and disconnects on leave", async () => {
@@ -39,7 +39,7 @@ describe("ContextMenuHandler edge cases", () => {
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
       // advance timers so the delayed setMouseOverHandlerDiv executes
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // The ResizeObserver should have been constructed and observe called with the handler element
@@ -48,7 +48,7 @@ describe("ContextMenuHandler edge cases", () => {
     // Now leave the element to trigger cleanup
     await act(async () => {
       fireEvent.mouseLeave(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
   });
 
@@ -69,7 +69,7 @@ describe("ContextMenuHandler edge cases", () => {
     // Hover to open low menu
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     // Expect the entry to be present
     expect(screen.getByText("One")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("ContextMenuHandler edge cases", () => {
     // Re-enter quickly to abort pending hide
     await act(async () => {
       fireEvent.mouseEnter(testDiv);
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     // Low menu remains visible
@@ -103,7 +103,7 @@ describe("ContextMenuHandler edge cases", () => {
     // Open context menu
     await act(async () => {
       fireEvent.contextMenu(testDiv, { pageX: 100, pageY: 100 });
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
     expect(screen.getByText("One")).toBeInTheDocument();
 
@@ -115,7 +115,7 @@ describe("ContextMenuHandler edge cases", () => {
     // Re-open before removal fires
     await act(async () => {
       fireEvent.contextMenu(testDiv, { pageX: 120, pageY: 120 });
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     expect(screen.getByText("One")).toBeInTheDocument();

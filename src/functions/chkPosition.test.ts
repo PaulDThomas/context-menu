@@ -31,6 +31,17 @@ describe("chkPosition", () => {
     expect(chkPosition({ current: null })).toEqual({ translateX: 0, translateY: 0 });
   });
 
+  it("does not translate a div that is already inside the viewport", () => {
+    const divRef = {
+      current: {
+        ...document.createElement("div"),
+        getBoundingClientRect: mockGbc(20, 40, 20, 40),
+      },
+    };
+
+    expect(chkPosition(divRef)).toEqual({ translateX: 0, translateY: 0 });
+  });
+
   it("should return correct translation when div is outside the viewport on the left", () => {
     const divRef = {
       current: {

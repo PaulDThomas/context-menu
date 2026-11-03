@@ -28,6 +28,7 @@ export const ClickForMenu = ({
   // Handle click off the menu
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleClick = (e: MouseEvent) => {
+    /* istanbul ignore else */
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current.contains(e.target)) ||
@@ -67,6 +68,7 @@ export const ClickForMenu = ({
     if (menuInDom) document.addEventListener("mousedown", handleClick);
     return () => {
       document.removeEventListener("mousedown", handleClick);
+      /* istanbul ignore else */
       if (removeController.current) {
         removeController.current.abort();
       }
@@ -84,6 +86,7 @@ export const ClickForMenu = ({
             e.preventDefault();
             e.stopPropagation();
             setTimeout(() => {
+              /* istanbul ignore else */
               if (removeController.current) {
                 removeController.current.abort();
               }

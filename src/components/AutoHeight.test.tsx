@@ -1,18 +1,18 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { AutoHeight } from "./AutoHeight";
 
 describe("AutoHeight Component", () => {
-  let rafMock: jest.SpyInstance;
-  let cancelRafMock: jest.SpyInstance;
+  let rafMock: ReturnType<typeof vi.spyOn>;
+  let cancelRafMock: ReturnType<typeof vi.spyOn>;
 
   function setupRafMocks() {
     let rafCb: FrameRequestCallback | null = null;
     let rafId = 1;
-    rafMock = jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+    rafMock = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
       rafCb = cb;
       return rafId++;
     });
-    cancelRafMock = jest.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    cancelRafMock = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     return { rafMock, cancelRafMock, getRafCb: () => rafCb };
   }
 
@@ -27,21 +27,21 @@ describe("AutoHeight Component", () => {
     });
     // Mock ResizeObserver to avoid errors in tests
     window.ResizeObserver = class {
-      observe = jest.fn();
-      unobserve = jest.fn();
-      disconnect = jest.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
     };
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     act(() => {
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
     rafMock?.mockRestore();
     cancelRafMock?.mockRestore();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test("renders children correctly", () => {
@@ -132,7 +132,7 @@ describe("AutoHeight Component", () => {
       cb?.(performance.now());
     });
 
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
+    expect(wrapper).toHaveStyle("height: 1px");
 
     await act(async () => {
       const cb = getRafCb();
@@ -160,7 +160,7 @@ describe("AutoHeight Component", () => {
     const wrapper = container.querySelector(".autoHeightWrapper");
 
     // Run initial RAF callbacks
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     await act(async () =>
       rerender(
@@ -179,7 +179,7 @@ describe("AutoHeight Component", () => {
     expect(wrapper).toHaveStyle("height: 1px");
 
     // Run timeout to hide display
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     expect(wrapper).toHaveStyle("display: none");
   });
@@ -216,7 +216,7 @@ describe("AutoHeight Component", () => {
     const wrapper = container.querySelector(".autoHeightWrapper");
 
     // Run initial RAF callbacks
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Hide
     await act(async () =>
@@ -250,7 +250,7 @@ describe("AutoHeight Component", () => {
     );
 
     // Run RAF callbacks
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Should not be hidden since we cancelled the close timeout
     expect(wrapper).not.toHaveStyle("display: none");
@@ -258,7 +258,7 @@ describe("AutoHeight Component", () => {
 
   test("cancels pending close timeout when opening again", async () => {
     setupRafMocks();
-    const clearTimeoutSpy = jest.spyOn(window, "clearTimeout");
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
 
     const { container, rerender } = render(
       <AutoHeight>
@@ -272,7 +272,7 @@ describe("AutoHeight Component", () => {
     );
 
     // Complete initial opening sequence
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Hide to schedule close timeout
     await act(async () =>
@@ -344,7 +344,7 @@ describe("AutoHeight Component", () => {
     );
 
     // Run timers
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Should be hidden
     expect(wrapper).toHaveStyle("display: none");
@@ -352,14 +352,14 @@ describe("AutoHeight Component", () => {
 
   test("changes height on children resize", async () => {
     setupRafMocks();
-    const resizeObserverCallback = jest.fn();
+    const resizeObserverCallback = vi.fn();
     window.ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
         resizeObserverCallback(callback);
       }
-      observe = jest.fn();
-      unobserve = jest.fn();
-      disconnect = jest.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
     };
 
     const { container, rerender } = await act(async () =>
@@ -378,7 +378,7 @@ describe("AutoHeight Component", () => {
     const wrapper = container.querySelector(".autoHeightWrapper");
 
     // Run RAF callbacks to set initial height
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Get the ResizeObserver callback and trigger it
     const callback = resizeObserverCallback.mock.calls[0][0];
@@ -413,14 +413,14 @@ describe("AutoHeight Component", () => {
 
   test("does not update height when component is hidden", async () => {
     setupRafMocks();
-    const resizeObserverCallback = jest.fn();
+    const resizeObserverCallback = vi.fn();
     window.ResizeObserver = class {
       constructor(callback: ResizeObserverCallback) {
         resizeObserverCallback(callback);
       }
-      observe = jest.fn();
-      unobserve = jest.fn();
-      disconnect = jest.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
     };
 
     const { container } = await act(async () =>
@@ -453,7 +453,7 @@ describe("AutoHeight Component", () => {
 
   test("cleans up timers on unmount during hide", async () => {
     setupRafMocks();
-    const timeoutSpy = jest.spyOn(window, "setTimeout");
+    const timeoutSpy = vi.spyOn(window, "setTimeout");
 
     const { unmount, rerender } = await act(async () =>
       render(
@@ -469,7 +469,7 @@ describe("AutoHeight Component", () => {
     );
 
     // Run RAF callbacks
-    await act(async () => jest.runAllTimers());
+    await act(async () => vi.runAllTimers());
 
     // Hide to set up a timeout
     await act(async () =>
@@ -580,13 +580,13 @@ describe("AutoHeight Component", () => {
       cb?.(performance.now());
     });
 
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 1px"));
+    expect(wrapper).toHaveStyle("height: 1px");
 
     // Fire inner RAF callback (expands to content height)
     await act(async () => {
       const cb2 = getRafCb();
       cb2?.(performance.now());
     });
-    await waitFor(() => expect(wrapper).toHaveStyle("height: 160px"));
+    expect(wrapper).toHaveStyle("height: 160px");
   });
 });

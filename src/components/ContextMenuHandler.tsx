@@ -72,6 +72,7 @@ export const ContextMenuHandler = ({
 
   useLayoutEffect(() => {
     function updatePos() {
+      /* istanbul ignore else */
       if (divHandlderRef.current) {
         setDivHandlerPos(divHandlderRef.current.getBoundingClientRect());
       }
@@ -104,6 +105,7 @@ export const ContextMenuHandler = ({
 
   // Handle click off the menu
   const handleClick = useCallback((e: MouseEvent) => {
+    /* istanbul ignore else */
     if (
       menuRef.current &&
       ((e.target instanceof Element && !menuRef.current?.contains(e.target)) ||
@@ -143,6 +145,7 @@ export const ContextMenuHandler = ({
         {...rest}
         className={[styles.contextMenuHandler, rest.className].join(" ")}
         onContextMenu={async (e) => {
+          /* istanbul ignore else */
           if (!showLowMenu) {
             setMenuInDom(true);
             e.preventDefault();

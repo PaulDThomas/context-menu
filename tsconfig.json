@@ -17,6 +17,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": false, // Needed for tests
+    "types": ["vitest/globals", "@testing-library/jest-dom", "node"],
     "noEmit": true,
     "declaration": true,
     "jsx": "react-jsx",
