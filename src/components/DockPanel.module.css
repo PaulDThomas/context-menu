@@ -66,12 +66,13 @@
 }
 
 .dockPanelTabs {
+  background-color: rgb(246, 246, 246);
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-height: 36px;
   padding: 4px;
-  border-top: 1px solid rgba(0, 0, 0, 0.15);
-  background-color: rgb(246, 246, 246);
 }
 
 .dockPanel.edge-left .dockPanelTabs,
