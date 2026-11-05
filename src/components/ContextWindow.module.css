@@ -138,6 +138,15 @@
   line-height: 16px;
 }
 
+.contextWindowTitleClose,
+.dockButton,
+.undockButton {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .contextWindowTitleClose:hover {
   background-color: black;
   color: white;
