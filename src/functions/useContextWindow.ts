@@ -45,7 +45,8 @@ export const useContextWindow = (
     !isDocked || !dockedWindow || !activeDockedWindowId || activeDockedWindowId === id;
   const dockPanelContentHost =
     isDocked && dockedWindow ? (docking?.getPanelContentHost(dockedWindow.edge) ?? null) : null;
-  const portalTarget = dockPanelContentHost ?? document.body;
+  const portalTarget =
+    dockPanelContentHost ?? (typeof document === "undefined" ? null : document.body);
   const zIndex = docking?.getWindowZIndex(id) ?? stacking.zIndex;
   const dispatch = docking?.dispatch ?? standalone.dispatch;
   const registerWindowConfig = docking?.registerWindowConfig ?? standalone.registerWindowConfig;

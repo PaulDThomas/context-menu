@@ -138,6 +138,13 @@
   line-height: 16px;
 }
 
+.contextWindowTitleButton {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .contextWindowTitleClose:hover {
   background-color: black;
   color: white;

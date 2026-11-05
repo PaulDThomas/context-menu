@@ -110,54 +110,52 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
       [window.dock, window.pushToTop, window.undock],
     );
 
+    const content = visible ? (
+      <div
+        {...rest}
+        ref={window.setWindowNode}
+        id={id}
+        className={classNames(
+          styles.contextWindow,
+          window.isDocked && styles.docked,
+          window.isDocked && window.dockedWindow && dockedEdgeClassNames[window.dockedWindow.edge],
+          rest.className,
+        )}
+        style={{
+          ...(window.isDocked ? {} : rest.style),
+          opacity: window.moving ? 0.8 : window.windowVisible ? 1 : 0,
+          visibility: window.windowVisible ? "visible" : "hidden",
+          display: window.isDocked
+            ? window.isActiveDockedWindow
+              ? "flex"
+              : "none"
+            : rest.style?.display,
+          zIndex: window.zIndex,
+          minHeight: window.isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
+          minWidth: window.isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
+          maxHeight: window.isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
+          maxWidth: window.isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
+          width: window.isDocked ? "100%" : rest.style?.width,
+          height: window.isDocked ? "100%" : rest.style?.height,
+        }}
+        onClickCapture={(event) => {
+          window.handleWindowClick(event);
+          rest.onClickCapture?.(event);
+        }}
+      >
+        <ContextWindowTitleBar window={window} />
+        <div className={styles.contextWindowBody}>
+          <div>{children}</div>
+        </div>
+      </div>
+    ) : null;
+
     return (
       <div
         className={styles.contextWindowAnchor}
         ref={window.divRef}
       >
-        {visible &&
-          createPortal(
-            <div
-              {...rest}
-              ref={window.setWindowNode}
-              id={id}
-              className={classNames(
-                styles.contextWindow,
-                window.isDocked && styles.docked,
-                window.isDocked &&
-                  window.dockedWindow &&
-                  dockedEdgeClassNames[window.dockedWindow.edge],
-                rest.className,
-              )}
-              style={{
-                ...(window.isDocked ? {} : rest.style),
-                opacity: window.moving ? 0.8 : window.windowVisible ? 1 : 0,
-                visibility: window.windowVisible ? "visible" : "hidden",
-                display: window.isDocked
-                  ? window.isActiveDockedWindow
-                    ? "flex"
-                    : "none"
-                  : rest.style?.display,
-                zIndex: window.zIndex,
-                minHeight: window.isDocked ? "auto" : (rest.style?.minHeight ?? "150px"),
-                minWidth: window.isDocked ? "auto" : (rest.style?.minWidth ?? "200px"),
-                maxHeight: window.isDocked ? "100%" : (rest.style?.maxHeight ?? "1000px"),
-                maxWidth: window.isDocked ? "100%" : (rest.style?.maxWidth ?? "1000px"),
-                width: window.isDocked ? "100%" : rest.style?.width,
-                height: window.isDocked ? "100%" : rest.style?.height,
-              }}
-              onClickCapture={(event) => {
-                window.handleWindowClick(event);
-                rest.onClickCapture?.(event);
-              }}
-            >
-              <ContextWindowTitleBar window={window} />
-              <div className={styles.contextWindowBody}>
-                <div>{children}</div>
-              </div>
-            </div>,
-            window.portalTarget,
-          )}
+        {window.portalTarget ? createPortal(content, window.portalTarget) : content}
       </div>
     );
   },

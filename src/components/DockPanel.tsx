@@ -55,6 +55,7 @@ export const DockPanel = ({
     }
   }, [edge, isResizing, onSettingsChange, panelSize, pushContent]);
 
+  // The host is only rendered while windows are docked, so register it as the edge becomes populated or empty.
   useEffect(() => {
     dispatch({ type: "setPanelContentHost", edge, host: contentHostRef.current });
 

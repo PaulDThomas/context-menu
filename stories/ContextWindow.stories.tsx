@@ -24,6 +24,38 @@ export const Basic: Story = {
   },
 };
 
+export const WithTitleBarButtons: Story = {
+  args: {
+    id: "window-title-bar-buttons",
+    visible: true,
+    title: "Window with Custom Actions",
+    onClose: fn(),
+    titleBarButtons: (
+      <>
+        <button
+          type="button"
+          title="Refresh"
+          onClick={fn()}
+        >
+          Refresh
+        </button>
+        <button
+          type="button"
+          title="Help"
+          onClick={fn()}
+        >
+          Help
+        </button>
+      </>
+    ),
+    children: (
+      <div style={{ padding: "10px" }}>
+        The Refresh and Help buttons are custom title-bar controls.
+      </div>
+    ),
+  },
+};
+
 export const WithLongTitle: Story = {
   args: {
     id: "window-long-title",

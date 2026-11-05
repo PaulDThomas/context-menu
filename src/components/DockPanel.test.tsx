@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import * as dockingHook from "../functions/useDocking";
 import { useDocking } from "../functions/useDocking";
+import { ContextWindow, type ContextWindowHandle } from "./ContextWindow";
 import {
   DOCK_PANEL_AUTOHIDE_DISTANCE,
   DOCK_PANEL_MIN_SIZE,
@@ -48,6 +49,36 @@ describe("DockPanel", () => {
 
     expect(container.firstChild).toBeNull();
   });
+
+  test.each<DockEdge>(["right", "bottom", "left", "top"])(
+    "moves a floating window into the %s panel when docked",
+    (edge) => {
+      const windowRef = { current: null } as React.RefObject<ContextWindowHandle | null>;
+      render(
+        <DockingProvider>
+          <ContextWindow
+            id="panel-registration-window"
+            title="Panel registration"
+            visible
+            ref={windowRef}
+          >
+            Window content
+          </ContextWindow>
+        </DockingProvider>,
+      );
+      expect(document.getElementById("panel-registration-window")?.parentElement).toBe(
+        document.body,
+      );
+
+      act(() => windowRef.current?.dock(edge));
+
+      const panel = document.querySelector(`[data-dock-panel-edge="${edge}"]`);
+      expect(panel).toBeInTheDocument();
+      expect(
+        document.getElementById("panel-registration-window")?.closest("[data-dock-panel-edge]"),
+      ).toBe(panel);
+    },
+  );
 
   test("renders tabs and activates selected docked window", () => {
     const dispatch = vi.fn();
