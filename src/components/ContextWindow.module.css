@@ -138,9 +138,7 @@
   line-height: 16px;
 }
 
-.contextWindowTitleClose,
-.dockButton,
-.undockButton {
+.contextWindowTitleButton {
   appearance: none;
   padding: 0;
   border: 0;

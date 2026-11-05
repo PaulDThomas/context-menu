@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import styles from "./ContextWindow.module.css";
 
 interface ContextWindowTitleButtonProps {
   className: string;
@@ -23,7 +24,7 @@ export const ContextWindowTitleButton = ({
   return (
     <button
       type="button"
-      className={className}
+      className={[styles.contextWindowTitleButton, className].filter(Boolean).join(" ")}
       aria-label={label}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={handleClick}
