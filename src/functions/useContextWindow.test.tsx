@@ -86,7 +86,8 @@ const HookWindow = ({
       className="contextWindowAnchor"
       ref={divRef}
     >
-      {visible &&
+      {portalTarget &&
+        visible &&
         createPortal(
           <div
             id={id}
