@@ -55,13 +55,14 @@ export const DockPanel = ({
     }
   }, [edge, isResizing, onSettingsChange, panelSize, pushContent]);
 
+  // The host is only rendered while windows are docked, so register it as the edge becomes populated or empty.
   useEffect(() => {
     dispatch({ type: "setPanelContentHost", edge, host: contentHostRef.current });
 
     return () => {
       dispatch({ type: "setPanelContentHost", edge, host: null });
     };
-  }, [dispatch, edge]);
+  }, [dispatch, edge, windows.length]);
 
   const isPinned = windows.length > 0 && docking.isEdgeCollapsed(edge);
   // A pinned bar slides away to a thin line once the pointer moves away from it
