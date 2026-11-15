@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { ContextWindow, ContextWindowHandle } from "../src/components/ContextWindow";
+import { DockingProvider } from "../src/components/DockingContext";
 
 const meta = {
   title: "Components/ContextWindow",
@@ -165,6 +166,54 @@ export const ControlledVisibility: Story = {
       );
     };
     return <ControlledDemo />;
+  },
+};
+
+export const PersistedLocation: Story = {
+  args: {
+    id: "",
+    visible: false,
+    title: "",
+    children: <></>,
+  },
+  parameters: { layout: "fullscreen" },
+  render: () => {
+    const PersistedLocationDemo = () => {
+      const [visible, setVisible] = useState(true);
+
+      return (
+        <DockingProvider>
+          <div style={{ padding: "20px" }}>
+            <p>
+              Dock, move, or resize this window, then close it and reopen it to restore its saved
+              location.
+            </p>
+            <button
+              type="button"
+              onClick={() => setVisible(true)}
+              disabled={visible}
+            >
+              Open saved window
+            </button>
+            <ContextWindow
+              id="window-persisted-location"
+              title="Persisted location"
+              visible={visible}
+              onClose={() => setVisible(false)}
+              data-acw-key="storybook-persisted-location"
+              style={{ width: "360px", height: "240px" }}
+            >
+              <div style={{ padding: "10px" }}>
+                <p>This window remembers its dock edge and floating position and size.</p>
+                <p>Try docking it on the left before closing it.</p>
+              </div>
+            </ContextWindow>
+          </div>
+        </DockingProvider>
+      );
+    };
+
+    return <PersistedLocationDemo />;
   },
 };
 
