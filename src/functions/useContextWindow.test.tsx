@@ -23,6 +23,7 @@ interface HookWindowProps {
   allowUndock?: boolean;
   defaultDockEdge?: DockEdge;
   initialDockEdge?: DockEdge;
+  storageKey?: string;
   onOpen?: () => void;
   onClose?: () => void;
   capture?: (controller: ContextWindowController) => void;
@@ -36,11 +37,12 @@ const HookWindow = ({
   allowUndock = true,
   defaultDockEdge = "right",
   initialDockEdge,
+  storageKey,
   onOpen,
   onClose,
   capture,
 }: HookWindowProps): React.ReactElement => {
-  const window = useContextWindow(id, { onClose, onOpen });
+  const window = useContextWindow(id, { onClose, onOpen, storageKey });
   const {
     divRef,
     handleWindowClick,
@@ -527,16 +529,15 @@ describe("useContextWindow", () => {
     expect(getDocking().getDockedWindow("hook-window")).toBeUndefined();
   });
 
-  test("arms interaction-end after resize and disconnects its observer", () => {
+  test("debounces floating location writes after resize and arms interaction-end", () => {
     const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
-    const observe = vi.fn();
     const disconnect = vi.fn();
-    let onResize: ResizeObserverCallback | undefined;
+    const observations: { callback: ResizeObserverCallback; target: Element }[] = [];
     class MockResizeObserver {
-      constructor(callback: ResizeObserverCallback) {
-        onResize = callback;
-      }
-      observe = observe;
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe = (target: Element) => {
+        observations.push({ callback: this.callback, target });
+      };
       disconnect = disconnect;
       unobserve = vi.fn();
     }
@@ -546,12 +547,46 @@ describe("useContextWindow", () => {
     });
 
     try {
-      const view = renderWindow();
-      expect(observe).toHaveBeenCalledWith(document.getElementById("hook-window"));
-      act(() => onResize?.([], {} as ResizeObserver));
+      vi.useFakeTimers();
+      const storageKey = "resize-window";
+      const storageItemKey = `@asup/context-menu:window-location:${storageKey}`;
+      const writes = vi.spyOn(Storage.prototype, "setItem");
+      const view = renderWindow({ storageKey });
+      const element = document.getElementById("hook-window")!;
+      const getBoundingClientRect = vi
+        .spyOn(element, "getBoundingClientRect")
+        .mockReturnValue(new DOMRect(30, 40, 320, 210));
+      const observation = observations.find(({ target }) => target === element);
+      expect(observation).toBeDefined();
+      const addEventListener = vi.spyOn(document, "addEventListener");
+
+      act(() => observation?.callback([], {} as ResizeObserver));
+      expect(addEventListener).toHaveBeenCalledWith("mouseup", expect.any(Function), true);
+      expect(writes).not.toHaveBeenCalledWith(storageItemKey, expect.any(String));
+      act(() => vi.advanceTimersByTime(100));
+      act(() => observation?.callback([], {} as ResizeObserver));
+      act(() => vi.advanceTimersByTime(149));
+      expect(writes).not.toHaveBeenCalledWith(storageItemKey, expect.any(String));
+      act(() => vi.advanceTimersByTime(1));
+      expect(writes).toHaveBeenCalledTimes(1);
+      expect(writes).toHaveBeenCalledWith(
+        storageItemKey,
+        JSON.stringify({
+          dockEdge: null,
+          rect: { x: 30, y: 40, width: 320, height: 210 },
+        }),
+      );
+
+      act(() => view.docking().getWindowController("hook-window")?.onDock?.("left"));
+      getBoundingClientRect.mockClear();
+      act(() => observation?.callback([], {} as ResizeObserver));
+      act(() => vi.advanceTimersByTime(150));
+      expect(getBoundingClientRect).not.toHaveBeenCalled();
+
       view.unmount();
-      expect(disconnect).toHaveBeenCalledTimes(1);
+      expect(disconnect).toHaveBeenCalledTimes(observations.length);
     } finally {
+      vi.useRealTimers();
       if (originalDescriptor) {
         Object.defineProperty(globalThis, "ResizeObserver", originalDescriptor);
       } else {

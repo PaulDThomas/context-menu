@@ -27,6 +27,7 @@ interface UseContextWindowDragProps {
   setWindowVisible: (nextValue: boolean) => void;
   handleDock: (edge: DockEdge) => void;
   handleUndock: (pointer?: { x: number; y: number }) => void;
+  onLocationChange?: () => void;
 }
 
 interface UseContextWindowDragResult {
@@ -54,6 +55,7 @@ export const useContextWindowDrag = ({
   setWindowVisible,
   handleDock,
   handleUndock,
+  onLocationChange,
 }: UseContextWindowDragProps): UseContextWindowDragResult => {
   const targetSnapEdgeRef = useRef<DockEdge | null>(null);
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -179,6 +181,7 @@ export const useContextWindowDrag = ({
       hasMovedRef.current = false;
       if (shouldCheckPosition) {
         checkPosition(windowRef, move);
+        onLocationChange?.();
       }
     },
     interactionEndEnabled: windowVisible,

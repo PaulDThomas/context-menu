@@ -14,6 +14,8 @@ const dockedEdgeClassNames: Record<DockEdge, string> = {
 
 /** Props for a floating window, optionally dockable inside a DockingProvider. Other HTML attributes reach the window element. */
 export interface ContextWindowProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Stable key used to persist this window's dock edge and floating geometry. */
+  "data-acw-key"?: string;
   /** Allow a docked window to be undocked by its button, dragging, or imperative handle. Defaults to true. */
   allowUndock?: boolean;
   /** Content rendered inside the scrollable window body. */
@@ -53,6 +55,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     {
       allowUndock = true,
       children,
+      "data-acw-key": storageKey,
       defaultDockEdge = "right",
       dockable = true,
       id,
@@ -67,7 +70,11 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
     },
     ref,
   ): React.ReactElement => {
-    const window = useContextWindow(id, { onClose, onOpen });
+    const window = useContextWindow(id, {
+      onClose,
+      onOpen,
+      storageKey,
+    });
     const { isDocked, registerWindowConfig } = window;
 
     useLayoutEffect(() => {
@@ -115,6 +122,7 @@ export const ContextWindow = forwardRef<ContextWindowHandle, ContextWindowProps>
         {...rest}
         ref={window.setWindowNode}
         id={id}
+        data-acw-key={storageKey}
         className={classNames(
           styles.contextWindow,
           window.isDocked && styles.docked,
