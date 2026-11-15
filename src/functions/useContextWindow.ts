@@ -354,12 +354,17 @@ export const useContextWindow = (
       return;
     }
 
+    let saveTimeout = 0;
     const observer = new ResizeObserver(() => {
       armInteractionEnd();
-      saveFloatingLocation();
+      window.clearTimeout(saveTimeout);
+      saveTimeout = window.setTimeout(saveFloatingLocation, 150);
     });
     observer.observe(windowRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(saveTimeout);
+    };
   }, [armInteractionEnd, saveFloatingLocation, windowVisible]);
 
   // Remove floating-only styles once the panel takes over positioning.
