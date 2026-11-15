@@ -13,16 +13,18 @@ import { useContextWindowDrag } from "./useContextWindowDrag";
 import { useOptionalDocking } from "./useOptionalDocking";
 import { useStandaloneContextWindowState } from "./useStandaloneContextWindowState";
 import { useStandaloneWindowZIndex } from "./useStandaloneWindowZIndex";
+import { useWindowLocationStorage } from "./useWindowLocationStorage";
 
 interface UseContextWindowOptions {
   onClose?: () => void;
   onOpen?: () => void;
+  storageKey?: string;
 }
 
 /** Owns the docking and positioning behavior for the window identified by `id`. */
 export const useContextWindow = (
   id: string,
-  { onClose, onOpen }: UseContextWindowOptions = {},
+  { onClose, onOpen, storageKey }: UseContextWindowOptions = {},
 ): ContextWindowController => {
   const divRef = useRef<HTMLDivElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
@@ -31,9 +33,12 @@ export const useContextWindow = (
   const standalone = useStandaloneContextWindowState(id);
   const stacking = useStandaloneWindowZIndex(!docking, windowRef);
   const windowConfig = docking?.getWindowConfig(id) ?? standalone.windowConfig;
+  const { location: savedLocation, saveWindowLocation } = useWindowLocationStorage(storageKey);
   const allowUndock = windowConfig.allowUndock ?? true;
   const dockable = !!docking && (windowConfig.dockable ?? true);
-  const initialDockEdge = docking ? windowConfig.initialDockEdge : undefined;
+  const initialDockEdge = docking
+    ? (windowConfig.initialDockEdge ?? savedLocation?.dockEdge ?? undefined)
+    : undefined;
   const visible = windowConfig.visible ?? false;
   const windowVisible = windowConfig.windowVisible ?? false;
   const moving = windowConfig.moving ?? false;
@@ -65,6 +70,25 @@ export const useContextWindow = (
   const dockingRef = useRef(docking);
   const undockViaActionRef = useRef<boolean>(false);
   const pendingFloatingStyleRef = useRef<PendingFloatingStyle | null>(null);
+
+  const saveFloatingLocation = useCallback(() => {
+    if (isDockedRef.current || !windowRef.current) {
+      return;
+    }
+    const rect = windowRef.current.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      return;
+    }
+    saveWindowLocation({
+      dockEdge: null,
+      rect: {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height,
+      },
+    });
+  }, [saveWindowLocation]);
 
   // Keep the window in the provider's global z-order for its mounted lifetime.
   useEffect(() => {
@@ -123,6 +147,19 @@ export const useContextWindow = (
       }
 
       const rect = isDocked ? null : windowRef.current.getBoundingClientRect();
+      saveWindowLocation({
+        dockEdge: edge,
+        ...(rect
+          ? {
+              rect: {
+                x: rect.left + window.scrollX,
+                y: rect.top + window.scrollY,
+                width: rect.width,
+                height: rect.height,
+              },
+            }
+          : {}),
+      });
       dispatch({
         type: "dock",
         id,
@@ -135,7 +172,7 @@ export const useContextWindow = (
         },
       });
     },
-    [dispatch, hasDocking, id, isDocked],
+    [dispatch, hasDocking, id, isDocked, saveWindowLocation],
   );
 
   // Capture the pending floating placement before removing the window from its panel.
@@ -146,6 +183,7 @@ export const useContextWindow = (
       }
 
       const restoreState = getPreDockRect(id);
+      saveWindowLocation({ dockEdge: null, rect: restoreState ?? savedLocation?.rect ?? null });
       if (pointer) {
         pendingFloatingStyleRef.current = {
           left: pointer.x,
@@ -172,7 +210,7 @@ export const useContextWindow = (
       undockViaActionRef.current = !pointer;
       dispatch({ type: "undock", id, viaDrag: !!pointer });
     },
-    [allowUndock, dispatch, getPreDockRect, id, isDocked],
+    [allowUndock, dispatch, getPreDockRect, id, isDocked, saveWindowLocation, savedLocation],
   );
 
   // Guard controller docking actions against stale controls and non-dockable windows.
@@ -210,6 +248,7 @@ export const useContextWindow = (
     setWindowVisible,
     handleDock,
     handleUndock,
+    onLocationChange: saveFloatingLocation,
   });
 
   // A docked window that becomes hidden must release its panel slot.
@@ -229,10 +268,11 @@ export const useContextWindow = (
     if (initialDockEdge && !initialDockAppliedRef.current) {
       initialDockAppliedRef.current = true;
       if (!isDockedRef.current) {
+        saveWindowLocation({ dockEdge: initialDockEdge });
         dispatch({ type: "dock", id, edge: initialDockEdge });
       }
     }
-  }, [dispatch, id, initialDockEdge, visible]);
+  }, [dispatch, id, initialDockEdge, saveWindowLocation, visible]);
 
   // Clear provider visibility when the public visible prop closes the window.
   useEffect(() => {
@@ -270,16 +310,25 @@ export const useContextWindow = (
             height: rect.height,
           },
         });
+        saveWindowLocation({
+          dockEdge: null,
+          rect: {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+          },
+        });
       };
     },
-    [dispatch, hasDocking, id],
+    [dispatch, hasDocking, id, saveWindowLocation],
   );
 
   // Place and reveal the window when it opens, before the browser paints.
   useLayoutEffect(() => {
     if (visible && !windowVisible && windowRef.current) {
       if (!isDockedRef.current) {
-        const savedRect = getPreDockRect(id);
+        const savedRect = getPreDockRect(id) ?? savedLocation?.rect ?? null;
         windowPos.current = positionFloatingWindow(windowRef.current, savedRect);
         positionedWindowRef.current = windowRef.current;
       }
@@ -288,7 +337,16 @@ export const useContextWindow = (
       pushToTop();
       setWindowVisible(true);
     }
-  }, [getPreDockRect, id, onOpen, pushToTop, setWindowVisible, visible, windowVisible]);
+  }, [
+    getPreDockRect,
+    id,
+    onOpen,
+    pushToTop,
+    savedLocation,
+    setWindowVisible,
+    visible,
+    windowVisible,
+  ]);
 
   // Defer viewport correction until a CSS resize interaction is released.
   useEffect(() => {
@@ -296,10 +354,13 @@ export const useContextWindow = (
       return;
     }
 
-    const observer = new ResizeObserver(() => armInteractionEnd());
+    const observer = new ResizeObserver(() => {
+      armInteractionEnd();
+      saveFloatingLocation();
+    });
     observer.observe(windowRef.current);
     return () => observer.disconnect();
-  }, [armInteractionEnd, windowVisible]);
+  }, [armInteractionEnd, saveFloatingLocation, windowVisible]);
 
   // Remove floating-only styles once the panel takes over positioning.
   useEffect(() => {
@@ -321,16 +382,18 @@ export const useContextWindow = (
     const element = windowRef.current;
     restoreFloatingWindow(element, pending, lastMousePosRef.current);
     windowPos.current = { x: 0, y: 0 };
+    saveFloatingLocation();
     if (undockViaActionRef.current) {
       undockViaActionRef.current = false;
       checkPosition(windowRef, move);
     }
     positionedWindowRef.current = element;
-  });
+  }, [isDocked, lastMousePosRef, move, saveFloatingLocation]);
 
   // Raise the window when its surface is clicked and activate it within its dock edge.
   const handleWindowClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
+      /* istanbul ignore else -- A DOM click's target is contained by its current target. */
       if (event.currentTarget.contains(event.target as Node)) {
         if (isDocked && dockedWindow && activeDockedWindowId !== id) {
           dispatch({ type: "setActiveWindowOnEdge", edge: dockedWindow.edge, id });

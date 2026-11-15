@@ -133,18 +133,19 @@ A floating, draggable window rendered in a portal. Clicking a window brings it t
 
 #### `ContextWindow` properties
 
-| Property             | Type                                     | Default   | Description                                                                                                                   |
-| -------------------- | ---------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `id`                 | `string`                                 | —         | Unique window id (also used as the label of its DockPanel tab).                                                               |
-| `visible`            | `boolean`                                | —         | Shows/hides the window. Hiding a docked window removes it from its DockPanel.                                                 |
-| `title`              | `string`                                 | —         | Title bar text.                                                                                                               |
-| `titleElement`       | `React.ReactNode`                        | —         | Optional element rendered in the title bar instead of `title`.                                                                |
-| `titleBarButtons`    | `React.ReactNode`                        | —         | Custom controls rendered after dock/undock and before close. Pointer interactions do not start a window drag.                 |
-| `onOpen` / `onClose` | `() => void`                             | —         | Called when the window opens / when its close button is clicked.                                                              |
-| `dockable`           | `boolean`                                | `true`    | Allows the window to dock into a `DockPanel` when a `DockingProvider` is present.                                             |
-| `defaultDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | `"right"` | Edge targeted by the dock button while floating. The button icon reflects this edge. Requires `dockable`.                     |
-| `initialDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | —         | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                 |
-| `allowUndock`        | `boolean`                                | `true`    | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing. |
+| Property             | Type                                     | Default   | Description                                                                                                                     |
+| -------------------- | ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                 | `string`                                 | —         | Unique window id (also used as the label of its DockPanel tab).                                                                 |
+| `visible`            | `boolean`                                | —         | Shows/hides the window. Hiding a docked window removes it from its DockPanel.                                                   |
+| `title`              | `string`                                 | —         | Title bar text.                                                                                                                 |
+| `titleElement`       | `React.ReactNode`                        | —         | Optional element rendered in the title bar instead of `title`.                                                                  |
+| `titleBarButtons`    | `React.ReactNode`                        | —         | Custom controls rendered after dock/undock and before close. Pointer interactions do not start a window drag.                   |
+| `onOpen` / `onClose` | `() => void`                             | —         | Called when the window opens / when its close button is clicked.                                                                |
+| `dockable`           | `boolean`                                | `true`    | Allows the window to dock into a `DockPanel` when a `DockingProvider` is present.                                               |
+| `defaultDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | `"right"` | Edge targeted by the dock button while floating. The button icon reflects this edge. Requires `dockable`.                       |
+| `initialDockEdge`    | `"top" \| "right" \| "bottom" \| "left"` | —         | Opens the window directly inside that edge's `DockPanel` (each time it becomes visible). Requires `dockable`.                   |
+| `allowUndock`        | `boolean`                                | `true`    | When `false` a docked window cannot be undocked: no undock button, dragging does not pull it out and `undock()` does nothing.   |
+| `data-acw-key`       | `string`                                 | —         | Enables saving and restoring this window's dock edge and floating position and size in local storage. Use a stable, unique key. |
 
 #### Imperative handle
 
@@ -233,6 +234,8 @@ export function App(): React.ReactElement {
 Each panel has a content area, filled by the active window, and a strip of tab buttons, one per window docked to that edge.
 
 `DockingProvider` loads each edge's size and push/cover preference from local storage on mount, using the key `@asup/context-menu:dock-panels`. Preferences are saved after drag resizing finishes, keyboard resizing, or toggling push/cover mode, and survive page reloads. Saved sizes are clamped to the current viewport. Missing, malformed, or blocked storage falls back to the default size and push mode without disabling docking. Pin state and docked windows are not persisted.
+
+Add a stable `data-acw-key` attribute to a `ContextWindow` to persist its dock edge and floating rectangle across closes and page reloads. Windows without this attribute keep the existing in-memory-only location behavior. The value is namespaced in local storage as `@asup/context-menu:window-location:<key>`.
 
 - **Tabs** – click a tab to show that window. The panel takes the z-index of its visible window, so panels and floating windows stack correctly.
 - **Resize** – drag the panel's inner edge (or focus it and use the arrow keys, Shift for larger steps) to change its size. The size is kept between 80px and the viewport size minus 40px, and is remembered while the panel is empty. Clicking the resize handle brings the panel to the front.

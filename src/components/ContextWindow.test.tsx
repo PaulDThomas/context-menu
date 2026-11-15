@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { useDocking } from "../functions/useDocking";
 import * as dockingHook from "../functions/useOptionalDocking";
 import { initialDockingState } from "../reducer";
@@ -17,6 +18,35 @@ describe("standalone ContextWindow", () => {
       "data-context-window-reset-counter",
       "data-context-window-reset-source",
     ].forEach((attribute) => document.body.removeAttribute(attribute));
+  });
+
+  test("activates a docked window when its inactive surface is clicked", () => {
+    render(
+      <DockingProvider>
+        <ContextWindow
+          id="inactive-window"
+          title="Inactive window"
+          visible
+          initialDockEdge="left"
+        >
+          Inactive content
+        </ContextWindow>
+        <ContextWindow
+          id="active-window"
+          title="Active window"
+          visible
+          initialDockEdge="left"
+        >
+          Active content
+        </ContextWindow>
+      </DockingProvider>,
+    );
+    const inactive = document.getElementById("inactive-window")!;
+    expect(inactive).toHaveStyle({ display: "none" });
+
+    fireEvent.click(inactive);
+
+    expect(inactive).toHaveStyle({ display: "flex" });
   });
 
   const firstRef = (): React.RefObject<ContextWindowHandle | null> => ({ current: null });
@@ -162,6 +192,60 @@ describe("standalone ContextWindow", () => {
     expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
+  test("restores a keyed floating window's rectangle after it is remounted", () => {
+    const tree = (visible: boolean) => (
+      <ContextWindow
+        id="persisted-floating"
+        title="Persisted floating"
+        visible={visible}
+        data-acw-key="floating-location"
+      >
+        Content
+      </ContextWindow>
+    );
+    const firstView = render(tree(true));
+    vi.spyOn(node("persisted-floating"), "getBoundingClientRect").mockReturnValue(
+      new DOMRect(80, 90, 300, 200),
+    );
+
+    firstView.rerender(tree(false));
+    firstView.unmount();
+    render(tree(true));
+
+    expect(node("persisted-floating")).toHaveAttribute("data-acw-key", "floating-location");
+    expect(node("persisted-floating")).toHaveStyle({
+      left: "80px",
+      top: "90px",
+      width: "300px",
+      height: "200px",
+    });
+  });
+
+  test("saves a keyed floating window's rectangle after it is dragged", () => {
+    render(
+      <ContextWindow
+        id="dragged-floating"
+        title="Dragged floating"
+        visible
+        data-acw-key="dragged-floating"
+      >
+        Content
+      </ContextWindow>,
+    );
+    const element = document.getElementById("dragged-floating")!;
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue(new DOMRect(80, 90, 300, 200));
+
+    fireEvent.mouseDown(screen.getByText("Dragged floating"));
+    fireEvent.mouseMove(document, { clientX: 400, clientY: 300, movementX: 12, movementY: 8 });
+    fireEvent.mouseUp(document);
+
+    expect(
+      JSON.parse(
+        localStorage.getItem("@asup/context-menu:window-location:dragged-floating") ?? "null",
+      ),
+    ).toMatchObject({ rect: { x: 80, y: 90, width: 300, height: 200 } });
+  });
+
   test("does not reset provider windows and removes reset listeners on unmount in StrictMode", () => {
     const removeListener = vi.spyOn(document, "removeEventListener");
     document.body.setAttribute("data-acm-max-z-index", "3002");
@@ -198,6 +282,27 @@ describe("standalone ContextWindow", () => {
 
 describe("ContextWindow", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  test("renders the window inline when the document is unavailable", () => {
+    const currentDocument = document;
+    vi.stubGlobal("document", undefined);
+
+    try {
+      const markup = renderToStaticMarkup(
+        <ContextWindow
+          id="server-window"
+          title="Server window"
+          visible
+        >
+          Server content
+        </ContextWindow>,
+      );
+
+      expect(markup).toContain("Server content");
+    } finally {
+      vi.stubGlobal("document", currentDocument);
+    }
+  });
 
   let docking: DockingContextType;
 
@@ -241,6 +346,34 @@ describe("ContextWindow", () => {
     });
   });
 
+  test("restores a keyed window to its last dock edge after remounting", () => {
+    const tree = () => (
+      <DockingProvider>
+        <ContextWindow
+          id="persisted-docked"
+          title="Persisted docked"
+          visible
+          data-acw-key="docked-location"
+        >
+          Docked content
+        </ContextWindow>
+      </DockingProvider>
+    );
+    const firstView = render(tree());
+
+    fireEvent.click(screen.getByRole("button", { name: "Dock" }));
+    expect(
+      JSON.parse(
+        localStorage.getItem("@asup/context-menu:window-location:docked-location") ?? "null",
+      ),
+    ).toMatchObject({ dockEdge: "right" });
+    firstView.unmount();
+    render(tree());
+
+    expect(screen.getByRole("separator", { name: "Resize right dock panel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undock" })).toBeInTheDocument();
+  });
+
   test("exposes imperative methods and keeps hidden windows undocked", () => {
     const windowRef = { current: null } as React.RefObject<ContextWindowHandle | null>;
     renderWindow({ visible: false }, windowRef);
@@ -261,6 +394,15 @@ describe("ContextWindow", () => {
     fireEvent.mouseDown(screen.getByText("Test window"));
 
     expect(document.getElementById("test-window")).toHaveStyle({ opacity: "0.8" });
+  });
+
+  test("forwards click-capture events to the window element", () => {
+    const onClickCapture = vi.fn();
+    renderWindow({ onClickCapture });
+
+    fireEvent.click(screen.getByText("Window content"));
+
+    expect(onClickCapture).toHaveBeenCalledTimes(1);
   });
 
   test.each<DockEdge | undefined>([undefined, "left"])(

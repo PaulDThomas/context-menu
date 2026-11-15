@@ -531,10 +531,10 @@ describe("useContextWindow", () => {
     const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
     const observe = vi.fn();
     const disconnect = vi.fn();
-    let onResize: ResizeObserverCallback | undefined;
+    const resizeCallbacks: ResizeObserverCallback[] = [];
     class MockResizeObserver {
       constructor(callback: ResizeObserverCallback) {
-        onResize = callback;
+        resizeCallbacks.push(callback);
       }
       observe = observe;
       disconnect = disconnect;
@@ -546,11 +546,11 @@ describe("useContextWindow", () => {
     });
 
     try {
-      const view = renderWindow();
+      const view = renderWindow({ initialDockEdge: "left" });
       expect(observe).toHaveBeenCalledWith(document.getElementById("hook-window"));
-      act(() => onResize?.([], {} as ResizeObserver));
+      act(() => resizeCallbacks.forEach((onResize) => onResize([], {} as ResizeObserver)));
       view.unmount();
-      expect(disconnect).toHaveBeenCalledTimes(1);
+      expect(disconnect).toHaveBeenCalledTimes(resizeCallbacks.length);
     } finally {
       if (originalDescriptor) {
         Object.defineProperty(globalThis, "ResizeObserver", originalDescriptor);
