@@ -1,6 +1,6 @@
 {
   "name": "@asup/context-menu",
-  "version": "3.0.5",
+  "version": "3.1.0",
   "description": "REACT Typescript Context menu component",
   "author": "Paul Thomas <@PaulDThomas>",
   "private": false,
@@ -75,7 +75,6 @@
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
-    "@vitest/browser-playwright": "^4.0.14",
     "@vitest/coverage-v8": "^4.0.14",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
@@ -88,7 +87,6 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^17.2.0",
     "parcel": "^2.7.0",
-    "playwright": "^1.57.0",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^4.1.0",
     "process": "^0.11.10",
