@@ -26,6 +26,7 @@ Run Storybook to see interactive component examples and documentation.
 ```powershell
 # install dependencies
 npm install
+npx playwright install chromium
 
 # run Storybook
 npm run storybook
@@ -342,8 +343,9 @@ Useful scripts (from `package.json`):
 - `npm run prepare` — run Husky (prepares Git hooks).
 - `npm run storybook` — start Storybook to view component examples.
 - `npm run build-storybook` — build a static Storybook site.
-- `npm run test` — run Vitest and collect coverage (`vitest run --coverage`).
-- `npm run test-watch` — run Vitest in watch mode with coverage (`vitest --watch --coverage --maxWorkers=4`).
+- `npm run test` — run unit tests with coverage and Storybook browser smoke tests.
+- `npm run test-storybook` — run Storybook story smoke tests in Chromium.
+- `npm run test-watch` — run unit tests in watch mode with coverage (`vitest --project unit --watch --coverage --maxWorkers=4`).
 - `npm run eslint` — run ESLint over `src` (pattern: `src/**/*.{js,jsx,ts,tsx}`).
 - `npm run build` — build the library bundle with Parcel. This script clears the Parcel cache before building (`parcel build src/main.ts`).
 
